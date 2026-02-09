@@ -1,0 +1,63 @@
+# requirements.txt
+# Unified dependencies for LoCoMo-Minimal (Dataset Generation + RAG System)
+# Generated from conda ai environment
+
+# ============================================
+# CORE DEPENDENCIES
+# ============================================
+
+# Graph Database & RAG Framework
+graphiti-core[neo4j]==0.24.3
+neo4j==6.0.3
+chromadb==1.3.7
+
+# API & Environment
+python-dotenv==1.2.1
+aiohttp==3.13.2
+openai==2.2.0  # For Novita AI (OpenAI-compatible API)
+
+# Data Validation
+pydantic==2.12.5
+
+# ============================================
+# LLM PROVIDERS
+# ============================================
+
+# Google Gemini
+google-generativeai==0.8.5
+genai-prices==0.0.48  # Cost tracking
+
+# ============================================
+# ML & EMBEDDINGS
+# ============================================
+
+# PyTorch (CUDA 13.0) - Install from pytorch.org for GPU support
+# torch==2.9.1+cu130
+# torchvision==0.24.1+cu130
+
+# Embeddings & Transformers
+transformers==4.57.3
+sentence-transformers==5.2.0
+
+# Numerical Computing
+numpy==2.2.6
+scipy==1.16.3
+scikit-learn==1.8.0
+
+# ============================================
+# UTILITIES
+# ============================================
+
+tqdm==4.67.1
+pillow==12.0.0
+
+# ============================================
+# NOTES
+# ============================================
+# 
+# PyTorch Installation (GPU):
+#   pip install torch torchvision --index-url https://download.pytorch.org/whl/cu130
+#
+# For development only (not required for core functionality):
+#   - flash_attn (local wheel)
+#   - torch-geometric (for graph ML experiments)

@@ -1,0 +1,17 @@
+# Python
+__pycache__/
+*.pyc
+
+# Environment
+.env
+
+# Token usage logs (runtime generated)
+output/**/token_usage.jsonl
+
+# Old evaluation queries (replaced by evaluation_queries_100.json)
+output/final_dataset_v1/evaluation_queries.json
+
+# JetBrains IDE settings
+.idea/
+data/chroma_test/
+*.log

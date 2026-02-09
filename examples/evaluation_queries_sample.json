@@ -1,0 +1,125 @@
+[
+  {
+    "query_id": "Q1_session1_easy",
+    "session_id": "session_1",
+    "query": "Siapa saja teman Budi yang main game bersamanya?",
+    "type": "memory_recall",
+    "difficulty": "easy",
+    "expected_answer": "Andi dan Reza",
+    "should_retrieve_from": [
+      "session_1_turn_2"
+    ],
+    "reasoning_steps": [
+      "Retrieve turn dimana User menyebutkan aktivitas main game",
+      "Extract nama-nama teman yang disebutkan"
+    ],
+    "evaluation_criteria": "Jawaban harus menyebutkan kedua nama (Andi dan Reza). Partial answer (hanya 1 nama) = 50% score."
+  },
+  {
+    "query_id": "Q2_session1_easy",
+    "session_id": "session_1",
+    "query": "Game apa yang dimainkan Budi dengan teman-temannya?",
+    "type": "memory_recall",
+    "difficulty": "easy",
+    "expected_answer": "Valorant",
+    "should_retrieve_from": [
+      "session_1_turn_4"
+    ],
+    "reasoning_steps": [
+      "Retrieve turn dimana game spesifik disebutkan"
+    ],
+    "evaluation_criteria": "Jawaban harus exact match 'Valorant'. Case-insensitive OK."
+  },
+  {
+    "query_id": "Q3_session1_medium",
+    "session_id": "session_1",
+    "query": "Kapan Budi main game dengan teman-temannya?",
+    "type": "timeline",
+    "difficulty": "medium",
+    "expected_answer": "Tadi siang (beberapa jam sebelum percakapan session 1 yang terjadi pada 2024-01-15 sore)",
+    "should_retrieve_from": [
+      "session_1_turn_2"
+    ],
+    "reasoning_steps": [
+      "Retrieve turn yang menyebutkan waktu aktivitas",
+      "Parse temporal reference 'tadi siang'",
+      "Hubungkan dengan timestamp session"
+    ],
+    "evaluation_criteria": "Jawaban harus menyebutkan 'siang' atau timeframe yang sesuai. Bonus jika menyertakan tanggal."
+  },
+  {
+    "query_id": "Q4_session1_medium",
+    "session_id": "session_1",
+    "query": "Siapa yang paling jago main game di antara Budi dan teman-temannya?",
+    "type": "entity_relationship",
+    "difficulty": "medium",
+    "expected_answer": "Andi (karena dia yang carry tim)",
+    "should_retrieve_from": [
+      "session_1_turn_4"
+    ],
+    "reasoning_steps": [
+      "Retrieve turn yang membahas skill gaming",
+      "Identify entity (Andi) dengan atribut 'jago' atau 'carry'",
+      "Extract relationship/comparison"
+    ],
+    "evaluation_criteria": "Jawaban harus menyebutkan 'Andi'. Bonus jika menyertakan alasan (carry/jago)."
+  },
+  {
+    "query_id": "Q5_session1_hard",
+    "session_id": "session_1",
+    "query": "Mengapa Sarah menghubungi Budi?",
+    "type": "multi_hop",
+    "difficulty": "hard",
+    "expected_answer": "Sarah ingin membuat rencana untuk nongkrong bersama dengan Budi (menanyakan jadwal kapan bisa ketemu lagi)",
+    "should_retrieve_from": [
+      "session_1_turn_4"
+    ],
+    "reasoning_steps": [
+      "Retrieve turn yang menyebutkan Sarah",
+      "Identify Sarah sebagai pacar (dari persona context)",
+      "Extract intent dari komunikasi (nanya kapan nongkrong)",
+      "Infer motivation: ingin bertemu/merencanakan aktivitas bersama"
+    ],
+    "evaluation_criteria": "Jawaban harus menyebutkan 'ingin ketemu' atau 'membuat rencana'. Tidak cukup hanya 'Sarah bertanya'."
+  },
+  {
+    "query_id": "Q6_session1_hard",
+    "session_id": "session_1",
+    "query": "Bagaimana hubungan Budi dengan orang-orang yang disebutkan dalam percakapan ini?",
+    "type": "contextual",
+    "difficulty": "hard",
+    "expected_answer": "Andi dan Reza adalah teman kuliah yang suka main game bersama. Sarah adalah pacarnya yang ingin menghabiskan waktu dengannya.",
+    "should_retrieve_from": [
+      "session_1_turn_2",
+      "session_1_turn_4",
+      "user_profile_secondary_personas"
+    ],
+    "reasoning_steps": [
+      "Retrieve turns yang menyebutkan nama-nama",
+      "Retrieve secondary personas dari user profile",
+      "Match entities dengan persona definitions",
+      "Synthesize relationship context"
+    ],
+    "evaluation_criteria": "Jawaban harus menyebutkan: (1) Andi & Reza = teman, (2) Sarah = pacar. Bonus: menyebutkan aktivitas bersama (gaming/nongkrong)."
+  },
+  {
+    "query_id": "Q7_cross_session_hard",
+    "session_id": "multiple",
+    "query": "Seberapa sering Budi main game dengan Andi berdasarkan percakapan-percakapan sebelumnya?",
+    "type": "multi_hop",
+    "difficulty": "hard",
+    "expected_answer": "Perlu retrieve multiple sessions untuk menghitung frekuensi mention tentang gaming dengan Andi",
+    "should_retrieve_from": [
+      "session_1_turn_2",
+      "session_1_turn_4",
+      "session_*_turn_* (where Andi + gaming mentioned)"
+    ],
+    "reasoning_steps": [
+      "Retrieve semua turns yang mention 'Andi' AND 'game'",
+      "Count occurrences across sessions",
+      "Analyze temporal distribution",
+      "Infer frequency pattern"
+    ],
+    "evaluation_criteria": "Jawaban harus berdasarkan data faktual dari multiple sessions. Accept qualitative ('sering', 'kadang') atau quantitative ('3 kali disebutkan')."
+  }
+]

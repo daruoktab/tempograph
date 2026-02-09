@@ -1,0 +1,144 @@
+{
+  "session_id": "session_1",
+  "date": "2024-01-15",
+  "session_number": 1,
+  "chat_history": [
+    {
+      "turn": 1,
+      "speaker": "Bot",
+      "text": "Hai! Apa kabar? 😊",
+      "timestamp": "2024-01-15 14:30:00"
+    },
+    {
+      "turn": 2,
+      "speaker": "User",
+      "text": "Halo! Baik kok. Tadi siang aku baru aja main game sama Andi dan Reza. Seru banget!",
+      "timestamp": "2024-01-15 14:30:45"
+    },
+    {
+      "turn": 3,
+      "speaker": "Bot",
+      "text": "Wah asyik dong! Game apa yang kalian main?",
+      "timestamp": "2024-01-15 14:31:15"
+    },
+    {
+      "turn": 4,
+      "speaker": "User",
+      "text": "Main Valorant sih. Andi lumayan jago, dia carry kita terus haha. Btw Sarah tadi nanya kapan kita bisa nongkrong lagi",
+      "timestamp": "2024-01-15 14:32:00"
+    }
+  ],
+  "ground_truths": [
+    {
+      "turn_id": 2,
+      "session_id": "session_1",
+      "speaker": "User",
+      "timestamp": "2024-01-15 14:30:45",
+      "factual": [
+        {
+          "fact": "User main game dengan Andi dan Reza",
+          "entity": "User",
+          "attribute": "activity",
+          "value": "main game dengan teman"
+        },
+        {
+          "fact": "Waktu aktivitas adalah siang hari",
+          "entity": "event",
+          "attribute": "time",
+          "value": "tadi siang"
+        }
+      ],
+      "entities_mentioned": [
+        {
+          "name": "Andi",
+          "type": "person",
+          "relation_to_user": "teman kuliah"
+        },
+        {
+          "name": "Reza",
+          "type": "person",
+          "relation_to_user": "teman kuliah"
+        }
+      ],
+      "temporal_references": [
+        {
+          "reference_text": "tadi siang",
+          "actual_timeframe": "beberapa jam sebelum percakapan",
+          "refers_to_event": "main game dengan Andi dan Reza"
+        }
+      ],
+      "retrieval_required": [],
+      "topics": [
+        "gaming",
+        "friends",
+        "leisure"
+      ],
+      "key_information": "User bermain game bersama dua teman (Andi dan Reza) pada siang hari sebelum percakapan ini"
+    },
+    {
+      "turn_id": 4,
+      "session_id": "session_1",
+      "speaker": "User",
+      "timestamp": "2024-01-15 14:32:00",
+      "factual": [
+        {
+          "fact": "User dan teman main Valorant",
+          "entity": "game",
+          "attribute": "name",
+          "value": "Valorant"
+        },
+        {
+          "fact": "Andi adalah pemain yang jago",
+          "entity": "Andi",
+          "attribute": "skill",
+          "value": "jago/carry player"
+        },
+        {
+          "fact": "Sarah bertanya tentang jadwal nongkrong",
+          "entity": "Sarah",
+          "attribute": "communication",
+          "value": "menanyakan waktu untuk bertemu"
+        }
+      ],
+      "entities_mentioned": [
+        {
+          "name": "Valorant",
+          "type": "thing",
+          "relation_to_user": "game yang dimainkan"
+        },
+        {
+          "name": "Andi",
+          "type": "person",
+          "relation_to_user": "teman kuliah, gaming partner"
+        },
+        {
+          "name": "Sarah",
+          "type": "person",
+          "relation_to_user": "pacar"
+        }
+      ],
+      "temporal_references": [
+        {
+          "reference_text": "tadi",
+          "actual_timeframe": "beberapa waktu yang lalu",
+          "refers_to_event": "Sarah bertanya tentang jadwal"
+        }
+      ],
+      "retrieval_required": [
+        {
+          "should_retrieve_from": "session_1_turn_2",
+          "reason": "Melanjutkan konteks tentang main game yang disebutkan di turn 2",
+          "retrieval_type": "episodic"
+        }
+      ],
+      "topics": [
+        "gaming",
+        "friends",
+        "relationship",
+        "plans"
+      ],
+      "key_information": "Game spesifik adalah Valorant, Andi memiliki skill tinggi, Sarah (pacar) ingin membuat rencana bertemu"
+    }
+  ],
+  "summary": "User menceritakan aktivitas main game Valorant bersama teman-temannya Andi dan Reza di siang hari. Andi terkenal sebagai pemain yang jago dan sering carry tim. User juga menyebutkan bahwa Sarah (pacarnya) bertanya tentang jadwal untuk nongkrong bersama."
+}
