@@ -18,7 +18,6 @@ from .experiment_setups import (
     StorageType,
     ExperimentSetup,
     get_setup,
-    get_all_setups,
 )
 
 __all__ = [
@@ -38,5 +37,4 @@ __all__ = [
     "StorageType",
     "ExperimentSetup",
     "get_setup",
-    "get_all_setups",
 ]

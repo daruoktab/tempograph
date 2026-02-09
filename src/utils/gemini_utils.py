@@ -1,6 +1,7 @@
 """
 Global utility methods for API calls to Google Gemini.
 """
+
 import os
 import time
 
@@ -18,16 +19,18 @@ def set_gemini_key():
         raise ValueError("GEMINI_API_KEY environment variable not set.")
     # The type ignore is kept because the genai library's dynamic
     # nature can sometimes confuse static type checkers.
-    genai.configure(api_key=api_key)  # type: ignore[attr-defined]
+    genai.configure(api_key=api_key)
 
 
 # Global variable for log path
 TOKEN_LOG_PATH = os.path.join("output", "token_usage.jsonl")
 
+
 def set_token_log_path(directory):
     """Set the directory where token usage logs will be saved."""
     global TOKEN_LOG_PATH
     TOKEN_LOG_PATH = os.path.join(directory, "token_usage.jsonl")
+
 
 def log_token_usage(usage, model_name, cached_content=None):
     """Log token usage and calculate price."""
@@ -35,34 +38,37 @@ def log_token_usage(usage, model_name, cached_content=None):
         if usage:
             input_tokens = usage.prompt_token_count
             output_tokens = usage.candidates_token_count
-            
+
             # Calculate Price
             cached_tokens = 0
-            
+
             # Method 1: Try to get from response usage metadata (Standard way)
-            if hasattr(usage, 'cached_content_token_count'):
+            if hasattr(usage, "cached_content_token_count"):
                 cached_tokens = usage.cached_content_token_count
-            
+
             # Method 2: Fallback to cached_content object if provided and Method 1 failed
             if cached_tokens == 0 and cached_content:
                 try:
-                    if hasattr(cached_content, 'usage_metadata'):
-                            cached_tokens = cached_content.usage_metadata.total_token_count
+                    if hasattr(cached_content, "usage_metadata"):
+                        cached_tokens = cached_content.usage_metadata.total_token_count
                 except Exception as e:
                     print(f"Warning: Could not get cached token count from object: {e}")
-            
+
             price_data = None
             try:
                 from genai_prices import Usage, calc_price
+
                 # Note: genai_prices expects 'input_tokens' to be the TOTAL prompt tokens.
                 # It subtracts 'cache_read_tokens' internally to find the uncached count.
                 usage_obj = Usage(
                     input_tokens=input_tokens,
                     cache_read_tokens=cached_tokens if cached_tokens > 0 else None,
-                    output_tokens=output_tokens
+                    output_tokens=output_tokens,
                 )
                 # Use google provider for Gemini models
-                price_data = calc_price(usage_obj, model_ref=model_name, provider_id='google')
+                price_data = calc_price(
+                    usage_obj, model_ref=model_name, provider_id="google"
+                )
             except Exception as e:
                 print(f"Warning: Price calculation failed: {e}")
 
@@ -71,9 +77,9 @@ def log_token_usage(usage, model_name, cached_content=None):
                 "model": model_name,
                 "input_tokens": input_tokens,
                 "output_tokens": output_tokens,
-                "cached_tokens": cached_tokens
+                "cached_tokens": cached_tokens,
             }
-            
+
             if price_data:
                 log_entry["input_price"] = float(price_data.input_price)
                 log_entry["output_price"] = float(price_data.output_price)
@@ -83,15 +89,22 @@ def log_token_usage(usage, model_name, cached_content=None):
             log_dir = os.path.dirname(TOKEN_LOG_PATH)
             if log_dir and not os.path.exists(log_dir):
                 os.makedirs(log_dir)
-            
+
             with open(TOKEN_LOG_PATH, "a", encoding="utf-8") as f:
                 import json
+
                 f.write(json.dumps(log_entry) + "\n")
     except Exception as e:
         print(f"Warning: Failed to log token usage: {e}")
 
-def run_gemini(prompt, max_output_tokens=2048, temperature=0.8,
-               model_name="gemini-2.5-flash", cached_content=None):
+
+def run_gemini(
+    prompt,
+    max_output_tokens=2048,
+    temperature=0.8,
+    model_name="gemini-2.5-flash",
+    cached_content=None,
+):
     """
     Run query through Google Gemini API with retry logic.
 
@@ -113,7 +126,7 @@ def run_gemini(prompt, max_output_tokens=2048, temperature=0.8,
         # Initialize model from cache
         model = genai.GenerativeModel.from_cached_content(cached_content=cached_content)
     else:
-        model = genai.GenerativeModel(model_name)  # type: ignore[attr-defined]
+        model = genai.GenerativeModel(model_name)
 
     # Exponential backoff for handling rate limits
     wait_time = 2
@@ -127,10 +140,9 @@ def run_gemini(prompt, max_output_tokens=2048, temperature=0.8,
         try:
             response = model.generate_content(
                 prompt,
-                generation_config=genai.types.GenerationConfig(  # type: ignore[attr-defined]
-                    max_output_tokens=max_output_tokens,
-                    temperature=temperature
-                )
+                generation_config=genai.types.GenerationConfig(
+                    max_output_tokens=max_output_tokens, temperature=temperature
+                ),
             )
             # Check for valid response text
             if response.text:
@@ -165,7 +177,12 @@ def run_gemini(prompt, max_output_tokens=2048, temperature=0.8,
     return None
 
 
-def get_gemini_embedding(texts, model="models/embedding-001", task_type="RETRIEVAL_DOCUMENT", output_dimensionality=None):
+def get_gemini_embedding(
+    texts,
+    model="models/embedding-001",
+    task_type="RETRIEVAL_DOCUMENT",
+    output_dimensionality=None,
+):
     """
     Generate embeddings for a list of texts using the Gemini API.
 
@@ -186,22 +203,28 @@ def get_gemini_embedding(texts, model="models/embedding-001", task_type="RETRIEV
 
     while attempt < max_retries:
         try:
-            result = genai.embed_content(  # type: ignore[attr-defined]
+            result = genai.embed_content(
                 model=model,
                 content=texts,
                 task_type=task_type,
-                output_dimensionality=output_dimensionality if output_dimensionality else None
+                output_dimensionality=output_dimensionality
+                if output_dimensionality
+                else None,
             )
-            return result['embedding']
+            return result["embedding"]
         # pylint: disable=broad-exception-caught
         except Exception as e:
             if "ResourceExhausted" in type(e).__name__ or "429" in str(e):
-                print(f"Rate limit error detected for embeddings. Retrying in {wait_time} seconds...")
+                print(
+                    f"Rate limit error detected for embeddings. Retrying in {wait_time} seconds..."
+                )
                 time.sleep(wait_time)
                 wait_time *= 2
                 attempt += 1
             else:
-                print(f"An unexpected error occurred during embedding generation: {type(e).__name__}: {e}")
+                print(
+                    f"An unexpected error occurred during embedding generation: {type(e).__name__}: {e}"
+                )
                 return None
 
     print("Max retries reached. Could not get embeddings from Gemini.")

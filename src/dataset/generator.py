@@ -8,7 +8,7 @@ import sys
 import time
 from datetime import date, datetime, timedelta
 
-sys.path.insert(0, '.')
+sys.path.insert(0, ".")
 from src.utils import run_gemini, set_gemini_key, set_token_log_path, log_token_usage
 
 # Import for structured outputs and safety settings
@@ -17,7 +17,9 @@ from google.generativeai import caching
 from google.generativeai.types import HarmCategory, HarmBlockThreshold
 
 # --- Configuration ---
-logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+logging.basicConfig(
+    level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s"
+)
 
 # Rate limiting for ground truth generation
 REQUESTS_PER_MINUTE = 6
@@ -305,95 +307,186 @@ Buatlah ringkasan singkat (2-3 kalimat) dari percakapan berikut. Fokus pada topi
 Ringkasan:
 """
 
+
 def parse_args():
     """Parse command-line arguments."""
-    parser = argparse.ArgumentParser(description="Generate Indonesian Conversation Dataset")
-    parser.add_argument('--out-dir', type=str, required=True,
-                        help='Directory to save the output files.')
-    parser.add_argument('--num-sessions', type=int, default=10,
-                        help='Number of NEW conversation sessions to generate (incremental).')
-    parser.add_argument('--num-days', type=int, default=60,
-                        help='The total time span in days for the simulation.')
-    parser.add_argument('--max-turns-per-session', type=int, default=12,
-                        help='Maximum number of turns (user + bot) per session.')
-    parser.add_argument('--min-turns-per-session', type=int, default=6,
-                        help='Minimum number of turns (user + bot) per session.')
-    parser.add_argument('--num-events', type=int, default=20,
-                        help='Number of life events to generate for the user.')
-    parser.add_argument('--start-date', type=str, default='2024-01-01',
-                        help='Start date for the simulation in YYYY-MM-DD format.')
-    parser.add_argument('--user-file', type=str, default='data/indonesian_single_user.json',
-                        help='Path to the user profile JSON file.')
-    parser.add_argument('--auto-generate-persona', action='store_true',
-                        help='Automatically generate random persona using AI (ignores --user-file).')
-    parser.add_argument('--fresh-start', action='store_true',
-                        help='Force fresh start, ignore existing dataset in out-dir.')
-    parser.add_argument("--temperature", type=float, default=0.9, help="Temperature for generation")
-    parser.add_argument("--use-caching", action="store_true", help="Enable Context Caching for cost optimization (Gemini 2.5)")
-    
+    parser = argparse.ArgumentParser(
+        description="Generate Indonesian Conversation Dataset"
+    )
+    parser.add_argument(
+        "--out-dir", type=str, required=True, help="Directory to save the output files."
+    )
+    parser.add_argument(
+        "--num-sessions",
+        type=int,
+        default=10,
+        help="Number of NEW conversation sessions to generate (incremental).",
+    )
+    parser.add_argument(
+        "--num-days",
+        type=int,
+        default=60,
+        help="The total time span in days for the simulation.",
+    )
+    parser.add_argument(
+        "--max-turns-per-session",
+        type=int,
+        default=12,
+        help="Maximum number of turns (user + bot) per session.",
+    )
+    parser.add_argument(
+        "--min-turns-per-session",
+        type=int,
+        default=6,
+        help="Minimum number of turns (user + bot) per session.",
+    )
+    parser.add_argument(
+        "--num-events",
+        type=int,
+        default=20,
+        help="Number of life events to generate for the user.",
+    )
+    parser.add_argument(
+        "--start-date",
+        type=str,
+        default="2024-01-01",
+        help="Start date for the simulation in YYYY-MM-DD format.",
+    )
+    parser.add_argument(
+        "--user-file",
+        type=str,
+        default="data/indonesian_single_user.json",
+        help="Path to the user profile JSON file.",
+    )
+    parser.add_argument(
+        "--auto-generate-persona",
+        action="store_true",
+        help="Automatically generate random persona using AI (ignores --user-file).",
+    )
+    parser.add_argument(
+        "--fresh-start",
+        action="store_true",
+        help="Force fresh start, ignore existing dataset in out-dir.",
+    )
+    parser.add_argument(
+        "--temperature", type=float, default=0.9, help="Temperature for generation"
+    )
+    parser.add_argument(
+        "--use-caching",
+        action="store_true",
+        help="Enable Context Caching for cost optimization (Gemini 2.5)",
+    )
+
     return parser.parse_args()
+
 
 def generate_random_persona():
     """Generate a random user persona using Gemini API."""
     logging.info("🎲 Generating random persona using AI...")
-    
+
     max_retries = 6
     for attempt in range(max_retries):
-        logging.info("Calling Gemini API for persona generation (attempt %d/%d)...", attempt + 1, max_retries)
+        logging.info(
+            "Calling Gemini API for persona generation (attempt %d/%d)...",
+            attempt + 1,
+            max_retries,
+        )
         # MEDIUM difficulty: Creative persona generation
-        response = run_gemini(PERSONA_GENERATION_PROMPT, max_output_tokens=8192, temperature=0.9, model_name="gemini-2.5-flash")
-        
+        response = run_gemini(
+            PERSONA_GENERATION_PROMPT,
+            max_output_tokens=8192,
+            temperature=0.9,
+            model_name="gemini-2.5-flash",
+        )
+
         if not response:
-            logging.error("Failed to generate persona - response is None/empty (attempt %d/%d)", attempt + 1, max_retries)
+            logging.error(
+                "Failed to generate persona - response is None/empty (attempt %d/%d)",
+                attempt + 1,
+                max_retries,
+            )
             continue
-        
+
         logging.info("Received response from API, length: %d characters", len(response))
-        
+
         try:
             # Clean the response by removing markdown backticks
-            response_clean = re.sub(r'```json\n|```', '', response).strip()
+            response_clean = re.sub(r"```json\n|```", "", response).strip()
             # Try to find JSON object in response
             json_match = re.search(r'\{\s*"user"\s*:.*\}', response_clean, re.DOTALL)
             if json_match:
                 response_clean = json_match.group(0)
-            
+
             persona_data = json.loads(response_clean)
-            
+
             # Validate required fields
-            if 'user' in persona_data and 'secondary_personas' in persona_data:
-                user = persona_data['user']
-                required_fields = ['name', 'age', 'occupation', 'location', 'traits', 'interests', 'conversation_topics']
+            if "user" in persona_data and "secondary_personas" in persona_data:
+                user = persona_data["user"]
+                required_fields = [
+                    "name",
+                    "age",
+                    "occupation",
+                    "location",
+                    "traits",
+                    "interests",
+                    "conversation_topics",
+                ]
                 if all(field in user for field in required_fields):
-                    logging.info("✅ Successfully generated persona: %s", user.get('name', 'N/A'))
-                    logging.info("   Age: %s, Occupation: %s", user.get('age', 'N/A'), user.get('occupation', 'N/A'))
-                    logging.info("   Location: %s", user.get('location', 'N/A'))
-                    logging.info("   Traits: %d, Interests: %d, Topics: %d", 
-                               len(user.get('traits', [])), 
-                               len(user.get('interests', [])), 
-                               len(user.get('conversation_topics', [])))
-                    logging.info("   Secondary personas: %d", len(persona_data.get('secondary_personas', [])))
+                    logging.info(
+                        "✅ Successfully generated persona: %s", user.get("name", "N/A")
+                    )
+                    logging.info(
+                        "   Age: %s, Occupation: %s",
+                        user.get("age", "N/A"),
+                        user.get("occupation", "N/A"),
+                    )
+                    logging.info("   Location: %s", user.get("location", "N/A"))
+                    logging.info(
+                        "   Traits: %d, Interests: %d, Topics: %d",
+                        len(user.get("traits", [])),
+                        len(user.get("interests", [])),
+                        len(user.get("conversation_topics", [])),
+                    )
+                    logging.info(
+                        "   Secondary personas: %d",
+                        len(persona_data.get("secondary_personas", [])),
+                    )
                     return persona_data
                 else:
-                    logging.warning("Missing required fields in generated persona (attempt %d/%d)", attempt + 1, max_retries)
+                    logging.warning(
+                        "Missing required fields in generated persona (attempt %d/%d)",
+                        attempt + 1,
+                        max_retries,
+                    )
             else:
-                logging.warning("Invalid persona structure (attempt %d/%d)", attempt + 1, max_retries)
-                
+                logging.warning(
+                    "Invalid persona structure (attempt %d/%d)",
+                    attempt + 1,
+                    max_retries,
+                )
+
         except (json.JSONDecodeError, TypeError, ValueError) as e:
-            logging.error("Could not parse persona JSON (attempt %d/%d): %s", attempt + 1, max_retries, e)
+            logging.error(
+                "Could not parse persona JSON (attempt %d/%d): %s",
+                attempt + 1,
+                max_retries,
+                e,
+            )
             excerpt = response[:300] if response else "no response"
             logging.error("Response excerpt: %s", excerpt)
-    
+
     logging.error("Failed to generate persona after %d attempts.", max_retries)
     logging.error("Falling back to loading default persona from file.")
     return None
 
+
 def load_user_profile(file_path):
     """Load user profile from a JSON file."""
     try:
-        with open(file_path, 'r', encoding='utf-8') as f:
+        with open(file_path, "r", encoding="utf-8") as f:
             data = json.load(f)
-        user_profile = data.get('user', {})
-        secondary_personas = data.get('secondary_personas', [])
+        user_profile = data.get("user", {})
+        secondary_personas = data.get("secondary_personas", [])
         return user_profile, secondary_personas
     except FileNotFoundError:
         logging.error("User profile file not found: %s", file_path)
@@ -402,21 +495,24 @@ def load_user_profile(file_path):
         logging.error("Error decoding JSON from user profile file: %s", file_path)
         sys.exit(1)
 
+
 def generate_events(user_profile, secondary_personas, start_date, num_days, num_events):
     """Generate a list of life events for the user using the Gemini API."""
     logging.info("Generating %d life events...", num_events)
-    secondary_personas_str = ", ".join([f"{p['name']} ({p['relationship']})" for p in secondary_personas])
+    secondary_personas_str = ", ".join(
+        [f"{p['name']} ({p['relationship']})" for p in secondary_personas]
+    )
     prompt = EVENT_GENERATION_PROMPT.format(
         num_events=num_events,
         num_days=num_days,
-        name=user_profile.get('name', 'N/A'),
-        age=user_profile.get('age', 'N/A'),
-        occupation=user_profile.get('occupation', 'N/A'),
-        traits=", ".join(user_profile.get('traits', [])),
-        hobbies=", ".join(user_profile.get('hobbies', [])),
-        backstory=user_profile.get('backstory', ''),
+        name=user_profile.get("name", "N/A"),
+        age=user_profile.get("age", "N/A"),
+        occupation=user_profile.get("occupation", "N/A"),
+        traits=", ".join(user_profile.get("traits", [])),
+        hobbies=", ".join(user_profile.get("hobbies", [])),
+        backstory=user_profile.get("backstory", ""),
         secondary_personas=secondary_personas_str,
-        start_date=start_date
+        start_date=start_date,
     )
 
     # Define JSON schema for structured output
@@ -426,24 +522,32 @@ def generate_events(user_profile, secondary_personas, start_date, num_days, num_
             "type": "object",
             "properties": {
                 "id": {"type": "string", "description": "Event ID (E1, E2, etc.)"},
-                "date": {"type": "string", "format": "date", "description": "Date in YYYY-MM-DD format"},
+                "date": {
+                    "type": "string",
+                    "format": "date",
+                    "description": "Date in YYYY-MM-DD format",
+                },
                 "description": {"type": "string", "description": "Event description"},
                 "caused_by": {
                     "type": "array",
                     "items": {"type": "string"},
-                    "description": "Array of event IDs that caused this event"
-                }
+                    "description": "Array of event IDs that caused this event",
+                },
             },
-            "required": ["id", "date", "description", "caused_by"]
-        }
+            "required": ["id", "date", "description", "caused_by"],
+        },
     }
-    
+
     max_retries = 6
     response = None  # Initialize to avoid "possibly unbound" warning
-    
+
     for attempt in range(max_retries):
-        logging.info("Calling Gemini API for event generation (attempt %d/%d)...", attempt + 1, max_retries)
-        
+        logging.info(
+            "Calling Gemini API for event generation (attempt %d/%d)...",
+            attempt + 1,
+            max_retries,
+        )
+
         try:
             # Use structured outputs with safety settings
             safety_settings = {
@@ -452,90 +556,142 @@ def generate_events(user_profile, secondary_personas, start_date, num_days, num_
                 HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT: HarmBlockThreshold.BLOCK_NONE,
                 HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT: HarmBlockThreshold.BLOCK_NONE,
             }
-            
-            model = GenerativeModel('gemini-2.5-flash')
+
+            model = GenerativeModel("gemini-2.5-flash")
             response = model.generate_content(
                 prompt,
                 generation_config={
-                    'temperature': 0.8,
-                    'max_output_tokens': 8192,
-                    'response_mime_type': 'application/json',
-                    'response_schema': event_schema
+                    "temperature": 0.8,
+                    "max_output_tokens": 8192,
+                    "response_mime_type": "application/json",
+                    "response_schema": event_schema,
                 },
-                safety_settings=safety_settings
+                safety_settings=safety_settings,
             )
-            
+
             if not response or not response.text:
-                logging.error("Failed to generate events - response is None/empty (attempt %d/%d)", attempt + 1, max_retries)
+                logging.error(
+                    "Failed to generate events - response is None/empty (attempt %d/%d)",
+                    attempt + 1,
+                    max_retries,
+                )
                 continue
 
-            logging.info("Received response from API, length: %d characters", len(response.text))
-            
+            logging.info(
+                "Received response from API, length: %d characters", len(response.text)
+            )
+
             # --- LOG TOKEN USAGE ---
             log_token_usage(response.usage_metadata, "gemini-2.5-flash")
             # -----------------------
-            
+
             # With structured outputs, response is guaranteed to be valid JSON
             events = json.loads(response.text)
-            
+
             # Validate and fix dates + causal structure
             valid_events = []
             event_map = {}  # Map event IDs to their dates for validation
-            
+
             for event in events:
                 try:
                     # Check required fields for causal graph
-                    if 'id' not in event or 'date' not in event or 'description' not in event or 'caused_by' not in event:
-                        logging.warning("Skipping event missing required fields (id/date/description/caused_by): %s", event)
+                    if (
+                        "id" not in event
+                        or "date" not in event
+                        or "description" not in event
+                        or "caused_by" not in event
+                    ):
+                        logging.warning(
+                            "Skipping event missing required fields (id/date/description/caused_by): %s",
+                            event,
+                        )
                         continue
-                    
+
                     # Validate and convert date
-                    event_date = date.fromisoformat(event['date'])
-                    event['date'] = str(event_date)
-                    
+                    event_date = date.fromisoformat(event["date"])
+                    event["date"] = str(event_date)
+
                     # Validate caused_by is a list
-                    if not isinstance(event['caused_by'], list):
-                        logging.warning("Fixing caused_by field for event %s (not a list)", event['id'])
-                        event['caused_by'] = []
-                    
+                    if not isinstance(event["caused_by"], list):
+                        logging.warning(
+                            "Fixing caused_by field for event %s (not a list)",
+                            event["id"],
+                        )
+                        event["caused_by"] = []
+
                     # Store in map for later validation
-                    event_map[event['id']] = event_date
+                    event_map[event["id"]] = event_date
                     valid_events.append(event)
-                    
+
                 except (ValueError, TypeError) as e:
                     logging.warning("Skipping invalid event: %s, error: %s", event, e)
                     continue
-            
+
             # Validate causal relationships (caused events must come after cause)
             for event in valid_events:
-                for cause_id in event['caused_by']:
+                for cause_id in event["caused_by"]:
                     if cause_id not in event_map:
-                        logging.warning("Event %s references non-existent cause %s, removing reference", event['id'], cause_id)
-                        event['caused_by'].remove(cause_id)
-                    elif event_map[event['id']] <= event_map[cause_id]:
-                        logging.warning("Event %s date (%s) is not after cause %s date (%s), removing causal link", 
-                                      event['id'], event_map[event['id']], cause_id, event_map[cause_id])
-                        event['caused_by'].remove(cause_id)
-            
+                        logging.warning(
+                            "Event %s references non-existent cause %s, removing reference",
+                            event["id"],
+                            cause_id,
+                        )
+                        event["caused_by"].remove(cause_id)
+                    elif event_map[event["id"]] <= event_map[cause_id]:
+                        logging.warning(
+                            "Event %s date (%s) is not after cause %s date (%s), removing causal link",
+                            event["id"],
+                            event_map[event["id"]],
+                            cause_id,
+                            event_map[cause_id],
+                        )
+                        event["caused_by"].remove(cause_id)
+
             if valid_events:
-                causal_count = sum(1 for e in valid_events if e['caused_by'])
-                logging.info("Successfully generated %d valid events (%d with causal relationships).", len(valid_events), causal_count)
+                causal_count = sum(1 for e in valid_events if e["caused_by"])
+                logging.info(
+                    "Successfully generated %d valid events (%d with causal relationships).",
+                    len(valid_events),
+                    causal_count,
+                )
                 return valid_events
             else:
-                logging.warning("No valid events found in response (attempt %d/%d)", attempt + 1, max_retries)
-                
+                logging.warning(
+                    "No valid events found in response (attempt %d/%d)",
+                    attempt + 1,
+                    max_retries,
+                )
+
         except (json.JSONDecodeError, TypeError, ValueError) as e:
-            logging.error("Could not parse events JSON (attempt %d/%d): %s", attempt + 1, max_retries, e)
+            logging.error(
+                "Could not parse events JSON (attempt %d/%d): %s",
+                attempt + 1,
+                max_retries,
+                e,
+            )
             try:
-                excerpt = response.text[:300] if response and hasattr(response, 'text') and response.text else "no response"
+                excerpt = (
+                    response.text[:300]
+                    if response and hasattr(response, "text") and response.text
+                    else "no response"
+                )
             except Exception:
                 excerpt = "no response available"
             logging.error("Response excerpt: %s", excerpt)
         except Exception as e:
-            logging.error("Unexpected error during event generation (attempt %d/%d): %s", attempt + 1, max_retries, str(e))
-    
-    logging.error("Failed to generate events after %d attempts. Returning empty list.", max_retries)
+            logging.error(
+                "Unexpected error during event generation (attempt %d/%d): %s",
+                attempt + 1,
+                max_retries,
+                str(e),
+            )
+
+    logging.error(
+        "Failed to generate events after %d attempts. Returning empty list.",
+        max_retries,
+    )
     return []
+
 
 def filter_standalone_events(events):
     """
@@ -545,67 +701,83 @@ def filter_standalone_events(events):
     """
     if not events:
         return events
-    
+
     remove_ids = []
-    
+
     for event in events:
         # Check if event has parent (is caused by something)
-        if event.get('caused_by'):
+        if event.get("caused_by"):
             continue  # Has parent → keep
-        
+
         # Check if event has child (causes something)
         has_child = False
         for other_event in events:
-            if event['id'] in other_event.get('caused_by', []):
+            if event["id"] in other_event.get("caused_by", []):
                 has_child = True
                 break
-        
+
         # No parent AND no child → mark for removal
         if not has_child:
-            remove_ids.append(event['id'])
-            logging.warning(f"⚠️ Removing standalone event: {event['id']} - {event['description'][:50]}...")
-    
-    filtered = [e for e in events if e['id'] not in remove_ids]
-    
+            remove_ids.append(event["id"])
+            logging.warning(
+                f"⚠️ Removing standalone event: {event['id']} - {event['description'][:50]}..."
+            )
+
+    filtered = [e for e in events if e["id"] not in remove_ids]
+
     if remove_ids:
         logging.info(f"📊 Filtered {len(remove_ids)} standalone events")
         logging.info(f"📊 Remaining: {len(filtered)} events with causal connections")
-    
+
     return filtered
 
-def generate_events_continue(user_profile, secondary_personas, existing_events, 
-                             last_event_id, start_date, num_days, num_events):
+
+def generate_events_continue(
+    user_profile,
+    secondary_personas,
+    existing_events,
+    last_event_id,
+    start_date,
+    num_days,
+    num_events,
+):
     """
     Generate new events with causal connections to existing events.
     Based on LOCOMO's EVENT_KG_FROM_PERSONA_PROMPT_SEQUENTIAL_CONTINUE.
-    
+
     Args:
         existing_events: List of existing events to build upon
         last_event_id: Integer ID of last event (e.g., 15 for E15)
         start_date: Date to start new events from
         num_days: Number of days span for new events
         num_events: Number of new events to generate
-    
+
     Returns:
         List of new events with sequential IDs (E{last_event_id+1}, E{last_event_id+2}, ...)
     """
-    logging.info(f"🎲 Generating {num_events} new events (continuing from E{last_event_id})...")
-    
+    logging.info(
+        f"🎲 Generating {num_events} new events (continuing from E{last_event_id})..."
+    )
+
     # Prepare existing events context (last 5 events only to reduce context)
     existing_events_summary = []
     for e in existing_events[-5:]:  # Last 5 events for context
-        causal_info = f" [caused by: {', '.join(e['caused_by'])}]" if e.get('caused_by') else ""
-        existing_events_summary.append(f"{e['id']} ({e['date']}): {e['description']}{causal_info}")
+        causal_info = (
+            f" [caused by: {', '.join(e['caused_by'])}]" if e.get("caused_by") else ""
+        )
+        existing_events_summary.append(
+            f"{e['id']} ({e['date']}): {e['description']}{causal_info}"
+        )
     existing_events_str = "\n".join(existing_events_summary)
-    
+
     # Calculate next IDs
     next_ids = [f"E{last_event_id + i + 1}" for i in range(min(3, num_events))]
     next_ids_str = ", ".join(next_ids)
-    
+
     # End date for new events
     end_date = start_date + timedelta(days=num_days)
-    
-    prompt = f"""Generate {num_events} new life events for {user_profile['name']} that continue from existing events.
+
+    prompt = f"""Generate {num_events} new life events for {user_profile["name"]} that continue from existing events.
 
 Recent events:
 {existing_events_str}
@@ -616,7 +788,7 @@ Requirements:
 3. Events must occur AFTER their causes (chronological order)
 4. Date range: {start_date} to {end_date}
 5. Mix of: academic/work, social, personal activities
-6. Reflect persona: {user_profile.get('occupation', 'N/A')}, interests in {', '.join(user_profile.get('interests', [])[:3])}
+6. Reflect persona: {user_profile.get("occupation", "N/A")}, interests in {", ".join(user_profile.get("interests", [])[:3])}
 
 JSON format (return ONLY JSON array):
 [
@@ -631,22 +803,28 @@ JSON format (return ONLY JSON array):
             "type": "object",
             "properties": {
                 "id": {"type": "string", "description": "Event ID (E{n})"},
-                "date": {"type": "string", "format": "date", "description": "Date in YYYY-MM-DD format"},
+                "date": {
+                    "type": "string",
+                    "format": "date",
+                    "description": "Date in YYYY-MM-DD format",
+                },
                 "description": {"type": "string", "description": "Event description"},
                 "caused_by": {
                     "type": "array",
                     "items": {"type": "string"},
-                    "description": "Array of event IDs that caused this event"
-                }
+                    "description": "Array of event IDs that caused this event",
+                },
             },
-            "required": ["id", "date", "description", "caused_by"]
-        }
+            "required": ["id", "date", "description", "caused_by"],
+        },
     }
-    
+
     max_retries = 3
     for attempt in range(max_retries):
-        logging.info(f"Calling Gemini API for incremental event generation (attempt {attempt + 1}/{max_retries})...")
-        
+        logging.info(
+            f"Calling Gemini API for incremental event generation (attempt {attempt + 1}/{max_retries})..."
+        )
+
         try:
             safety_settings = {
                 HarmCategory.HARM_CATEGORY_HATE_SPEECH: HarmBlockThreshold.BLOCK_NONE,
@@ -654,7 +832,7 @@ JSON format (return ONLY JSON array):
                 HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT: HarmBlockThreshold.BLOCK_NONE,
                 HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT: HarmBlockThreshold.BLOCK_NONE,
             }
-            
+
             model = GenerativeModel("gemini-2.5-flash")
             response = model.generate_content(
                 prompt,
@@ -662,220 +840,295 @@ JSON format (return ONLY JSON array):
                     "response_mime_type": "application/json",
                     "response_schema": event_schema,
                     "temperature": 0.8,
-                    "max_output_tokens": 8192
+                    "max_output_tokens": 8192,
                 },
-                safety_settings=safety_settings
+                safety_settings=safety_settings,
             )
-            
+
             # --- LOG TOKEN USAGE ---
             if response and response.usage_metadata:
                 log_token_usage(response.usage_metadata, "gemini-2.5-flash")
             # -----------------------
-            
+
             # Check if response was blocked
             if not response.candidates or not response.candidates[0].content.parts:
-                finish_reason = response.candidates[0].finish_reason if response.candidates else "UNKNOWN"
-                logging.warning(f"Response blocked or empty (finish_reason={finish_reason}). Retrying with adjusted prompt...")
+                finish_reason = (
+                    response.candidates[0].finish_reason
+                    if response.candidates
+                    else "UNKNOWN"
+                )
+                logging.warning(
+                    f"Response blocked or empty (finish_reason={finish_reason}). Retrying with adjusted prompt..."
+                )
                 # Try again with next attempt
                 continue
-            
+
             new_events = json.loads(response.text)
-            
+
             # Validate new events
             valid_events = []
-            existing_ids = {e['id'] for e in existing_events}
-            
+            existing_ids = {e["id"] for e in existing_events}
+
             for event in new_events:
                 # Validate ID format and sequence
-                if not event['id'].startswith('E'):
+                if not event["id"].startswith("E"):
                     logging.warning(f"Invalid event ID format: {event['id']}")
                     continue
-                
+
                 try:
-                    event_num = int(event['id'][1:])
+                    event_num = int(event["id"][1:])
                     if event_num <= last_event_id:
-                        logging.warning(f"Event ID {event['id']} not sequential (last was E{last_event_id})")
+                        logging.warning(
+                            f"Event ID {event['id']} not sequential (last was E{last_event_id})"
+                        )
                         continue
                 except ValueError:
                     logging.warning(f"Invalid event ID number: {event['id']}")
                     continue
-                
+
                 # Validate caused_by references exist
-                if event.get('caused_by'):
+                if event.get("caused_by"):
                     valid_causes = []
-                    for cause_id in event['caused_by']:
-                        if cause_id in existing_ids or cause_id in {e['id'] for e in valid_events}:
+                    for cause_id in event["caused_by"]:
+                        if cause_id in existing_ids or cause_id in {
+                            e["id"] for e in valid_events
+                        }:
                             valid_causes.append(cause_id)
                         else:
-                            logging.warning(f"Event {event['id']} references non-existent cause: {cause_id}")
-                    event['caused_by'] = valid_causes
-                
+                            logging.warning(
+                                f"Event {event['id']} references non-existent cause: {cause_id}"
+                            )
+                    event["caused_by"] = valid_causes
+
                 # Validate date is within range
                 try:
-                    event_date = date.fromisoformat(event['date'])
+                    event_date = date.fromisoformat(event["date"])
                     if not (start_date <= event_date <= end_date):
-                        logging.warning(f"Event {event['id']} date {event['date']} outside range {start_date} to {end_date}")
+                        logging.warning(
+                            f"Event {event['id']} date {event['date']} outside range {start_date} to {end_date}"
+                        )
                         # Adjust to range
                         if event_date < start_date:
-                            event['date'] = start_date.isoformat()
+                            event["date"] = start_date.isoformat()
                         else:
-                            event['date'] = end_date.isoformat()
+                            event["date"] = end_date.isoformat()
                 except ValueError:
-                    logging.warning(f"Invalid date format for event {event['id']}: {event['date']}")
+                    logging.warning(
+                        f"Invalid date format for event {event['id']}: {event['date']}"
+                    )
                     continue
-                
+
                 valid_events.append(event)
-            
+
             if valid_events:
-                causal_count = sum(1 for e in valid_events if e['caused_by'])
-                logging.info(f"✅ Generated {len(valid_events)} valid new events ({causal_count} with causal connections)")
+                causal_count = sum(1 for e in valid_events if e["caused_by"])
+                logging.info(
+                    f"✅ Generated {len(valid_events)} valid new events ({causal_count} with causal connections)"
+                )
                 return valid_events
             else:
-                logging.warning(f"No valid new events generated (attempt {attempt + 1}/{max_retries})")
-        
+                logging.warning(
+                    f"No valid new events generated (attempt {attempt + 1}/{max_retries})"
+                )
+
         except (json.JSONDecodeError, TypeError, ValueError) as e:
-            logging.error(f"Could not parse new events JSON (attempt {attempt + 1}/{max_retries}): {e}")
+            logging.error(
+                f"Could not parse new events JSON (attempt {attempt + 1}/{max_retries}): {e}"
+            )
         except Exception as e:
-            logging.error(f"Unexpected error during incremental event generation (attempt {attempt + 1}/{max_retries}): {e}")
-    
-    logging.error(f"Failed to generate new events after {max_retries} attempts. Returning empty list.")
+            logging.error(
+                f"Unexpected error during incremental event generation (attempt {attempt + 1}/{max_retries}): {e}"
+            )
+
+    logging.error(
+        f"Failed to generate new events after {max_retries} attempts. Returning empty list."
+    )
     return []
+
 
 def calculate_event_density(events, sessions):
     """
     Calculate and log event density metrics for quality monitoring.
     Based on LOCOMO's approach to maintain dense causal connections.
-    
+
     Returns:
         dict with metrics: event_density, session_density, events_per_session
     """
     if not events or not sessions:
-        return {'event_density': 0, 'session_density': 0, 'events_per_session': 0}
-    
+        return {"event_density": 0, "session_density": 0, "events_per_session": 0}
+
     # Calculate date spans
-    event_dates = [date.fromisoformat(e['date']) for e in events]
-    session_dates = [date.fromisoformat(s['date']) for s in sessions]
-    
+    event_dates = [date.fromisoformat(e["date"]) for e in events]
+    session_dates = [date.fromisoformat(s["date"]) for s in sessions]
+
     event_span = (max(event_dates) - min(event_dates)).days + 1
     session_span = (max(session_dates) - min(session_dates)).days + 1
-    
+
     # Calculate densities
     event_density = len(events) / event_span
     session_density = len(sessions) / session_span
     events_per_session = len(events) / len(sessions)
-    
+
     # Calculate causal connectivity
-    total_connections = sum(len(e.get('caused_by', [])) for e in events)
+    total_connections = sum(len(e.get("caused_by", [])) for e in events)
     avg_connections_per_event = total_connections / len(events) if events else 0
-    
+
     # Log metrics
     logging.info("=" * 60)
     logging.info("📊 EVENT DENSITY METRICS")
     logging.info("=" * 60)
     logging.info(f"Total events: {len(events)}")
     logging.info(f"Total sessions: {len(sessions)}")
-    logging.info(f"Event date span: {event_span} days ({min(event_dates)} to {max(event_dates)})")
-    logging.info(f"Session date span: {session_span} days ({min(session_dates)} to {max(session_dates)})")
+    logging.info(
+        f"Event date span: {event_span} days ({min(event_dates)} to {max(event_dates)})"
+    )
+    logging.info(
+        f"Session date span: {session_span} days ({min(session_dates)} to {max(session_dates)})"
+    )
     logging.info(f"Event density: {event_density:.2f} events/day")
     logging.info(f"Session density: {session_density:.2f} sessions/day")
     logging.info(f"Events per session: {events_per_session:.2f}")
     logging.info(f"Avg causal connections per event: {avg_connections_per_event:.2f}")
-    
+
     # Quality warnings
     if event_density < 0.3:
-        logging.warning("⚠️ Event density is LOW (<0.3 events/day)! Consider generating more events.")
-    
+        logging.warning(
+            "⚠️ Event density is LOW (<0.3 events/day)! Consider generating more events."
+        )
+
     if events_per_session < 0.5:
-        logging.warning("⚠️ Events per session is LOW (<0.5)! Many sessions may lack relevant events.")
-    
+        logging.warning(
+            "⚠️ Events per session is LOW (<0.5)! Many sessions may lack relevant events."
+        )
+
     if avg_connections_per_event < 0.3:
         logging.warning("⚠️ Causal connectivity is LOW! Events are too independent.")
-    
+
     logging.info("=" * 60)
-    
+
     return {
-        'event_density': event_density,
-        'session_density': session_density,
-        'events_per_session': events_per_session,
-        'avg_causal_connections': avg_connections_per_event
+        "event_density": event_density,
+        "session_density": session_density,
+        "events_per_session": events_per_session,
+        "avg_causal_connections": avg_connections_per_event,
     }
+
 
 def sort_events_by_time(events):
     """Sort events chronologically by date."""
-    return sorted(events, key=lambda e: date.fromisoformat(e['date']))
+    return sorted(events, key=lambda e: date.fromisoformat(e["date"]))
+
 
 def get_random_time():
     """Generate a random time delta between 08:00 and 22:00."""
     return timedelta(hours=random.randint(8, 21), minutes=random.randint(0, 59))
 
+
 def get_session_dates(start_date, num_days, num_sessions):
     """Generate a list of random, sorted dates for conversation sessions."""
     possible_dates = [start_date + timedelta(days=i) for i in range(num_days)]
     if num_sessions > len(possible_dates):
-        logging.warning("Number of sessions is greater than number of days. Using all possible dates.")
+        logging.warning(
+            "Number of sessions is greater than number of days. Using all possible dates."
+        )
         return sorted(possible_dates)
     return sorted(random.sample(possible_dates, num_sessions))
+
 
 def get_relevant_events(events, current_date, last_session_date=None, lookback_days=7):
     """
     Filter events that occurred between the last session and the current one.
     Enhanced with lookback window to handle gaps between events.
     Based on LOCOMO's get_relevant_events with improvements.
-    
+
     Args:
         events: List of all events
         current_date: Current session date
         last_session_date: Previous session date (None for first session)
         lookback_days: Days to look back if no new events (default 7)
-    
+
     Returns:
         List of relevant events with causal context enrichment
     """
     # Sort events chronologically first (LOCOMO approach)
     sorted_events = sort_events_by_time(events)
-    
+
     if last_session_date is None:
         # First session: include all events up to current date
-        relevant = [e for e in sorted_events if date.fromisoformat(e['date']) <= current_date]
+        relevant = [
+            e for e in sorted_events if date.fromisoformat(e["date"]) <= current_date
+        ]
     else:
         # Subsequent sessions: events between last session and now
-        new_events = [e for e in sorted_events if last_session_date < date.fromisoformat(e['date']) <= current_date]
-        
+        new_events = [
+            e
+            for e in sorted_events
+            if last_session_date < date.fromisoformat(e["date"]) <= current_date
+        ]
+
         # If no new events, use lookback window to include recent context
         if not new_events:
             lookback_date = current_date - timedelta(days=lookback_days)
-            relevant = [e for e in sorted_events if lookback_date <= date.fromisoformat(e['date']) <= current_date]
+            relevant = [
+                e
+                for e in sorted_events
+                if lookback_date <= date.fromisoformat(e["date"]) <= current_date
+            ]
             if relevant:
-                logging.info(f"📅 No new events since last session. Using {len(relevant)} recent events from lookback window ({lookback_days} days)")
+                logging.info(
+                    f"📅 No new events since last session. Using {len(relevant)} recent events from lookback window ({lookback_days} days)"
+                )
         else:
             relevant = new_events
-    
+
     # For each relevant event, include its causal context (what caused it)
     # This helps the conversation be more coherent
-    event_map = {e['id']: e for e in sorted_events}
+    event_map = {e["id"]: e for e in sorted_events}
     enriched_events = []
-    
+
     for event in relevant:
         enriched_event = event.copy()
         # Add descriptions of causal events for context
-        if event.get('caused_by'):
+        if event.get("caused_by"):
             causal_context = []
-            for cause_id in event['caused_by']:
+            for cause_id in event["caused_by"]:
                 if cause_id in event_map:
-                    causal_context.append(f"{cause_id}: {event_map[cause_id]['description']}")
+                    causal_context.append(
+                        f"{cause_id}: {event_map[cause_id]['description']}"
+                    )
             if causal_context:
-                enriched_event['causal_context'] = " (dipicu oleh: " + ", ".join(causal_context) + ")"
+                enriched_event["causal_context"] = (
+                    " (dipicu oleh: " + ", ".join(causal_context) + ")"
+                )
         enriched_events.append(enriched_event)
-    
+
     return enriched_events
 
-def generate_conversation_session(user_profile, secondary_personas, session_id, current_date, recent_events, last_session_date, conversation_summary, min_turns, max_turns, cached_content=None):
+
+def generate_conversation_session(
+    user_profile,
+    secondary_personas,
+    session_id,
+    current_date,
+    recent_events,
+    last_session_date,
+    conversation_summary,
+    min_turns,
+    max_turns,
+    cached_content=None,
+):
     """Generate a conversation session using Gemini."""
-    logging.info("Generating session %d (Date: %s)...", session_id, current_date.strftime("%Y-%m-%d"))
-    
+    logging.info(
+        "Generating session %d (Date: %s)...",
+        session_id,
+        current_date.strftime("%Y-%m-%d"),
+    )
+
     # Format inputs
-    secondary_personas_str = ", ".join([f"{p['name']} ({p['relationship']})" for p in secondary_personas])
-    
+    secondary_personas_str = ", ".join(
+        [f"{p['name']} ({p['relationship']})" for p in secondary_personas]
+    )
+
     recent_events_str = ""
     if recent_events:
         for e in recent_events:
@@ -883,9 +1136,11 @@ def generate_conversation_session(user_profile, secondary_personas, session_id, 
     else:
         recent_events_str = "Tidak ada kejadian khusus baru-baru ini."
 
-    last_datetime_str = last_session_date.strftime("%Y-%m-%d") if last_session_date else "awal mula"
+    last_datetime_str = (
+        last_session_date.strftime("%Y-%m-%d") if last_session_date else "awal mula"
+    )
     current_datetime_str = current_date.strftime("%Y-%m-%d %H:%M")
-    
+
     # Construct prompt based on caching availability
     if cached_content:
         # Use ONLY the dynamic part, as static part is cached
@@ -894,14 +1149,14 @@ def generate_conversation_session(user_profile, secondary_personas, session_id, 
             recent_events=recent_events_str,
             last_datetime_str=last_datetime_str,
             current_datetime_str=current_datetime_str,
-            session_id=session_id
+            session_id=session_id,
         )
         logging.info("Using Context Caching for session generation.")
     else:
         # Combine Static + Dynamic for full prompt
         full_template = CONVERSATION_STATIC_PROMPT + "\n" + CONVERSATION_DYNAMIC_PROMPT
         prompt = full_template.format(
-            user_name=user_profile['name'],
+            user_name=user_profile["name"],
             user_profile=json.dumps(user_profile, indent=2),
             secondary_personas=secondary_personas_str,
             num_turns=random.randint(min_turns, max_turns),
@@ -910,44 +1165,70 @@ def generate_conversation_session(user_profile, secondary_personas, session_id, 
             last_datetime_str=last_datetime_str,
             current_datetime_str=current_datetime_str,
             session_id=session_id,
-            user_occupation=user_profile.get('occupation', 'N/A'),
-            user_location=user_profile.get('location', 'N/A')
+            user_occupation=user_profile.get("occupation", "N/A"),
+            user_location=user_profile.get("location", "N/A"),
         )
         logging.info("Using Standard Prompt (No Caching) for session generation.")
 
     max_retries = 6
     # min_turns is passed as argument
-    
+
     for attempt in range(max_retries):
-        logging.info("Calling Gemini API for conversation (attempt %d/%d)...", attempt + 1, max_retries)
-        
+        logging.info(
+            "Calling Gemini API for conversation (attempt %d/%d)...",
+            attempt + 1,
+            max_retries,
+        )
+
         # HARD difficulty: Context-aware dialog
         # Pass cached_content if available
-        response = run_gemini(prompt, max_output_tokens=8192, temperature=0.9, model_name="gemini-2.5-pro", cached_content=cached_content)
+        response = run_gemini(
+            prompt,
+            max_output_tokens=8192,
+            temperature=0.9,
+            model_name="gemini-2.5-pro",
+            cached_content=cached_content,
+        )
 
         if not response:
-            logging.error("API failed to generate conversation for session %d (attempt %d/%d).", session_id, attempt + 1, max_retries)
+            logging.error(
+                "API failed to generate conversation for session %d (attempt %d/%d).",
+                session_id,
+                attempt + 1,
+                max_retries,
+            )
             continue
 
         # Parse the raw text into turns
         turns = []
-        lines = response.strip().split('\n')
+        lines = response.strip().split("\n")
         for line in lines:
             if line.strip():
-                match = re.match(r'^(Bot|User):\s*(.*)', line, re.IGNORECASE)
+                match = re.match(r"^(Bot|User):\s*(.*)", line, re.IGNORECASE)
                 if match:
                     speaker, text = match.groups()
-                    turns.append({'speaker': speaker.lower(), 'text': text.strip()})
+                    turns.append({"speaker": speaker.lower(), "text": text.strip()})
 
         # Validate we got enough turns
         if len(turns) >= min_turns:
             logging.info("Generated %d turns for session %d.", len(turns), session_id)
             return turns
         else:
-            logging.warning("Generated only %d turns for session %d (attempt %d/%d), retrying...", len(turns), session_id, attempt + 1, max_retries)
-    
-    logging.error("Failed to generate sufficient turns for session %d after %d attempts.", session_id, max_retries)
+            logging.warning(
+                "Generated only %d turns for session %d (attempt %d/%d), retrying...",
+                len(turns),
+                session_id,
+                attempt + 1,
+                max_retries,
+            )
+
+    logging.error(
+        "Failed to generate sufficient turns for session %d after %d attempts.",
+        session_id,
+        max_retries,
+    )
     return []
+
 
 def generate_session_summary(user_name, session_turns):
     """Generate a summary for a conversation session."""
@@ -956,31 +1237,52 @@ def generate_session_summary(user_name, session_turns):
         return "Session kosong - tidak ada percakapan."
 
     # Limit conversation text to avoid safety filter
-    conversation_text = "\n".join([f"{turn['speaker'].capitalize()}: {turn['text']}" for turn in session_turns[:10]])  # Max 10 turns
+    conversation_text = "\n".join(
+        [
+            f"{turn['speaker'].capitalize()}: {turn['text']}"
+            for turn in session_turns[:10]
+        ]
+    )  # Max 10 turns
     prompt = SESSION_SUMMARY_PROMPT.format(conversation_text=conversation_text)
 
     logging.info("Generating summary for session with %d turns...", len(session_turns))
-    
+
     max_retries = 2
     for attempt in range(max_retries):
         # EASY difficulty: Simple summarization
-        summary = run_gemini(prompt, max_output_tokens=512, temperature=0.5, model_name="gemini-2.5-flash-lite")
-        
+        summary = run_gemini(
+            prompt,
+            max_output_tokens=512,
+            temperature=0.5,
+            model_name="gemini-2.5-flash-lite",
+        )
+
         if summary:
-            logging.info("Summary generated successfully, length: %d characters", len(summary))
+            logging.info(
+                "Summary generated successfully, length: %d characters", len(summary)
+            )
             return summary.strip()
         else:
-            logging.warning("Failed to generate summary (attempt %d/%d) - trying simpler approach", attempt + 1, max_retries)
+            logging.warning(
+                "Failed to generate summary (attempt %d/%d) - trying simpler approach",
+                attempt + 1,
+                max_retries,
+            )
             # Try even simpler prompt
             if attempt == 0:
                 simple_prompt = f"Ringkas percakapan ini dalam 1-2 kalimat:\n{conversation_text[:500]}"
-                summary = run_gemini(simple_prompt, max_output_tokens=256, temperature=0.3, model_name="gemini-2.5-flash-lite")
+                summary = run_gemini(
+                    simple_prompt,
+                    max_output_tokens=256,
+                    temperature=0.3,
+                    model_name="gemini-2.5-flash-lite",
+                )
                 if summary:
                     return summary.strip()
-    
+
     logging.warning("All summary attempts failed - using fallback")
     # Fallback: extract first and last user message
-    user_turns = [t for t in session_turns if t['speaker'] == 'user']
+    user_turns = [t for t in session_turns if t["speaker"] == "user"]
     if len(user_turns) >= 2:
         return f"Percakapan tentang: {user_turns[0]['text'][:50]}... hingga {user_turns[-1]['text'][:50]}..."
     elif user_turns:
@@ -991,18 +1293,19 @@ def generate_session_summary(user_name, session_turns):
 
 # --- Ground Truth Generation Functions ---
 
+
 def generate_ground_truth_for_turn(turn, session_date, user_profile, session_id):
     """Generate ground truth annotations untuk satu turn percakapan"""
-    
+
     prompt = f"""Kamu adalah annotator untuk dataset evaluasi RAG system.
 
 User Profile:
-- Name: {user_profile['name']}
-- Occupation: {user_profile['occupation']}
+- Name: {user_profile["name"]}
+- Occupation: {user_profile["occupation"]}
 
 Session Date: {session_date}
-Speaker: {turn['speaker']}
-Text: {turn['text']}
+Speaker: {turn["speaker"]}
+Text: {turn["text"]}
 
 Tugasmu adalah extract informasi berikut dalam format JSON:
 
@@ -1037,55 +1340,55 @@ HANYA return JSON, tidak ada text lain.
             HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT: HarmBlockThreshold.BLOCK_NONE,
             HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT: HarmBlockThreshold.BLOCK_NONE,
         }
-        
-        model = GenerativeModel('gemini-2.5-flash-lite')
+
+        model = GenerativeModel("gemini-2.5-flash-lite")
         response = model.generate_content(
             prompt,
-            generation_config={'temperature': 0.3, 'max_output_tokens': 4096},
-            safety_settings=safety_settings
+            generation_config={"temperature": 0.3, "max_output_tokens": 4096},
+            safety_settings=safety_settings,
         )
-        
+
         if not response or not response.text:
             return None
-            
-        json_match = re.search(r'\{[\s\S]*\}', response.text)
+
+        json_match = re.search(r"\{[\s\S]*\}", response.text)
         if json_match:
             return json.loads(json_match.group())
         return None
-            
+
     except Exception as e:
         logging.error("Error generating GT: %s", str(e))
         return None
-
-
 
 
 def resolve_ground_truth_conflicts(existing_facts, new_facts, session_context):
     """
     Use LLM to resolve conflicts between existing and new ground truth facts.
     LLM determines which facts are still valid, which are superseded, and how to merge them.
-    
+
     Args:
         existing_facts: List of all existing facts from previous sessions
         new_facts: New facts from current session
         session_context: Context about current session (date, summary)
-    
+
     Returns:
         Resolved facts with conflict resolution metadata
     """
     if not existing_facts or not new_facts:
         return new_facts
-    
+
     # Build context for LLM
-    existing_facts_str = json.dumps(existing_facts[:50], indent=2, ensure_ascii=False)  # Limit to last 50 facts
+    existing_facts_str = json.dumps(
+        existing_facts[:50], indent=2, ensure_ascii=False
+    )  # Limit to last 50 facts
     new_facts_str = json.dumps(new_facts, indent=2, ensure_ascii=False)
-    
+
     prompt = f"""Kamu adalah sistem yang mengelola ground truth facts dalam knowledge graph temporal.
 
 EXISTING FACTS (dari percakapan sebelumnya):
 {existing_facts_str}
 
-NEW FACTS (dari percakapan terbaru pada {session_context['date']}):
+NEW FACTS (dari percakapan terbaru pada {session_context["date"]}):
 {new_facts_str}
 
 TUGAS:
@@ -1107,158 +1410,195 @@ OUTPUT (JSON only, no explanation):
     try:
         # Use fast model for conflict resolution (gemini-2.5-flash-lite)
         resolution_text = run_gemini(
-            prompt, 
-            max_output_tokens=8192, 
+            prompt,
+            max_output_tokens=8192,
             temperature=0.2,  # Low temperature for consistent logic
-            model_name="gemini-2.5-flash-lite"
+            model_name="gemini-2.5-flash-lite",
         )
-        
+
         if not resolution_text:
             logging.warning("  ⚠️  Empty response from conflict resolution API")
             return new_facts
-        
+
         # Try to parse JSON response
         resolution_text = resolution_text.strip()
-        
+
         # Remove markdown code blocks if present
         if resolution_text.startswith("```json"):
-            resolution_text = resolution_text.split("```json")[1].split("```")[0].strip()
+            resolution_text = (
+                resolution_text.split("```json")[1].split("```")[0].strip()
+            )
         elif resolution_text.startswith("```"):
             resolution_text = resolution_text.split("```")[1].split("```")[0].strip()
-        
+
         resolution = json.loads(resolution_text)
-        
+
         # Log conflicts found (if any were actually resolved)
-        resolved_facts = resolution.get('resolved_facts', [])
+        resolved_facts = resolution.get("resolved_facts", [])
         if resolved_facts:
             # Check if there were actual resolutions (resolved_facts != existing + new)
             num_resolved = len(resolved_facts)
-            num_expected = len(existing_facts[:50]) + len(new_facts)  # Expected if no conflicts
+            num_expected = len(existing_facts[:50]) + len(
+                new_facts
+            )  # Expected if no conflicts
             if num_resolved < num_expected:
                 num_conflicts = num_expected - num_resolved
-                logging.info("  🔄 Resolved %d conflicts (merged/superseded facts)", num_conflicts)
-        
+                logging.info(
+                    "  🔄 Resolved %d conflicts (merged/superseded facts)",
+                    num_conflicts,
+                )
+
         return resolved_facts if resolved_facts else new_facts
-        
+
     except Exception as e:
-        logging.warning("  ⚠️  Conflict resolution failed: %s. Using new facts as-is.", str(e))
+        logging.warning(
+            "  ⚠️  Conflict resolution failed: %s. Using new facts as-is.", str(e)
+        )
         return new_facts
 
 
-def generate_ground_truth_annotations(conversation_history, events, output_dir, incremental=False):
+def generate_ground_truth_annotations(
+    conversation_history, events, output_dir, incremental=False
+):
     """
     Generate ground truth annotations for sessions.
-    
+
     Args:
         conversation_history: Dataset with sessions
         events: User events
         output_dir: Output directory
         incremental: If True, skip sessions with existing ground_truths
     """
-    
-    logging.info("="*80)
+
+    logging.info("=" * 80)
     logging.info("GENERATING GROUND TRUTH ANNOTATIONS")
-    logging.info("="*80)
-    
-    sessions = conversation_history['sessions']
-    user_profile = conversation_history['user']
-    total_turns = sum(len(s['turns']) for s in sessions)
+    logging.info("=" * 80)
+
+    sessions = conversation_history["sessions"]
+    user_profile = conversation_history["user"]
+    total_turns = sum(len(s["turns"]) for s in sessions)
     total_annotated = 0
-    
+
     # Collect all existing facts for conflict resolution
     all_existing_facts = []
     if incremental:
         for session in sessions:
-            if 'ground_truths' in session:
-                for gt in session['ground_truths']:
-                    all_existing_facts.extend(gt.get('factual', []))
-        
+            if "ground_truths" in session:
+                for gt in session["ground_truths"]:
+                    all_existing_facts.extend(gt.get("factual", []))
+
         if all_existing_facts:
-            logging.info("📚 Loaded %d existing facts for conflict resolution", len(all_existing_facts))
-    
+            logging.info(
+                "📚 Loaded %d existing facts for conflict resolution",
+                len(all_existing_facts),
+            )
+
     for session in sessions:
-        session_id = session['session_id']
-        session_date = session['date']
-        
+        session_id = session["session_id"]
+        session_date = session["date"]
+
         # INCREMENTAL: Skip if session already has ground_truths
-        if incremental and 'ground_truths' in session and session['ground_truths']:
-            logging.info("⏭️  Session %d (%s) - SKIPPED (already annotated)", session_id, session_date)
-            total_annotated += len(session['ground_truths'])
+        if incremental and "ground_truths" in session and session["ground_truths"]:
+            logging.info(
+                "⏭️  Session %d (%s) - SKIPPED (already annotated)",
+                session_id,
+                session_date,
+            )
+            total_annotated += len(session["ground_truths"])
             continue
-        
-        logging.info("Session %d (%s) - %d turns", session_id, session_date, len(session['turns']))
-        
+
+        logging.info(
+            "Session %d (%s) - %d turns",
+            session_id,
+            session_date,
+            len(session["turns"]),
+        )
+
         ground_truths = []
         session_new_facts = []
-        
-        for turn_idx, turn in enumerate(session['turns']):
-            gt = generate_ground_truth_for_turn(turn, session_date, user_profile, session_id)
+
+        for turn_idx, turn in enumerate(session["turns"]):
+            gt = generate_ground_truth_for_turn(
+                turn, session_date, user_profile, session_id
+            )
             time.sleep(DELAY_BETWEEN_REQUESTS)
-            
+
             if gt:
                 # Collect new facts for conflict resolution
-                session_new_facts.extend(gt.get('factual', []))
-                
-                gt_entry = {'turn_id': turn_idx, 'session_id': session_id, 'speaker': turn['speaker'], **gt}
+                session_new_facts.extend(gt.get("factual", []))
+
+                gt_entry = {
+                    "turn_id": turn_idx,
+                    "session_id": session_id,
+                    "speaker": turn["speaker"],
+                    **gt,
+                }
                 ground_truths.append(gt_entry)
                 total_annotated += 1
-                logging.info("  ✓ Turn %d: %d facts, %d entities", turn_idx, len(gt.get('factual', [])), len(gt.get('entities_mentioned', [])))
+                logging.info(
+                    "  ✓ Turn %d: %d facts, %d entities",
+                    turn_idx,
+                    len(gt.get("factual", [])),
+                    len(gt.get("entities_mentioned", [])),
+                )
             else:
                 logging.warning("  ⚠️  Turn %d: Failed", turn_idx)
-        
+
         # CONFLICT RESOLUTION: If incremental and has existing facts, resolve conflicts
         if incremental and all_existing_facts and session_new_facts:
             session_context = {
-                'date': session_date,
-                'session_id': session_id,
-                'summary': session.get('summary', '')
+                "date": session_date,
+                "session_id": session_id,
+                "summary": session.get("summary", ""),
             }
-            
-            logging.info("  🔍 Checking for conflicts with %d existing facts...", len(all_existing_facts))
-            resolved_facts = resolve_ground_truth_conflicts(
-                all_existing_facts, 
-                session_new_facts, 
-                session_context
+
+            logging.info(
+                "  🔍 Checking for conflicts with %d existing facts...",
+                len(all_existing_facts),
             )
-            
+            resolved_facts = resolve_ground_truth_conflicts(
+                all_existing_facts, session_new_facts, session_context
+            )
+
             # Update ground_truths with resolved facts
             if resolved_facts != session_new_facts:
                 # Redistribute resolved facts back to turns
                 fact_idx = 0
                 for gt in ground_truths:
-                    num_facts = len(gt.get('factual', []))
+                    num_facts = len(gt.get("factual", []))
                     if fact_idx < len(resolved_facts):
-                        gt['factual'] = resolved_facts[fact_idx:fact_idx + num_facts]
+                        gt["factual"] = resolved_facts[fact_idx : fact_idx + num_facts]
                         fact_idx += num_facts
-            
+
             # Add resolved facts to existing pool
             all_existing_facts.extend(resolved_facts)
-        
-        session['ground_truths'] = ground_truths
+
+        session["ground_truths"] = ground_truths
         logging.info("✓ Session %d: %d turns annotated", session_id, len(ground_truths))
-    
+
     logging.info("Total: %d/%d turns annotated", total_annotated, total_turns)
-    
+
     # Generate evaluation queries
-    logging.info("="*80)
+    logging.info("=" * 80)
     logging.info("GENERATING EVALUATION QUERIES")
-    logging.info("="*80)
-    
+    logging.info("=" * 80)
+
     time.sleep(DELAY_BETWEEN_REQUESTS)
-    queries = generate_evaluation_queries(sessions, user_profile, events)
-    conversation_history['evaluation_queries'] = queries
+    # TODO: implement generate_evaluation_queries function
+    queries: list = []  # generate_evaluation_queries(sessions, user_profile, events)
+    conversation_history["evaluation_queries"] = queries
     logging.info("✓ Generated %d evaluation queries", len(queries))
-    
+
     # Save to main dataset file (no separate enhanced file)
-    main_output = os.path.join(output_dir, 'conversation_dataset.json')
-    with open(main_output, 'w', encoding='utf-8') as f:
+    main_output = os.path.join(output_dir, "conversation_dataset.json")
+    with open(main_output, "w", encoding="utf-8") as f:
         json.dump(conversation_history, f, indent=2, ensure_ascii=False)
-    
+
     logging.info("✓ Dataset with ground truth saved: %s", main_output)
-    logging.info("="*80)
+    logging.info("=" * 80)
     logging.info("✅ GROUND TRUTH GENERATION COMPLETE!")
-    logging.info("="*80)
-    
+    logging.info("=" * 80)
+
     return main_output
 
 
@@ -1267,7 +1607,7 @@ def main():
 
     set_gemini_key()
     os.makedirs(args.out_dir, exist_ok=True)
-    
+
     # Set token log path to be inside the output directory
     set_token_log_path(args.out_dir)
 
@@ -1275,30 +1615,35 @@ def main():
     events = []
     start_session_id = 1
     start_date = datetime.strptime(args.start_date, "%Y-%m-%d").date()
-    last_datetime = None
+    _last_datetime = None
     cumulative_summary = ""
-    output_file = os.path.join(args.out_dir, 'conversation_dataset.json')
-    events_file = os.path.join(args.out_dir, 'user_events.json')
-    
+    output_file = os.path.join(args.out_dir, "conversation_dataset.json")
+    events_file = os.path.join(args.out_dir, "user_events.json")
+
     user_profile = None
     secondary_personas = []
-    
+
     # Load or generate user profile FIRST (before checking existing dataset)
     if args.auto_generate_persona:
         logging.info("🎲 Auto-generate persona mode enabled")
         persona_data = generate_random_persona()
-        
+
         if persona_data:
-            user_profile = persona_data['user']
-            secondary_personas = persona_data['secondary_personas']
-            
+            user_profile = persona_data["user"]
+            secondary_personas = persona_data["secondary_personas"]
+
             # Save generated persona to output directory for reference
-            temp_persona_file = os.path.join(args.out_dir, 'auto_generated_persona.json')
-            with open(temp_persona_file, 'w', encoding='utf-8') as f:
+            temp_persona_file = os.path.join(
+                args.out_dir, "auto_generated_persona.json"
+            )
+            with open(temp_persona_file, "w", encoding="utf-8") as f:
                 json.dump(persona_data, f, indent=2, ensure_ascii=False)
             logging.info("✅ Saved auto-generated persona to: %s", temp_persona_file)
         else:
-            logging.warning("Auto-generation failed, falling back to default file: %s", args.user_file)
+            logging.warning(
+                "Auto-generation failed, falling back to default file: %s",
+                args.user_file,
+            )
             user_profile, secondary_personas = load_user_profile(args.user_file)
     # If not auto-generating, will load from file later (after checking existing dataset)
 
@@ -1307,95 +1652,123 @@ def main():
     if os.path.exists(existing_dataset_path) and not args.fresh_start:
         logging.info("Detected existing dataset at: %s", existing_dataset_path)
         logging.info("Will add %d NEW sessions incrementally...", args.num_sessions)
-        
+
         try:
-            with open(existing_dataset_path, 'r', encoding='utf-8') as f:
+            with open(existing_dataset_path, "r", encoding="utf-8") as f:
                 conversation_history = json.load(f)
 
             if os.path.exists(events_file):
-                with open(events_file, 'r', encoding='utf-8') as f:
+                with open(events_file, "r", encoding="utf-8") as f:
                     events = json.load(f)
 
-            user_profile = conversation_history['user']
-            secondary_personas = conversation_history.get('secondary_personas', [])
-            
+            user_profile = conversation_history["user"]
+            secondary_personas = conversation_history.get("secondary_personas", [])
+
             # Initialize defaults
             last_session_date = start_date
 
-            if conversation_history['sessions']:
-                last_session = conversation_history['sessions'][-1]
-                start_session_id = last_session['session_id'] + 1
-                last_session_date = date.fromisoformat(last_session['date'])
-                last_datetime = datetime.strptime(last_session['datetime'], "%d %B %Y, %H:%M")
-                start_date = last_session_date + timedelta(days=1)  # Continue from next day
+            if conversation_history["sessions"]:
+                last_session = conversation_history["sessions"][-1]
+                start_session_id = last_session["session_id"] + 1
+                last_session_date = date.fromisoformat(last_session["date"])
+                _last_datetime = datetime.strptime(
+                    last_session["datetime"], "%d %B %Y, %H:%M"
+                )
+                start_date = last_session_date + timedelta(
+                    days=1
+                )  # Continue from next day
 
-            cumulative_summary = conversation_history.get('summary', '')
-            logging.info("Successfully loaded existing data. Will generate sessions %d-%d.", 
-                        start_session_id, start_session_id + args.num_sessions - 1)
-            
+            cumulative_summary = conversation_history.get("summary", "")
+            logging.info(
+                "Successfully loaded existing data. Will generate sessions %d-%d.",
+                start_session_id,
+                start_session_id + args.num_sessions - 1,
+            )
+
             # === INCREMENTAL EVENT GENERATION ===
             logging.info("=" * 60)
             logging.info("🎲 INCREMENTAL EVENT GENERATION MODE")
             logging.info("=" * 60)
-            
+
             # Calculate metrics from existing data
-            logging.info(f"📊 Existing: {len(conversation_history['sessions'])} sessions")
+            logging.info(
+                f"📊 Existing: {len(conversation_history['sessions'])} sessions"
+            )
             logging.info(f"📊 Existing: {len(events)} events")
-            
+
             # Determine how many new events we need
             # Rule: ~0.8 event per session for high density (matching initial ratio)
             new_events_needed = max(int(args.num_sessions * 0.8), 5)  # Min 5 events
-            
+
             # Calculate date range for new events
             # Based on existing session density
-            existing_sessions = len(conversation_history['sessions'])
-            existing_span = (last_session_date - date.fromisoformat(conversation_history['sessions'][0]['date'])).days
-            session_density = existing_span / existing_sessions if existing_sessions > 0 else 2
-            new_span_days = int(args.num_sessions * session_density)  # Proportional to session count
-            
+            existing_sessions = len(conversation_history["sessions"])
+            existing_span = (
+                last_session_date
+                - date.fromisoformat(conversation_history["sessions"][0]["date"])
+            ).days
+            session_density = (
+                existing_span / existing_sessions if existing_sessions > 0 else 2
+            )
+            new_span_days = int(
+                args.num_sessions * session_density
+            )  # Proportional to session count
+
             # Get last event info
-            last_event_date = max([date.fromisoformat(e['date']) for e in events]) if events else start_date
-            last_event_id = max([int(e['id'][1:]) for e in events]) if events else 0
-            
+            last_event_date = (
+                max([date.fromisoformat(e["date"]) for e in events])
+                if events
+                else start_date
+            )
+            last_event_id = max([int(e["id"][1:]) for e in events]) if events else 0
+
             new_events = []
             if new_events_needed > 0:
-                logging.info(f"⚡ Generating {new_events_needed} additional events for density...")
-                new_events = generate_events_continue(
-                    user_profile, 
-                    secondary_personas, 
-                    events, 
-                    last_event_id, 
-                    last_event_date, 
-                    new_span_days, 
-                    new_events_needed
+                logging.info(
+                    f"⚡ Generating {new_events_needed} additional events for density..."
                 )
-            
+                new_events = generate_events_continue(
+                    user_profile,
+                    secondary_personas,
+                    events,
+                    last_event_id,
+                    last_event_date,
+                    new_span_days,
+                    new_events_needed,
+                )
+
             if new_events:
                 logging.info(f"✅ Generated {len(new_events)} new events")
-                
+
                 # Merge with existing events
                 events.extend(new_events)
                 logging.info(f"📊 Total events after merge: {len(events)}")
-                
+
                 # Filter standalone events to maintain dense causal connections
-                logging.info("🔍 Filtering standalone events... (DISABLED for richer dataset)")
+                logging.info(
+                    "🔍 Filtering standalone events... (DISABLED for richer dataset)"
+                )
                 # events = filter_standalone_events(events)
-                
+
                 # Save updated events
-                with open(events_file, 'w', encoding='utf-8') as f:
+                with open(events_file, "w", encoding="utf-8") as f:
                     json.dump(events, f, indent=2, ensure_ascii=False)
                 logging.info(f"💾 Saved updated events to {events_file}")
-                
+
                 # Log final event IDs
-                event_ids = [e['id'] for e in events]
+                event_ids = [e["id"] for e in events]
                 logging.info(f"📋 Event IDs: {event_ids[0]} to {event_ids[-1]}")
             else:
-                logging.warning("⚠️ No new events generated. Will use existing events only.")
-            
+                logging.warning(
+                    "⚠️ No new events generated. Will use existing events only."
+                )
+
             logging.info("=" * 60)
 
         except (FileNotFoundError, json.JSONDecodeError, KeyError) as e:
-            logging.error("Failed to load existing dataset. Error: %s. Starting fresh.", e)
+            logging.error(
+                "Failed to load existing dataset. Error: %s. Starting fresh.", e
+            )
             args.fresh_start = True
 
     if args.fresh_start or not os.path.exists(existing_dataset_path):
@@ -1403,23 +1776,31 @@ def main():
         # Load user profile if not already loaded (from auto-generate)
         if user_profile is None:
             user_profile, secondary_personas = load_user_profile(args.user_file)
-        
+
         # Smart Event Sizing: Use user arg OR calculate based on session count (0.8 ratio)
         # This ensures fresh start with 100 sessions gets ~80 events immediately
         smart_num_events = max(args.num_events, int(args.num_sessions * 0.8))
-        logging.info(f"🧠 Smart Sizing: Generating {smart_num_events} initial events for {args.num_sessions} sessions.")
-        
-        events = generate_events(user_profile, secondary_personas, start_date, args.num_days, smart_num_events)
+        logging.info(
+            f"🧠 Smart Sizing: Generating {smart_num_events} initial events for {args.num_sessions} sessions."
+        )
 
-        with open(events_file, 'w', encoding='utf-8') as f:
+        events = generate_events(
+            user_profile,
+            secondary_personas,
+            start_date,
+            args.num_days,
+            smart_num_events,
+        )
+
+        with open(events_file, "w", encoding="utf-8") as f:
             json.dump(events, f, indent=2, ensure_ascii=False)
         logging.info("Saved %d events to %s", len(events), events_file)
 
         conversation_history = {
-            'user': user_profile,
-            'secondary_personas': secondary_personas,
-            'sessions': [],
-            'summary': ''
+            "user": user_profile,
+            "secondary_personas": secondary_personas,
+            "sessions": [],
+            "summary": "",
         }
 
     # Ensure user_profile is set (for incremental generation without auto-generate)
@@ -1432,86 +1813,100 @@ def main():
     # --- Automatic Event Scaling (Ensure 0.8 events/session) ---
     total_sessions_planned = (start_session_id - 1) + args.num_sessions
     target_num_events = int(total_sessions_planned * 0.8)
-    
+
     # Ensure minimum 20 events or user specified num_events if higher
     target_num_events = max(target_num_events, args.num_events)
-    
+
     current_event_count = len(events)
     events_needed = target_num_events - current_event_count
-    
+
     if events_needed > 0:
         logging.info("=" * 60)
-        logging.info(f"⚖️  EVENT BALANCING: Found {current_event_count} events for {total_sessions_planned} sessions.")
-        logging.info(f"   Target density 0.8/session requires {target_num_events} events.")
+        logging.info(
+            f"⚖️  EVENT BALANCING: Found {current_event_count} events for {total_sessions_planned} sessions."
+        )
+        logging.info(
+            f"   Target density 0.8/session requires {target_num_events} events."
+        )
         logging.info(f"   Generating {events_needed} NEW events to maintain quality...")
         logging.info("=" * 60)
-        
+
         batch_size = 10
         num_batches = (events_needed + batch_size - 1) // batch_size
-        
+
         for i in range(num_batches):
             current_batch_size = min(batch_size, events_needed - (i * batch_size))
-            logging.info(f"🔄 Batch {i+1}/{num_batches}: Generating {current_batch_size} events...")
-            
+            logging.info(
+                f"🔄 Batch {i + 1}/{num_batches}: Generating {current_batch_size} events..."
+            )
+
             # Determine parameters for continuation
             last_event = events[-1] if events else None
             last_event_id = 0
             if last_event:
                 try:
-                    last_event_id = int(last_event['id'][1:])
+                    last_event_id = int(last_event["id"][1:])
                 except ValueError:
                     last_event_id = len(events)
-            
+
             # Generate batch
             new_batch = generate_events_continue(
-                user_profile, 
-                secondary_personas, 
-                events, 
-                last_event_id, 
-                start_date, 
-                args.num_days, 
-                current_batch_size
+                user_profile,
+                secondary_personas,
+                events,
+                last_event_id,
+                start_date,
+                args.num_days,
+                current_batch_size,
             )
-            
+
             if new_batch:
                 events.extend(new_batch)
                 # Save intermediate progress
-                with open(events_file, 'w', encoding='utf-8') as f:
+                with open(events_file, "w", encoding="utf-8") as f:
                     json.dump(events, f, indent=2, ensure_ascii=False)
-                logging.info(f"   ✅ Added {len(new_batch)} events. Total: {len(events)}")
+                logging.info(
+                    f"   ✅ Added {len(new_batch)} events. Total: {len(events)}"
+                )
             else:
-                logging.warning("   ⚠️ Failed to generate batch. Stopping event generation.")
+                logging.warning(
+                    "   ⚠️ Failed to generate batch. Stopping event generation."
+                )
                 break
-                
+
         logging.info(f"🎉 Event generation complete. Final count: {len(events)}")
         logging.info("=" * 60)
     else:
-        logging.info(f"✅ Event count ({current_event_count}) is sufficient for {total_sessions_planned} sessions (Target: {target_num_events}).")
+        logging.info(
+            f"✅ Event count ({current_event_count}) is sufficient for {total_sessions_planned} sessions (Target: {target_num_events})."
+        )
 
     # --- Cache Creation (if enabled) ---
     cached_content = None
     if args.use_caching:
         logging.info("🚀 Initializing Context Caching for Gemini 2.5...")
-        secondary_personas_str = ", ".join([f"{p['name']} ({p['relationship']})" for p in secondary_personas])
-        
+        secondary_personas_str = ", ".join(
+            [f"{p['name']} ({p['relationship']})" for p in secondary_personas]
+        )
+
         # Format the static prompt
         # Note: We use a fixed range for num_turns in the cached prompt to avoid invalidating cache
         static_prompt_content = CONVERSATION_STATIC_PROMPT.format(
-            user_name=user_profile['name'],
+            user_name=user_profile["name"],
             user_profile=json.dumps(user_profile, indent=2),
             secondary_personas=secondary_personas_str,
             num_turns=f"{args.min_turns_per_session}-{args.max_turns_per_session}",
-            user_occupation=user_profile.get('occupation', 'N/A'),
-            user_location=user_profile.get('location', 'N/A')
+            user_occupation=user_profile.get("occupation", "N/A"),
+            user_location=user_profile.get("location", "N/A"),
         )
-        
+
         try:
             # Create cache with 60 minute TTL
             cached_content = caching.CachedContent.create(
-                model='models/gemini-2.5-pro',
-                display_name='locomo_static_context',
+                model="models/gemini-2.5-pro",
+                display_name="locomo_static_context",
                 system_instruction=static_prompt_content,
-                ttl=timedelta(minutes=60)
+                ttl=timedelta(minutes=60),
             )
             logging.info(f"✅ Cache created: {cached_content.name} (TTL: 60 mins)")
         except Exception as e:
@@ -1524,10 +1919,16 @@ def main():
         session_id = start_session_id + i
 
         session_time = get_random_time()
-        current_datetime = datetime.combine(session_date, datetime.min.time()) + session_time
+        current_datetime = (
+            datetime.combine(session_date, datetime.min.time()) + session_time
+        )
         current_datetime_str = current_datetime.strftime("%d %B %Y, %H:%M")
 
-        last_session_date = date.fromisoformat(conversation_history['sessions'][-1]['date']) if conversation_history['sessions'] else None
+        last_session_date = (
+            date.fromisoformat(conversation_history["sessions"][-1]["date"])  # type: ignore[invalid-argument-type]
+            if conversation_history["sessions"]
+            else None
+        )
         relevant_events = get_relevant_events(events, session_date, last_session_date)
 
         session_turns = generate_conversation_session(
@@ -1537,45 +1938,49 @@ def main():
             current_date=current_datetime,
             recent_events=relevant_events,
             last_session_date=last_session_date,
-            conversation_summary=conversation_history.get('summary', ''),
+            conversation_summary=conversation_history.get("summary", ""),
             min_turns=args.min_turns_per_session,
             max_turns=args.max_turns_per_session,
-            cached_content=cached_content
+            cached_content=cached_content,
         )
 
-        session_summary = generate_session_summary(user_profile['name'], session_turns)
+        session_summary = generate_session_summary(user_profile["name"], session_turns)
 
         session_data = {
-            'session_id': session_id,
-            'date': session_date.strftime("%Y-%m-%d"),
-            'datetime': current_datetime_str,
-            'turns': session_turns,
-            'summary': session_summary,
-            'relevant_events': relevant_events
+            "session_id": session_id,
+            "date": session_date.strftime("%Y-%m-%d"),
+            "datetime": current_datetime_str,
+            "turns": session_turns,
+            "summary": session_summary,
+            "relevant_events": relevant_events,
         }
-        conversation_history['sessions'].append(session_data)
+        conversation_history["sessions"].append(session_data)  # type: ignore[possibly-missing-attribute,invalid-argument-type]
 
         if cumulative_summary:
-            cumulative_summary += f"\n\nSesi {session_id} ({session_date}): {session_summary}"
+            cumulative_summary += (
+                f"\n\nSesi {session_id} ({session_date}): {session_summary}"
+            )
         else:
-            cumulative_summary = f"Sesi {session_id} ({session_date}): {session_summary}"
+            cumulative_summary = (
+                f"Sesi {session_id} ({session_date}): {session_summary}"
+            )
 
-        conversation_history['summary'] = cumulative_summary
-        last_datetime = current_datetime
+        conversation_history["summary"] = cumulative_summary
+        _last_datetime = current_datetime
 
         logging.info("Completed and saved session %d.", session_id)
-        print(f"\n{'='*60}\n")
+        print(f"\n{'=' * 60}\n")
 
         # Save progress after each session
-        with open(output_file, 'w', encoding='utf-8') as f:
+        with open(output_file, "w", encoding="utf-8") as f:
             json.dump(conversation_history, f, indent=2, ensure_ascii=False)
 
     logging.info("Saved complete dataset to %s", output_file)
-    
-    # Calculate and log event density metrics
-    calculate_event_density(events, conversation_history['sessions'])
 
-    total_turns = sum(len(s['turns']) for s in conversation_history['sessions'])
+    # Calculate and log event density metrics
+    calculate_event_density(events, conversation_history["sessions"])
+
+    total_turns = sum(len(s["turns"]) for s in conversation_history["sessions"])  # type: ignore[invalid-argument-type,not-iterable]
     separator = "=" * 60
     print(f"\n{separator}")
     print("DATASET GENERATION COMPLETED")
@@ -1584,26 +1989,25 @@ def main():
     print(f"Total sessions in file: {len(conversation_history['sessions'])}")
     print(f"New sessions generated: {args.num_sessions}")
     print(f"Total turns in file: {total_turns}")
-    print(f"Date range: {conversation_history['sessions'][0]['date']} to {conversation_history['sessions'][-1]['date']}")
+    print(
+        f"Date range: {conversation_history['sessions'][0]['date']} to {conversation_history['sessions'][-1]['date']}"  # type: ignore[invalid-argument-type]
+    )
     print(f"Total events: {len(events)}")
     print(f"Output saved to: {output_file}")
     print(f"{separator}\n")
-    
+
     # Detect if we're in incremental mode (existing dataset was loaded)
     is_incremental = start_session_id > 1
-    
+
     # Always generate ground truth annotations after dataset generation
     logging.info("\n🎯 Starting ground truth generation...")
     if is_incremental:
         logging.info("📝 Incremental mode: Will skip re-annotating existing sessions")
-    
+
     output_with_gt = generate_ground_truth_annotations(
-        conversation_history, 
-        events, 
-        args.out_dir,
-        incremental=is_incremental
+        conversation_history, events, args.out_dir, incremental=is_incremental
     )
-    
+
     print(f"\n{separator}")
     print("GROUND TRUTH GENERATION COMPLETED")
     print(separator)

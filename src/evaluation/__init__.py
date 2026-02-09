@@ -10,15 +10,15 @@ from .metrics import (
     context_precision,
     temporal_precision,
     fact_coverage,
-    answer_accuracy
+    answer_accuracy,
 )
 from .evaluator import RAGEvaluator
 
 __all__ = [
     "context_recall",
-    "context_precision", 
+    "context_precision",
     "temporal_precision",
     "fact_coverage",
     "answer_accuracy",
-    "RAGEvaluator"
+    "RAGEvaluator",
 ]

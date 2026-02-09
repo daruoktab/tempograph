@@ -1,0 +1,32 @@
+scripts\ingest_agentic.py:444:61: warning[unused-type-ignore-comment] Unused blanket `type: ignore` directive
+scripts\ingest_agentic.py:447:66: warning[unused-type-ignore-comment] Unused blanket `type: ignore` directive
+scripts\ingest_agentic.py:1442:23: warning[possibly-missing-attribute] Attribute `name` may be missing on object of type `ModelConfig | None`
+scripts\ingest_agentic.py:1524:84: warning[unused-type-ignore-comment] Unused blanket `type: ignore` directive
+scripts\ingest_agentic.py:1525:33: error[invalid-argument-type] Argument to bound method `create` is incorrect: Expected `str`, found `Unknown | str | None`
+scripts\ingest_agentic.py:1587:23: warning[possibly-missing-attribute] Attribute `name` may be missing on object of type `ModelConfig | None`
+scripts\ingest_agentic.py:1645:55: warning[unused-type-ignore-comment] Unused blanket `type: ignore` directive
+scripts\ingest_agentic.py:1647:87: warning[unused-type-ignore-comment] Unused blanket `type: ignore` directive
+scripts\ingest_agentic.py:2068:58: warning[unused-type-ignore-comment] Unused blanket `type: ignore` directive
+scripts\ingest_agentic.py:2069:17: error[invalid-argument-type] Argument to bound method `execute_query` is incorrect: Expected `LiteralString`, found `str`
+scripts\ingest_agentic.py:2073:56: warning[unused-type-ignore-comment] Unused blanket `type: ignore` directive
+scripts\ingest_agentic.py:2074:17: error[invalid-argument-type] Argument to bound method `execute_query` is incorrect: Expected `LiteralString`, found `str`
+scripts\ingest_agentic.py:2078:59: warning[unused-type-ignore-comment] Unused blanket `type: ignore` directive
+scripts\ingest_agentic.py:2079:17: error[invalid-argument-type] Argument to bound method `execute_query` is incorrect: Expected `LiteralString`, found `str`
+scripts\ingest_agentic.py:2140:38: warning[unused-type-ignore-comment] Unused blanket `type: ignore` directive
+scripts\ingest_agentic.py:2141:13: error[invalid-argument-type] Argument to bound method `execute_query` is incorrect: Expected `LiteralString`, found `str`
+src\rag\graph_client.py:404:25: error[invalid-assignment] Object of type `list[str | Unknown | None]` is not assignable to `list[str] | None`
+src\rag\graph_client.py:423:35: warning[unused-type-ignore-comment] Unused blanket `type: ignore` directive
+src\rag\graph_client.py:476:19: warning[possibly-missing-attribute] Attribute `replace` may be missing on object of type `Unknown | str | None`
+src\rag\graph_client.py:480:58: warning[unused-type-ignore-comment] Unused blanket `type: ignore` directive
+src\rag\graph_client.py:481:17: error[invalid-argument-type] Argument to bound method `execute_query` is incorrect: Expected `LiteralString`, found `str`
+src\rag\graph_client.py:509:19: warning[possibly-missing-attribute] Attribute `replace` may be missing on object of type `Unknown | str | None`
+src\rag\graph_client.py:512:63: warning[unused-type-ignore-comment] Unused blanket `type: ignore` directive
+src\rag\graph_client.py:513:17: error[invalid-argument-type] Argument to bound method `execute_query` is incorrect: Expected `LiteralString`, found `str`
+src\rag\graph_client.py:516:61: warning[unused-type-ignore-comment] Unused blanket `type: ignore` directive
+src\rag\graph_client.py:517:17: error[invalid-argument-type] Argument to bound method `execute_query` is incorrect: Expected `LiteralString`, found `str`
+src\rag\graph_client.py:520:64: warning[unused-type-ignore-comment] Unused blanket `type: ignore` directive
+src\rag\graph_client.py:521:17: error[invalid-argument-type] Argument to bound method `execute_query` is incorrect: Expected `LiteralString`, found `str`
+src\rag\graph_client.py:556:15: warning[possibly-missing-attribute] Attribute `replace` may be missing on object of type `Unknown | str | None`
+src\rag\graph_client.py:559:44: warning[unused-type-ignore-comment] Unused blanket `type: ignore` directive
+src\rag\graph_client.py:560:13: error[invalid-argument-type] Argument to bound method `execute_query` is incorrect: Expected `LiteralString`, found `str`
+Found 31 diagnostics

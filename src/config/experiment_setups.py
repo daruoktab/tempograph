@@ -30,30 +30,34 @@ from enum import Enum
 
 class SetupType(str, Enum):
     """Available experiment setups"""
-    VANILLA_GEMINI = "vanilla_gemini"   # Setup 1V
-    VANILLA_GEMMA = "vanilla_gemma"     # Setup 2V
-    AGENTIC_GEMINI = "agentic_gemini"   # Setup 1A
-    AGENTIC_GEMMA = "agentic_gemma"     # Setup 2A
-    AGENTIC_GEMINI_HYBRID = "agentic_gemini_hybrid" # Setup 1H (Hybrid Gemini)
-    AGENTIC_GEMMA_HYBRID = "agentic_gemma_hybrid"   # Setup 2H (Hybrid Gemma)
+
+    VANILLA_GEMINI = "vanilla_gemini"  # Setup 1V
+    VANILLA_GEMMA = "vanilla_gemma"  # Setup 2V
+    AGENTIC_GEMINI = "agentic_gemini"  # Setup 1A
+    AGENTIC_GEMMA = "agentic_gemma"  # Setup 2A
+    AGENTIC_GEMINI_HYBRID = "agentic_gemini_hybrid"  # Setup 1H (Hybrid Gemini)
+    AGENTIC_GEMMA_HYBRID = "agentic_gemma_hybrid"  # Setup 2H (Hybrid Gemma)
 
 
 class RAGType(str, Enum):
     """Type of RAG system"""
-    VANILLA = "vanilla"   # Pure vector search (ChromaDB)
-    AGENTIC = "agentic"   # Graph + vector (Neo4j)
+
+    VANILLA = "vanilla"  # Pure vector search (ChromaDB)
+    AGENTIC = "agentic"  # Graph + vector (Neo4j)
 
 
 class ModelStack(str, Enum):
     """Model stack type"""
+
     GEMINI = "gemini"
     GEMMA = "gemma"
 
 
 class StorageType(str, Enum):
     """Storage backend type"""
-    CHROMADB = "chromadb"   # For Vanilla RAG
-    NEO4J = "neo4j"         # For Agentic RAG
+
+    CHROMADB = "chromadb"  # For Vanilla RAG
+    NEO4J = "neo4j"  # For Agentic RAG
 
 
 # =============================================================================
@@ -79,33 +83,35 @@ CHROMA_PERSIST_DIR = "./data/chroma"
 @dataclass
 class ModelConfig:
     """Configuration for a specific model"""
+
     name: str
     provider: str  # "gemini", "gemma", "huggingface"
     description: str
-    rpm: Optional[int] = None   # Requests per minute
-    tpm: Optional[int] = None   # Tokens per minute
-    rpd: Optional[int] = None   # Requests per day
+    rpm: Optional[int] = None  # Requests per minute
+    tpm: Optional[int] = None  # Tokens per minute
+    rpd: Optional[int] = None  # Requests per day
 
 
 @dataclass
 class RetrievalSettings:
     """Retrieval configuration - SAME for all setups for fair comparison
-    
+
     Reduced top_k to 5 for:
     - More rigorous evaluation (tests retrieval quality)
     - Lower input token cost (~50% reduction)
     - More realistic RAG scenario (production usually uses top 3-5)
     """
-    embedding_top_k: int = 20       # Candidates from vector search
-    rerank_top_k: int = 5           # Final results after rerank
-    similarity_threshold: float = 0.5
-    max_iterations: int = 3         # Only for Agentic (ignored in Vanilla)
 
+    embedding_top_k: int = 20  # Candidates from vector search
+    rerank_top_k: int = 5  # Final results after rerank
+    similarity_threshold: float = 0.5
+    max_iterations: int = 3  # Only for Agentic (ignored in Vanilla)
 
 
 @dataclass
 class StorageConfig:
     """Storage configuration"""
+
     storage_type: StorageType
     # For ChromaDB
     collection_name: Optional[str] = None
@@ -117,41 +123,44 @@ class StorageConfig:
 @dataclass
 class ExperimentSetup:
     """Complete configuration for an experiment setup"""
+
     name: str
     setup_type: SetupType
     rag_type: RAGType
     model_stack: ModelStack
     description: str
-    
+
     # Storage configuration
     storage: StorageConfig
-    
+
     # Embedding model (used for both ingestion and retrieval)
     embedder: ModelConfig
-    
+
     # LLM for fact extraction (Agentic only)
     llm_extraction: Optional[ModelConfig] = None
-    
+
     # LLM for retrieval operations (classification, etc) - Agentic only
     llm_small: Optional[ModelConfig] = None
-    
+
     # Reranker configuration
     reranker: Optional[ModelConfig] = None
     reranker_type: str = "embedding"  # "embedding" or "llm"
-    
+
     # Retrieval settings (SAME for fair comparison)
     retrieval: RetrievalSettings = field(default_factory=RetrievalSettings)
-    
+
     # LLM Judge (always gemini-2.5-pro for consistency)
-    llm_judge: ModelConfig = field(default_factory=lambda: ModelConfig(
-        name="gemini-2.5-pro",
-        provider="gemini",
-        description="LLM Judge for context sufficiency evaluation",
-        rpm=15,
-        tpm=1_000_000,
-        rpd=300
-    ))
-    
+    llm_judge: ModelConfig = field(
+        default_factory=lambda: ModelConfig(
+            name="gemini-2.5-pro",
+            provider="gemini",
+            description="LLM Judge for context sufficiency evaluation",
+            rpm=15,
+            tpm=1_000_000,
+            rpd=300,
+        )
+    )
+
     def get_config_dict(self) -> Dict[str, Any]:
         """Convert to dictionary for logging/saving"""
         return {
@@ -176,7 +185,7 @@ class ExperimentSetup:
                 "similarity_threshold": self.retrieval.similarity_threshold,
                 "max_iterations": self.retrieval.max_iterations,
             },
-            "llm_judge": self.llm_judge.name
+            "llm_judge": self.llm_judge.name,
         }
 
 
@@ -189,18 +198,18 @@ class ExperimentSetup:
 # =============================================================================
 
 FAIR_RETRIEVAL_SETTINGS = RetrievalSettings(
-    embedding_top_k=50,          # Search 50 candidates (increased for per-turn chunks)
-    rerank_top_k=10,             # Return 10 final results
-    similarity_threshold=0.5,    # Minimum similarity
-    max_iterations=3             # For Agentic only
+    embedding_top_k=50,  # Search 50 candidates (increased for per-turn chunks)
+    rerank_top_k=10,  # Return 10 final results
+    similarity_threshold=0.5,  # Minimum similarity
+    max_iterations=3,  # For Agentic only
 )
 
 # Optimized settings for Pure Vector Search (Direct 10)
 DIRECT_RETRIEVAL_SETTINGS = RetrievalSettings(
-    embedding_top_k=10,          # Direct 10, no reranking needed
+    embedding_top_k=10,  # Direct 10, no reranking needed
     rerank_top_k=10,
     similarity_threshold=0.5,
-    max_iterations=3
+    max_iterations=3,
 )
 
 
@@ -213,14 +222,18 @@ GEMINI_EMBEDDER = ModelConfig(
     name="gemini-embedding-001",
     provider="gemini",
     description="Gemini embedding (API-based, 768 dim)",
-    rpm=1500, tpm=10_000_000, rpd=None
+    rpm=1500,
+    tpm=10_000_000,
+    rpd=None,
 )
 
 GEMINI_LLM_EXTRACTION = ModelConfig(
     name="gemini-2.5-flash",
     provider="gemini",
     description="LLM for fact extraction (Agentic only)",
-    rpm=1000, tpm=1_000_000, rpd=10_000
+    rpm=1000,
+    tpm=1_000_000,
+    rpd=10_000,
 )
 
 # NOTE: flash-lite confirmed NOT used by Graphiti ingestion (tested 2024-12-17)
@@ -237,7 +250,9 @@ GEMINI_RERANKER = ModelConfig(
     name="gemini-embedding-001",
     provider="gemini",
     description="Embedding-based reranker (cosine similarity)",
-    rpm=1500, tpm=10_000_000, rpd=None
+    rpm=1500,
+    tpm=10_000_000,
+    rpd=None,
 )
 
 # Used by both SETUP_1A (Agentic) and SETUP_1H (Hybrid)
@@ -245,7 +260,9 @@ GEMINI_LLM_EXTRACTION_HD = ModelConfig(
     name="gemini-2.5-flash",
     provider="gemini",
     description="LLM for high-detail fact extraction (Agentic Gemini)",
-    rpm=1000, tpm=1_000_000, rpd=None
+    rpm=1000,
+    tpm=1_000_000,
+    rpd=None,
 )
 
 # Gemma Models (via Novita AI - OpenAI-compatible API)
@@ -253,14 +270,18 @@ GEMMA_EMBEDDER = ModelConfig(
     name="google/embeddinggemma-300m",
     provider="huggingface",
     description="EmbeddingGemma (HuggingFace LOCAL, 768 dim)",
-    rpm=None, tpm=None, rpd=None  # Local, no rate limit
+    rpm=None,
+    tpm=None,
+    rpd=None,  # Local, no rate limit
 )
 
 GEMMA_LLM_EXTRACTION = ModelConfig(
     name="google/gemma-3-27b-it",
     provider="novita",  # Via Novita AI (OpenAI-compatible)
     description="Gemma 3 27B IT for fact extraction (Agentic) via Novita AI",
-    rpm=100, tpm=500_000, rpd=None
+    rpm=100,
+    tpm=500_000,
+    rpd=None,
 )
 
 
@@ -274,19 +295,17 @@ SETUP_1V_VANILLA_GEMINI = ExperimentSetup(
     rag_type=RAGType.VANILLA,
     model_stack=ModelStack.GEMINI,
     description="Vanilla RAG with Gemini embedding - pure vector search, no graph",
-    
     storage=StorageConfig(
         storage_type=StorageType.CHROMADB,
         collection_name=CHROMA_COLLECTIONS[SetupType.VANILLA_GEMINI],
-        persist_directory=CHROMA_PERSIST_DIR
+        persist_directory=CHROMA_PERSIST_DIR,
     ),
-    
     embedder=GEMINI_EMBEDDER,
     llm_extraction=None,  # No fact extraction in Vanilla
-    llm_small=None,       # No classification in Vanilla
+    llm_small=None,  # No classification in Vanilla
     reranker=GEMINI_RERANKER,
     reranker_type="embedding",
-    retrieval=FAIR_RETRIEVAL_SETTINGS
+    retrieval=FAIR_RETRIEVAL_SETTINGS,
 )
 
 
@@ -300,19 +319,17 @@ SETUP_2V_VANILLA_GEMMA = ExperimentSetup(
     rag_type=RAGType.VANILLA,
     model_stack=ModelStack.GEMMA,
     description="Vanilla RAG with Gemma embedding - pure vector search, no graph",
-    
     storage=StorageConfig(
         storage_type=StorageType.CHROMADB,
         collection_name=CHROMA_COLLECTIONS[SetupType.VANILLA_GEMMA],
-        persist_directory=CHROMA_PERSIST_DIR
+        persist_directory=CHROMA_PERSIST_DIR,
     ),
-    
     embedder=GEMMA_EMBEDDER,
     llm_extraction=None,  # No fact extraction in Vanilla
-    llm_small=None,       # No classification in Vanilla
+    llm_small=None,  # No classification in Vanilla
     reranker=None,  # Use embedding for reranking (pure vector search)
     reranker_type="embedding",
-    retrieval=DIRECT_RETRIEVAL_SETTINGS
+    retrieval=DIRECT_RETRIEVAL_SETTINGS,
 )
 
 
@@ -326,18 +343,16 @@ SETUP_2A_AGENTIC_GEMMA = ExperimentSetup(
     rag_type=RAGType.AGENTIC,
     model_stack=ModelStack.GEMMA,
     description="Agentic RAG with Gemma 3 27B IT via Novita AI - graph + vector, iterative retrieval",
-    
     storage=StorageConfig(
         storage_type=StorageType.NEO4J,
-        group_id=NEO4J_GROUP_IDS[SetupType.AGENTIC_GEMMA]
+        group_id=NEO4J_GROUP_IDS[SetupType.AGENTIC_GEMMA],
     ),
-    
     embedder=GEMMA_EMBEDDER,
     llm_extraction=GEMMA_LLM_EXTRACTION,  # Uses Novita AI provider
     llm_small=None,  # Not used
     reranker=None,  # Use embedding for reranking (pure vector search)
     reranker_type="embedding",
-    retrieval=DIRECT_RETRIEVAL_SETTINGS
+    retrieval=DIRECT_RETRIEVAL_SETTINGS,
 )
 
 
@@ -352,18 +367,16 @@ SETUP_1A_AGENTIC_GEMINI = ExperimentSetup(
     rag_type=RAGType.AGENTIC,
     model_stack=ModelStack.GEMINI,
     description="Agentic RAG with Gemini 2.5 Flash - high-detail fact extraction",
-    
     storage=StorageConfig(
         storage_type=StorageType.NEO4J,
-        group_id=NEO4J_GROUP_IDS[SetupType.AGENTIC_GEMINI]
+        group_id=NEO4J_GROUP_IDS[SetupType.AGENTIC_GEMINI],
     ),
-    
     embedder=GEMINI_EMBEDDER,
     llm_extraction=GEMINI_LLM_EXTRACTION_HD,
     llm_small=GEMINI_LLM_SMALL,  # Set to None for cost audit
     reranker=GEMINI_EMBEDDER,
     reranker_type="embedding",
-    retrieval=DIRECT_RETRIEVAL_SETTINGS
+    retrieval=DIRECT_RETRIEVAL_SETTINGS,
 )
 
 
@@ -377,19 +390,17 @@ SETUP_1H_HYBRID_GEMINI = ExperimentSetup(
     rag_type=RAGType.AGENTIC,  # Use Agentic pipeline as base
     model_stack=ModelStack.GEMINI,
     description="Hybrid RAG: Agentic Graph + Vanilla Vector combined",
-    
     # Primary Storage (Graph) - shares with SETUP_1A
     storage=StorageConfig(
         storage_type=StorageType.NEO4J,
-        group_id=NEO4J_GROUP_IDS[SetupType.AGENTIC_GEMINI]
+        group_id=NEO4J_GROUP_IDS[SetupType.AGENTIC_GEMINI],
     ),
-    
     embedder=GEMINI_EMBEDDER,
     llm_extraction=GEMINI_LLM_EXTRACTION_HD,
     llm_small=GEMINI_LLM_SMALL,  # Set to None for cost audit
     reranker=GEMINI_EMBEDDER,
     reranker_type="embedding",
-    retrieval=DIRECT_RETRIEVAL_SETTINGS
+    retrieval=DIRECT_RETRIEVAL_SETTINGS,
 )
 
 
@@ -403,19 +414,17 @@ SETUP_2H_HYBRID_GEMMA = ExperimentSetup(
     rag_type=RAGType.AGENTIC,  # Use Agentic pipeline as base
     model_stack=ModelStack.GEMMA,
     description="Hybrid RAG: Agentic Graph (Gemma via Novita) + Vanilla Vector combined",
-    
     # Primary Storage (Graph) - shares with SETUP_2A
     storage=StorageConfig(
         storage_type=StorageType.NEO4J,
-        group_id=NEO4J_GROUP_IDS[SetupType.AGENTIC_GEMMA]
+        group_id=NEO4J_GROUP_IDS[SetupType.AGENTIC_GEMMA],
     ),
-    
     embedder=GEMMA_EMBEDDER,  # HuggingFace local
     llm_extraction=GEMMA_LLM_EXTRACTION,  # Novita AI
     llm_small=None,
     reranker=None,  # Use embedding for reranking
     reranker_type="embedding",
-    retrieval=DIRECT_RETRIEVAL_SETTINGS
+    retrieval=DIRECT_RETRIEVAL_SETTINGS,
 )
 
 # ... (Hybrid specific config is handled by the Retriever class logic)
@@ -455,7 +464,7 @@ def list_setups() -> None:
     print("\n" + "=" * 70)
     print("AVAILABLE EXPERIMENT SETUPS")
     print("=" * 70)
-    
+
     print("\n📦 VANILLA RAG (ChromaDB - Pure Vector)")
     print("-" * 40)
     for setup in get_vanilla_setups():
@@ -464,7 +473,7 @@ def list_setups() -> None:
         print(f"     Embedder: {setup.embedder.name}")
         reranker_name = setup.reranker.name if setup.reranker else "N/A"
         print(f"     Reranker: {reranker_name} ({setup.reranker_type})")
-    
+
     print("\n📦 AGENTIC RAG (Neo4j - Graph + Vector)")
     print("-" * 40)
     for setup in get_agentic_setups():
@@ -475,7 +484,7 @@ def list_setups() -> None:
         print(f"     Embedder: {setup.embedder.name}")
         reranker_name = setup.reranker.name if setup.reranker else "N/A"
         print(f"     Reranker: {reranker_name} ({setup.reranker_type})")
-    
+
     print("\n" + "=" * 70)
 
 

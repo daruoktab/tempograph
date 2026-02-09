@@ -17,6 +17,5 @@ __all__ = [
     "NovitaProvider",
     "create_llm_provider",
     "get_available_providers",
-    "LLM_PROVIDER_CONFIGS"
+    "LLM_PROVIDER_CONFIGS",
 ]
-

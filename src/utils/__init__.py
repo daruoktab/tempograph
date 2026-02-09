@@ -25,7 +25,7 @@ from .gemma_client import (
 
 __all__ = [
     "run_gemini",
-    "set_gemini_key", 
+    "set_gemini_key",
     "set_token_log_path",
     "log_token_usage",
     "RateLimiter",

@@ -18,4 +18,3 @@ __all__ = [
     "VanillaSearchResult",
     "get_chroma_client",
 ]
-
