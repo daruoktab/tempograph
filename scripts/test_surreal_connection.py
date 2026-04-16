@@ -22,19 +22,28 @@ _ROOT = Path(__file__).resolve().parents[1]
 if str(_ROOT) not in sys.path:
     sys.path.insert(0, str(_ROOT))
 
-from dotenv import load_dotenv
+from dotenv import load_dotenv  # noqa: E402
 
 load_dotenv(_ROOT / ".env")
 
-from src.config.settings import SurrealDBConfig
-from src.rag.surreal.connection import apply_schema, connect_surreal
+from src.config.settings import SurrealDBConfig  # noqa: E402
+from src.rag.surreal.connection import apply_schema, connect_surreal  # noqa: E402
 
 
 async def main(url: str | None) -> int:
     cfg = SurrealDBConfig(url=url) if url else SurrealDBConfig()
     print("Config:", cfg.url, cfg.namespace, cfg.database, "(user:", cfg.username + ")")
 
-    db = await connect_surreal(cfg)
+    try:
+        db = await connect_surreal(cfg)
+    except (ConnectionRefusedError, OSError) as e:
+        print(
+            "\n❌ Tidak bisa menyambung ke SurrealDB.\n"
+            "Pastikan server sudah jalan dan SURREAL_URL di .env benar "
+            "(contoh: ws://127.0.0.1:8000).\n"
+            f"Detail: {e}\n"
+        )
+        return 2
     try:
         await apply_schema(db)
         print("Schema apply finished (idempotent; warnings for 'already exists' are OK).")
