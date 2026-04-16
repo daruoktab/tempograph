@@ -12,6 +12,9 @@ from .connection import connect_surreal, apply_schema
 
 logger = logging.getLogger(__name__)
 
+# Surreal table for one embedding vector per session document (dense / "vanilla" retrieval)
+SESSION_PASSAGE_TABLE = "session_passage"
+
 CHROMA_PERSIST_DIR = "./data/chroma"  # legacy constant; Surreal ignores path
 COLLECTION_VANILLA_GEMINI = "vanilla_gemini"
 COLLECTION_VANILLA_GEMMA = "vanilla_gemma"
@@ -51,7 +54,7 @@ class SurrealVanillaVectorDB:
             self._doc_count = 0
             return
         res = await self._db.query(
-            "SELECT count() AS c FROM vanilla_chunk WHERE collection = $coll GROUP ALL",
+            f"SELECT count() AS c FROM {SESSION_PASSAGE_TABLE} WHERE collection = $coll GROUP ALL",
             {"coll": self.collection_name},
         )
         rows = _flatten_query(res)
@@ -84,8 +87,9 @@ class SurrealVanillaVectorDB:
             if emb is None:
                 if self._embedder is None:
                     raise ValueError("No embedding and no embedder")
-                emb = await self._embedder.embed(doc.text)
-            rid = RecordID("vanilla_chunk", self._safe_rid_suffix(doc.id))
+                emb_res = await self._embedder.embed([doc.text])
+                emb = emb_res.embeddings[0] if emb_res.embeddings else []
+            rid = RecordID(SESSION_PASSAGE_TABLE, self._safe_rid_suffix(doc.id))
             await self._db.upsert(
                 rid,
                 {
@@ -124,7 +128,7 @@ class SurrealVanillaVectorDB:
         sql = (
             "SELECT doc_id, text, metadata, "
             "vector::similarity::cosine(embedding, $qv) AS score "
-            "FROM vanilla_chunk WHERE collection = $coll "
+            f"FROM {SESSION_PASSAGE_TABLE} WHERE collection = $coll "
             "ORDER BY score DESC LIMIT $lim"
         )
         res = await self._db.query(
@@ -147,7 +151,7 @@ class SurrealVanillaVectorDB:
         if self._db is None:
             return None
         sql = (
-            "SELECT * FROM vanilla_chunk WHERE collection = $coll AND doc_id = $id LIMIT 1"
+            f"SELECT * FROM {SESSION_PASSAGE_TABLE} WHERE collection = $coll AND doc_id = $id LIMIT 1"
         )
         res = await self._db.query(sql, {"coll": self.collection_name, "id": doc_id})
         rows = _flatten_query(res)
@@ -168,10 +172,23 @@ class SurrealVanillaVectorDB:
         if self._db is None:
             return
         await self._db.query(
-            "DELETE vanilla_chunk WHERE collection = $coll", {"coll": self.collection_name}
+            f"DELETE FROM {SESSION_PASSAGE_TABLE} WHERE collection = $coll",
+            {"coll": self.collection_name},
         )
         self._doc_count = 0
-        logger.warning("Cleared SurrealDB vanilla_chunk for collection '%s'", self.collection_name)
+        logger.warning(
+            "Cleared SurrealDB %s for collection '%s'",
+            SESSION_PASSAGE_TABLE,
+            self.collection_name,
+        )
+
+    async def close(self) -> None:
+        if self._db is not None:
+            try:
+                await self._db.close()
+            except Exception as e:
+                logger.debug("vanilla store close: %s", e)
+            self._db = None
 
     def get_stats(self) -> Dict[str, Any]:
         return {

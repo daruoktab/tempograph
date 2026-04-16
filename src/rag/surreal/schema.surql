@@ -28,13 +28,17 @@ DEFINE FIELD IF NOT EXISTS name ON entity TYPE string;
 DEFINE FIELD IF NOT EXISTS created_at ON entity TYPE datetime DEFAULT time::now();
 DEFINE INDEX IF NOT EXISTS idx_entity_group_name ON entity FIELDS group_id, name;
 
--- Vanilla RAG chunks (768-dim embeddings)
-DEFINE TABLE IF NOT EXISTS vanilla_chunk SCHEMAFULL;
-DEFINE FIELD IF NOT EXISTS collection ON vanilla_chunk TYPE string;
-DEFINE FIELD IF NOT EXISTS doc_id ON vanilla_chunk TYPE string;
-DEFINE FIELD IF NOT EXISTS text ON vanilla_chunk TYPE string;
-DEFINE FIELD IF NOT EXISTS embedding ON vanilla_chunk TYPE array<float>;
-DEFINE FIELD IF NOT EXISTS metadata ON vanilla_chunk TYPE object;
-DEFINE FIELD IF NOT EXISTS created_at ON vanilla_chunk TYPE datetime DEFAULT time::now();
-DEFINE INDEX IF NOT EXISTS idx_vanilla_coll ON vanilla_chunk FIELDS collection;
-DEFINE INDEX IF NOT EXISTS idx_vanilla_embed ON vanilla_chunk FIELDS embedding MTREE DIMENSION 768 DIST COSINE;
+-- Graph edges (Explorer / SELECT ->has_fact-> …); see https://surrealdb.com/docs/surrealdb/models/graph
+DEFINE TABLE IF NOT EXISTS has_fact TYPE RELATION IN episode OUT extracted_fact;
+DEFINE TABLE IF NOT EXISTS fact_involves TYPE RELATION IN extracted_fact OUT entity;
+
+-- Dense session retrieval (768-dim); logical slice via ``collection`` (e.g. vanilla_gemini)
+DEFINE TABLE IF NOT EXISTS session_passage SCHEMAFULL;
+DEFINE FIELD IF NOT EXISTS collection ON session_passage TYPE string;
+DEFINE FIELD IF NOT EXISTS doc_id ON session_passage TYPE string;
+DEFINE FIELD IF NOT EXISTS text ON session_passage TYPE string;
+DEFINE FIELD IF NOT EXISTS embedding ON session_passage TYPE array<float>;
+DEFINE FIELD IF NOT EXISTS metadata ON session_passage TYPE object;
+DEFINE FIELD IF NOT EXISTS created_at ON session_passage TYPE datetime DEFAULT time::now();
+DEFINE INDEX IF NOT EXISTS idx_session_passage_coll ON session_passage FIELDS collection;
+DEFINE INDEX IF NOT EXISTS idx_session_passage_embed ON session_passage FIELDS embedding MTREE DIMENSION 768 DIST COSINE;

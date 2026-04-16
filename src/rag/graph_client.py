@@ -12,7 +12,7 @@ import json
 import logging
 import re
 import uuid
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
 
 from surrealdb import RecordID
@@ -24,6 +24,16 @@ from ..embedders.factory import EmbedderConfig
 from .surreal.connection import apply_schema, connect_surreal
 
 logger = logging.getLogger(__name__)
+
+
+def _utc_now() -> datetime:
+    return datetime.now(timezone.utc)
+
+
+def _as_utc(dt: datetime) -> datetime:
+    if dt.tzinfo is None:
+        return dt.replace(tzinfo=timezone.utc)
+    return dt.astimezone(timezone.utc)
 
 
 def _flatten_query(res: Any) -> List[Dict[str, Any]]:
@@ -102,6 +112,11 @@ class TemporalGraphClient:
         # surrealdb.AsyncSurreal is a factory in stubs; use Any for the live connection object.
         self._db: Any = None
         self._embedder: Optional[BaseEmbedder] = None
+
+    @property
+    def embedder(self) -> Optional[BaseEmbedder]:
+        """Embedder used for fact vectors (shared with dense session passages when unified ingest)."""
+        return self._embedder
 
     @classmethod
     def from_setup(
@@ -213,7 +228,8 @@ class TemporalGraphClient:
             raise RuntimeError("Client not initialized")
         body = episode_body if episode_body is not None else content
         gid = group_id or self.group_id
-        ref = reference_time or datetime.now()
+        ref = _as_utc(reference_time) if reference_time else _utc_now()
+        created_at = _utc_now()
 
         ep_id = str(uuid.uuid4())
         ep_rid = RecordID("episode", ep_id)
@@ -225,6 +241,7 @@ class TemporalGraphClient:
                 "body": body,
                 "source_description": source_description,
                 "reference_time": ref,
+                "created_at": created_at,
             },
         )
 
@@ -241,7 +258,11 @@ class TemporalGraphClient:
             if not isinstance(ents, list):
                 ents = []
             va_raw = item.get("valid_at")
-            va = _parse_dt(va_raw) if va_raw else ref
+            if va_raw:
+                parsed_va = _parse_dt(va_raw)
+                va = _as_utc(parsed_va) if parsed_va is not None else ref
+            else:
+                va = ref
             emb_res = await self._embedder.embed([str(ft)])
             if not emb_res.embeddings:
                 continue
@@ -257,12 +278,34 @@ class TemporalGraphClient:
                     "entity_names": [str(e) for e in ents],
                     "valid_at": va,
                     "source_description": source_description,
+                    "created_at": created_at,
                 },
             )
+            try:
+                await self._db.query(
+                    "RELATE $ep->has_fact->$ft",
+                    {"ep": ep_rid, "ft": frid},
+                )
+            except Exception as ex:
+                logger.warning("RELATE has_fact (episode→fact): %s", ex)
             for ename in ents:
                 safe_e = re.sub(r"[^a-zA-Z0-9_]", "_", f"{gid}_{ename}")[:180]
                 er = RecordID("entity", safe_e)
-                await self._db.upsert(er, {"group_id": gid, "name": str(ename)})
+                await self._db.upsert(
+                    er,
+                    {
+                        "group_id": gid,
+                        "name": str(ename),
+                        "created_at": created_at,
+                    },
+                )
+                try:
+                    await self._db.query(
+                        "RELATE $ft->fact_involves->$ent",
+                        {"ft": frid, "ent": er},
+                    )
+                except Exception as ex:
+                    logger.warning("RELATE fact_involves (fact→entity): %s", ex)
         return ep_id
 
     async def _extract_facts(self, body: str, reference_time: datetime) -> List[Dict[str, Any]]:
@@ -409,6 +452,20 @@ Teks percakapan:
             await self.initialize()
         assert self._db is not None
         gid = self.group_id
+        try:
+            await self._db.query(
+                "DELETE FROM has_fact WHERE out IN (SELECT id FROM extracted_fact WHERE group_id = $gid)",
+                {"gid": gid},
+            )
+        except Exception as e:
+            logger.debug("delete has_fact: %s", e)
+        try:
+            await self._db.query(
+                "DELETE FROM fact_involves WHERE in IN (SELECT id FROM extracted_fact WHERE group_id = $gid)",
+                {"gid": gid},
+            )
+        except Exception as e:
+            logger.debug("delete fact_involves: %s", e)
         for table in ("extracted_fact", "episode", "entity"):
             await self._db.query(f"DELETE FROM {table} WHERE group_id = $gid", {"gid": gid})
         logger.warning("Cleared SurrealDB data for group_id=%s", gid)

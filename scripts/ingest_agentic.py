@@ -1,28 +1,23 @@
 #!/usr/bin/env python
-"""Agentic RAG Ingestion Script (``scripts/ingest_agentic.py``).
-============================
+"""Unified session ingestion (``scripts/ingest_agentic.py``).
 
-Ingest conversation sessions ke Neo4j untuk Agentic RAG.
-Menggunakan Graphiti untuk fact extraction dan graph building.
+Per sesi, **satu alur** menulis:
 
-PENTING: Ingestion dilakukan PER-SESSION, bukan per-turn!
-- Sesuai real-world scenario: dalam 1 sesi, semua turn masih di context window
-- RAG hanya dibutuhkan untuk retrieve info dari sesi LAIN
-- LLM extraction lebih akurat karena bisa lihat full session context
-- Lebih efisien: 100 LLM calls vs 1143 calls
+1. **Dense retrieval** — satu vektor per sesi penuh di tabel Surreal ``session_passage``
+   (koleksi logis ``vanilla_gemini`` / ``vanilla_gemma``), untuk jalur vanilla / hybrid.
+2. **Graph agentic** — ``episode``, ``extracted_fact`` (embedding per fakta), ``entity``,
+   edge ``has_fact`` / ``fact_involves``.
 
-Features:
-- Sequential processing untuk fairness
-- Rate limit handling dengan auto-retry untuk Gemini API
-- Checkpoint/resume support
-- Progress tracking
-- Separate group_id untuk Gemini vs Gemma
+Dua jenis embedding: vektor **passage sesi** vs vektor **fakta** di graph (keduanya 768-dim
+dengan embedder setup yang sama).
+
+Ingestion **PER-SESSION** (bukan per-turn). Opsi ``--no-passages`` hanya isi graph.
 
 Usage:
     python scripts/ingest_agentic.py --setup gemini
-    python scripts/ingest_agentic.py --setup gemma
-    python scripts/ingest_agentic.py --setup all
-    python scripts/ingest_agentic.py --setup gemini --resume  # Resume dari checkpoint
+    python scripts/ingest_agentic.py --setup gemini --clear --limit 10
+    python scripts/ingest_agentic.py --setup gemini --resume --batch 5
+    python scripts/ingest_agentic.py --setup gemini --no-passages   # graph saja
 """
 
 from __future__ import annotations
@@ -37,7 +32,7 @@ import os
 import warnings
 from pathlib import Path
 from datetime import datetime
-from typing import List, Dict, Any, Optional
+from typing import Any, Dict, List, Optional
 from dataclasses import dataclass, asdict
 
 # ============================================================
@@ -435,28 +430,33 @@ class AgenticIngester:
         self._graph: TemporalGraphClient | None = None
         self._setup: ExperimentSetup | None = None
         self._group_id: str | None = None
+        self._passage_store: Any = None
+        self._ingest_passages: bool = True
 
     def _agentic_ctx(self) -> tuple[ExperimentSetup, TemporalGraphClient]:
         if self._setup is None or self._graph is None:
             raise RuntimeError("AgenticIngester.initialize() must be called before use.")
         return self._setup, self._graph
 
-    async def initialize(self):
-        """Initialize Graphiti client"""
+    async def initialize(self, ingest_passages: bool = True):
+        """Initialize graph client and optional dense passage store (same embedder)."""
         from src.config.experiment_setups import (
+            CHROMA_COLLECTIONS,
             SETUP_1A_AGENTIC_GEMINI,
-            SETUP_2A_AGENTIC_GEMMA,  # Gemma via Novita AI
+            SETUP_2A_AGENTIC_GEMMA,
+            SetupType,
         )
+        from src.rag.vectordb import get_chroma_client
+
+        self._ingest_passages = ingest_passages
 
         # Set setup name in cost tracker for proper logging
         _cost_tracker.setup_name = self.setup_name
 
         # Get setup
         if self.setup_name == "gemini":
-            # Use high-detail fact extraction setup
             self._setup = SETUP_1A_AGENTIC_GEMINI
         elif self.setup_name == "gemma":
-            # Gemma via Novita AI (OpenAI-compatible)
             self._setup = SETUP_2A_AGENTIC_GEMMA
         else:
             raise ValueError(f"Unknown setup: {self.setup_name}")
@@ -473,6 +473,22 @@ class AgenticIngester:
 
         self._graph = TemporalGraphClient(setup=self._setup)
         await self._graph.initialize()
+
+        self._passage_store = None
+        if self._ingest_passages:
+            if self.setup_name == "gemini":
+                pcoll = CHROMA_COLLECTIONS[SetupType.VANILLA_GEMINI]
+            else:
+                pcoll = CHROMA_COLLECTIONS[SetupType.VANILLA_GEMMA]
+            self._passage_store = get_chroma_client(pcoll)
+            await self._passage_store.initialize(embedder=self._graph.embedder)
+            logger.info(
+                "  Session passages: table session_passage, collection=%s (unified)",
+                pcoll,
+            )
+        else:
+            logger.info("  Session passages: skipped (--no-passages)")
+
         logger.info(f"✅ Initialized {self._setup.name} (SurrealDB)")
 
     def _load_dataset(self) -> List[Dict[str, Any]]:
@@ -513,6 +529,32 @@ class AgenticIngester:
             lines.append(f"[{speaker}]: {text}")
 
         return "\n".join(lines)
+
+    async def _ingest_session_passage(
+        self,
+        session_text: str,
+        source: str,
+        session_id: Any,
+    ) -> None:
+        """One dense embedding per session (``session_passage``); same text as graph episode."""
+        if not self._ingest_passages or self._passage_store is None:
+            return
+        from src.rag.vectordb import VanillaDocument
+
+        await self._passage_store.add_documents(
+            [
+                VanillaDocument(
+                    id=source,
+                    text=session_text,
+                    metadata={
+                        "session_id": session_id,
+                        "group_id": self._group_id,
+                        "pipeline": "unified_agentic",
+                    },
+                )
+            ],
+            show_progress=False,
+        )
 
     def _get_checkpoint_path(self) -> Path:
         """Get checkpoint file path"""
@@ -639,11 +681,34 @@ class AgenticIngester:
         """
         # Load dataset
         sessions = self._load_dataset()
+        full_dataset_count = len(sessions)
 
-        # Limit sessions if requested
-        if limit:
+        checkpoint: Optional[IngestionCheckpoint] = None
+        if resume:
+            checkpoint = self._load_checkpoint()
+            if checkpoint and checkpoint.status == "completed":
+                logger.info(f"✅ Ingestion already completed for {self.setup_name}")
+                return
+
+        # Limit: explicit --limit wins; resume without --limit keeps prior run size (checkpoint)
+        if limit is not None:
             sessions = sessions[:limit]
             logger.info(f"Limiting to {limit} sessions for testing.")
+        elif (
+            resume
+            and checkpoint
+            and checkpoint.status in ("in_progress", "failed", "batch_done")
+            and checkpoint.total_sessions
+            and len(sessions) > int(checkpoint.total_sessions)
+        ):
+            cap = int(checkpoint.total_sessions)
+            sessions = sessions[:cap]
+            logger.info(
+                "Resume without --limit: capping to %s sessions (checkpoint total_sessions). "
+                "Full dataset: delete %s or run without --resume.",
+                cap,
+                self._get_checkpoint_path(),
+            )
 
         total_sessions = len(sessions)
 
@@ -651,33 +716,23 @@ class AgenticIngester:
         llm_x = setup.llm_extraction
         assert llm_x is not None, "Agentic setup requires llm_extraction"
 
-        # Check for existing checkpoint
-        checkpoint = None
         start_index = 0
+        if resume and checkpoint and checkpoint.status in [
+            "in_progress",
+            "failed",
+            "batch_done",
+        ]:
+            for i, session in enumerate(sessions):
+                if session["session_id"] == checkpoint.last_session_id:
+                    start_index = i + 1
+                    break
 
-        if resume:
-            checkpoint = self._load_checkpoint()
-            # Resume from both 'in_progress', 'failed', AND 'batch_done' status
-            if checkpoint and checkpoint.status in [
-                "in_progress",
-                "failed",
-                "batch_done",
-            ]:
-                # Find the index to resume from
-                for i, session in enumerate(sessions):
-                    if session["session_id"] == checkpoint.last_session_id:
-                        start_index = i + 1
-                        break
-
-                logger.info("📥 Resuming from checkpoint:")
-                logger.info(
-                    f"   Processed: {checkpoint.processed_sessions}/{checkpoint.total_sessions}"
-                )
-                logger.info(f"   Last session: {checkpoint.last_session_id}")
-                logger.info(f"   Starting from index: {start_index}")
-            elif checkpoint and checkpoint.status == "completed":
-                logger.info(f"✅ Ingestion already completed for {self.setup_name}")
-                return
+            logger.info("📥 Resuming from checkpoint:")
+            logger.info(
+                f"   Processed: {checkpoint.processed_sessions}/{checkpoint.total_sessions}"
+            )
+            logger.info(f"   Last session: {checkpoint.last_session_id}")
+            logger.info(f"   Starting from index: {start_index}")
 
         # Create new checkpoint if not resuming
         if checkpoint is None:
@@ -743,8 +798,11 @@ class AgenticIngester:
                 # PROACTIVE THROTTLE: Pace ourselves to stay within rate limits
                 await self.rate_limiter.proactive_throttle()
 
-                # Add episode with retry
+                # Dense passage (vanilla / hybrid) then graph (facts + fact embeddings)
                 try:
+                    await self._ingest_session_passage(
+                        session_text, source, session_id
+                    )
                     await self._add_episode_with_retry(
                         content=session_text,
                         source=source,
@@ -832,9 +890,13 @@ class AgenticIngester:
                 logger.info(f"COST SO FAR: {get_cost_tracker().get_summary()}")
                 logger.info(f"{'=' * 60}")
                 logger.info("\n🔄 To continue, run:")
-                logger.info(
-                    f"   python scripts/ingest_agentic.py --setup {self.setup_name} --resume --batch {batch_size or 5}"
+                resume_cmd = (
+                    f"   python scripts/ingest_agentic.py --setup {self.setup_name} "
+                    f"--resume --batch {batch_size or 5}"
                 )
+                if total_sessions < full_dataset_count:
+                    resume_cmd += f" --limit {total_sessions}"
+                logger.info(resume_cmd)
                 logger.info(f"{'=' * 60}\n")
 
         except KeyboardInterrupt:
@@ -860,6 +922,12 @@ class AgenticIngester:
 
     async def close(self):
         """Close connections"""
+        if self._passage_store is not None:
+            try:
+                await self._passage_store.close()
+            except Exception:
+                pass
+            self._passage_store = None
         if self._graph:
             await self._graph.close()
 
@@ -869,11 +937,12 @@ async def ingest_setup(
     resume: bool = False,
     batch_size: int = 5,
     limit: Optional[int] = None,
+    ingest_passages: bool = True,
 ):
     """Run ingestion for a specific setup."""
     ingester = AgenticIngester(setup_name)
     try:
-        await ingester.initialize()
+        await ingester.initialize(ingest_passages=ingest_passages)
         await ingester.ingest(resume=resume, batch_size=batch_size, limit=limit)
     finally:
         await ingester.close()
@@ -890,6 +959,17 @@ async def clear_group(group_id: str):
         logger.info(f"Cleared SurrealDB group: {group_id}")
     finally:
         await client.close()
+
+
+async def clear_passage_collection(collection: str) -> None:
+    """Clear dense session vectors for one logical collection (e.g. vanilla_gemini)."""
+    from src.rag.vectordb import get_chroma_client
+
+    db = get_chroma_client(collection)
+    await db.initialize(embedder=None)
+    await db.clear()
+    await db.close()
+    logger.info("Cleared session_passage collection=%s", collection)
 
 
 async def main():
@@ -915,6 +995,11 @@ async def main():
     parser.add_argument(
         "--limit", type=int, default=None, help="Limit number of episodes (for testing)"
     )
+    parser.add_argument(
+        "--no-passages",
+        action="store_true",
+        help="Skip session_passage (dense) ingest; graph only",
+    )
 
     args = parser.parse_args()
 
@@ -925,13 +1010,27 @@ async def main():
 
     # Clear if requested
     if args.clear:
-        from src.config.experiment_setups import NEO4J_GROUP_IDS, SetupType
+        from src.config.experiment_setups import (
+            CHROMA_COLLECTIONS,
+            NEO4J_GROUP_IDS,
+            SetupType,
+        )
 
         if args.setup in ["gemini", "all"]:
             await clear_group(NEO4J_GROUP_IDS[SetupType.AGENTIC_GEMINI])
+            if not args.no_passages:
+                await clear_passage_collection(
+                    CHROMA_COLLECTIONS[SetupType.VANILLA_GEMINI]
+                )
 
         if args.setup in ["gemma", "all"]:
             await clear_group(NEO4J_GROUP_IDS[SetupType.AGENTIC_GEMMA])
+            if not args.no_passages:
+                await clear_passage_collection(
+                    CHROMA_COLLECTIONS[SetupType.VANILLA_GEMMA]
+                )
+
+    ingest_passages = not args.no_passages
 
     # Ingest
     if args.setup == "all":
@@ -941,14 +1040,26 @@ async def main():
         logger.info("=" * 60 + "\n")
 
         await ingest_setup(
-            "gemini", resume=args.resume, batch_size=args.batch, limit=args.limit
+            "gemini",
+            resume=args.resume,
+            batch_size=args.batch,
+            limit=args.limit,
+            ingest_passages=ingest_passages,
         )
         await ingest_setup(
-            "gemma", resume=args.resume, batch_size=args.batch, limit=args.limit
+            "gemma",
+            resume=args.resume,
+            batch_size=args.batch,
+            limit=args.limit,
+            ingest_passages=ingest_passages,
         )
     else:
         await ingest_setup(
-            args.setup, resume=args.resume, batch_size=args.batch, limit=args.limit
+            args.setup,
+            resume=args.resume,
+            batch_size=args.batch,
+            limit=args.limit,
+            ingest_passages=ingest_passages,
         )
 
     # Show final status
@@ -956,9 +1067,9 @@ async def main():
     logger.info("FINAL DATABASE STATUS")
     logger.info("=" * 60)
 
-    # Show final status (manage_database.py was deleted, no longer needed)
     logger.info(
-        "Use 'python scripts/clear_database.py' to view/manage database status."
+        "Clear graph data: python scripts/clear_database.py  "
+        "or re-ingest with --clear (see scripts/clear_database.py --help)."
     )
 
 

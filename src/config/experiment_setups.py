@@ -542,7 +542,7 @@ def print_database_info() -> None:
 │                              DATABASE CONFIGURATION                                         │
 ├─────────────────────────────────────────────────────────────────────────────────────────────┤
 │                                                                                             │
-│  SurrealDB — vanilla_chunk (Vanilla RAG)                                                   │
+│  SurrealDB — session_passage (dense per-session; Vanilla / hybrid)                         │
 │  ══════════════════════                                                                    │
 │  Location: ./data/chroma/                                                                  │
 │                                                                                             │

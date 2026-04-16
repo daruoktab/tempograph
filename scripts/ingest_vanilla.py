@@ -1,10 +1,12 @@
 #!/usr/bin/env python
 # scripts/ingest_vanilla.py
 """
-Vanilla RAG Ingestion Script
-============================
+Vanilla-only ingestion (dense ``session_passage`` rows).
 
-Ingest raw conversation sessions ke ChromaDB untuk Vanilla RAG.
+**Disarankan:** ``scripts/ingest_agentic.py`` — satu alur mengisi graph **dan**
+``session_passage`` (hybrid / eval tanpa jalur ingest ganda).
+
+Skrip ini tetap berguna untuk baseline **hanya** vektor sesi (tanpa ekstraksi fakta / graph).
 
 PENTING: Ingestion dilakukan PER-SESSION, bukan per-turn!
 - Sesuai real-world scenario: dalam 1 sesi, semua turn masih di context window
