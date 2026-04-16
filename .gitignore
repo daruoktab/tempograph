@@ -8,6 +8,10 @@ __pycache__/
 # Local-only: repo / branding name notes (not for remote)
 REPO_NAMING.local.md
 
+# Local ty checker output (do not commit)
+ty_errors.txt
+ty_remaining.txt
+
 # Environment
 .env
 
