@@ -313,10 +313,11 @@ INFO_KURANG: [jika TIDAK, sebutkan informasi apa yang masih kurang]"""
         Bypasses Graphiti's client to avoid Developer Instruction issues.
         """
         # Check if llm_client has config with model info
-        if hasattr(self.llm_client, "config"):
-            model = getattr(self.llm_client.config, "model", "")
-            base_url = getattr(self.llm_client.config, "base_url", None)
-            api_key = getattr(self.llm_client.config, "api_key", "")
+        client_cfg = getattr(self.llm_client, "config", None)
+        if client_cfg is not None:
+            model = getattr(client_cfg, "model", "") or ""
+            base_url = getattr(client_cfg, "base_url", None)
+            api_key = getattr(client_cfg, "api_key", "") or ""
 
             # If using Novita/Gemma, call directly via OpenAI-compatible API
             if base_url and "novita" in base_url.lower():
@@ -329,38 +330,45 @@ INFO_KURANG: [jika TIDAK, sebutkan informasi apa yang masih kurang]"""
                     max_tokens=500,
                     temperature=0.3,
                 )
-                return response.choices[0].message.content  # type: ignore[invalid-return-type]
+                raw = response.choices[0].message.content
+                return raw if raw is not None else ""
 
-            # If using Gemini (via Graphiti client), call with proper Message format
+            # Gemini: call Google Generative AI directly (no Graphiti)
             elif "gemini" in model.lower():
-                from graphiti_core.prompts.models import Message
+                from google import genai
+                from google.genai import types as genai_types
 
-                response = await self.llm_client.generate_response(
-                    messages=[Message(role="user", content=prompt)]
+                from ...config.settings import get_config
+
+                key = api_key or get_config().gemini.api_key
+                client = genai.Client(api_key=key)
+                m = model or "gemini-2.5-flash"
+                loop = asyncio.get_running_loop()
+
+                def _call():
+                    return client.models.generate_content(
+                        model=m,
+                        contents=prompt,
+                        config=genai_types.GenerateContentConfig(
+                            temperature=0.3, max_output_tokens=500
+                        ),
+                    )
+
+                resp = await loop.run_in_executor(None, _call)
+                return (getattr(resp, "text", None) or "").strip()
+
+        # Fallback: try generate_response if present (legacy clients)
+        try:
+            if hasattr(self.llm_client, "generate_response"):
+                response = await self.llm_client.generate_response(  # type: ignore[possibly-missing-attribute]
+                    messages=[{"role": "user", "content": prompt}]
                 )
-                # Parse response
                 if isinstance(response, dict):
                     return str(response.get("content", ""))
-                elif hasattr(response, "content"):
-                    return str(response.content)
-                elif hasattr(response, "text"):
-                    return str(response.text)
-                else:
-                    return str(response)
-
-        # Fallback: try calling llm_client directly
-        try:
-            from graphiti_core.prompts.models import Message
-
-            response = await self.llm_client.generate_response(  # type: ignore[possibly-missing-attribute]
-                messages=[Message(role="user", content=prompt)]
-            )
-            if isinstance(response, dict):
-                return str(response.get("content", ""))
-            return str(response)
+                return str(response)
         except Exception as e:
             logger.debug(f"Fallback LLM call failed: {e}")
-            return ""
+        return ""
 
     async def evaluate_sufficiency(
         self, query: str, state: RetrievalState, plan: RetrievalPlan

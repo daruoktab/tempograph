@@ -31,11 +31,15 @@ import logging
 import sys
 from pathlib import Path
 from datetime import datetime
-from typing import List, Dict, Any, Optional
+from typing import List, Dict, Any, Optional, Tuple
 from dataclasses import dataclass, asdict
 
 # Add project root to path
 sys.path.insert(0, str(Path(__file__).parent.parent))
+
+from src.config.experiment_setups import ExperimentSetup
+from src.embedders.base import BaseEmbedder
+from src.rag.vectordb import SurrealVanillaVectorDB
 
 from tqdm import tqdm
 
@@ -45,7 +49,7 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 # Paths
-DATASET_PATH = Path("output/final_dataset_v1/conversation_dataset.json")
+DATASET_PATH = Path("output/example_dataset/conversation_dataset.json")
 CHECKPOINT_DIR = Path("data/checkpoints")
 CHECKPOINT_DIR.mkdir(parents=True, exist_ok=True)
 
@@ -140,9 +144,15 @@ class VanillaIngester:
         """
         self.setup_name = setup_name
         self.rate_limiter = RateLimitHandler()
-        self._embedder = None
-        self._chroma_db = None
-        self._setup = None
+        self._embedder: Optional[BaseEmbedder] = None
+        self._chroma_db: Optional[SurrealVanillaVectorDB] = None
+        self._setup: Optional[ExperimentSetup] = None
+
+    def _ingest_ctx(self) -> Tuple[ExperimentSetup, BaseEmbedder, SurrealVanillaVectorDB]:
+        """Resolved components after ``initialize()``; raises if not ready."""
+        if self._setup is None or self._embedder is None or self._chroma_db is None:
+            raise RuntimeError("VanillaIngester not initialized; call await initialize() first")
+        return self._setup, self._embedder, self._chroma_db
 
     async def initialize(self):
         """Initialize embedder and ChromaDB"""
@@ -264,11 +274,12 @@ class VanillaIngester:
         Untuk Gemini API: retry dengan backoff
         Untuk HuggingFace (local): langsung embed tanpa retry
         """
-        is_local = self._setup.embedder.provider == "huggingface"  # type: ignore[possibly-missing-attribute]
+        setup, embedder, _ = self._ingest_ctx()
+        is_local = setup.embedder.provider == "huggingface"
 
         if is_local:
             # Local embedder, tidak perlu rate limit handling
-            return await self._embedder.embed_single(text)  # type: ignore[possibly-missing-attribute]
+            return await embedder.embed_single(text)
 
         # Gemini API - perlu rate limit handling
         for attempt in range(max_retries):
@@ -278,9 +289,9 @@ class VanillaIngester:
                     from src.utils.cost_tracker import get_cost_tracker
 
                     tracker = get_cost_tracker()
-                    await tracker.track_chars(len(text), self._setup.embedder.name)  # type: ignore[possibly-missing-attribute]
+                    await tracker.track_chars(len(text), setup.embedder.name)
 
-                embedding = await self._embedder.embed_single(text)  # type: ignore[possibly-missing-attribute]
+                embedding = await embedder.embed_single(text)
                 self.rate_limiter.reset()  # Success, reset backoff
                 return embedding
 
@@ -322,6 +333,8 @@ class VanillaIngester:
             sessions = sessions[:limit]
             logger.info(f"Limiting to {limit} sessions for testing.")
 
+        setup, _, chroma_db = self._ingest_ctx()
+
         total_sessions = len(sessions)
 
         # Check for existing checkpoint
@@ -345,7 +358,7 @@ class VanillaIngester:
                 logger.info(f"   Starting from index: {start_index}")
             elif checkpoint and checkpoint.status == "completed":
                 logger.info(f"✅ Ingestion already completed for {self.setup_name}")
-                logger.info(f"   Total documents: {self._chroma_db.count()}")  # type: ignore[possibly-missing-attribute]
+                logger.info(f"   Total documents: {chroma_db.count()}")
                 return
 
         # Create new checkpoint if not resuming
@@ -362,12 +375,12 @@ class VanillaIngester:
 
         # Process sessions
         logger.info(f"\n{'=' * 60}")
-        logger.info(f"INGESTING TO {self._setup.name.upper()}")  # type: ignore[possibly-missing-attribute]
+        logger.info(f"INGESTING TO {setup.name.upper()}")
         logger.info(f"{'=' * 60}")
         logger.info(f"Total sessions: {total_sessions}")
         logger.info(f"Starting from: {start_index}")
-        logger.info(f"Embedder: {self._setup.embedder.name}")  # type: ignore[possibly-missing-attribute]
-        logger.info(f"Collection: {self._setup.storage.collection_name}")  # type: ignore[possibly-missing-attribute]
+        logger.info(f"Embedder: {setup.embedder.name}")
+        logger.info(f"Collection: {setup.storage.collection_name}")
         logger.info("Unit: PER-TURN (1 doc = 1 turn)")
         logger.info(f"{'=' * 60}\n")
 
@@ -421,7 +434,7 @@ class VanillaIngester:
                     )
 
                     # Add to ChromaDB
-                    await self._chroma_db.add_document(doc)  # type: ignore[possibly-missing-attribute]
+                    await chroma_db.add_document(doc)
                     docs_added += 1
 
                     from src.utils.cost_tracker import get_cost_tracker
@@ -432,7 +445,7 @@ class VanillaIngester:
                     pbar.update(1)
 
                     # Small delay for API rate limiting (Gemini only)
-                    if self._setup.embedder.provider != "huggingface":  # type: ignore[possibly-missing-attribute]
+                    if setup.embedder.provider != "huggingface":
                         await asyncio.sleep(0.05)  # 50ms between requests
 
                 # Update checkpoint after each session
@@ -453,8 +466,8 @@ class VanillaIngester:
             logger.info(f"\n{'=' * 60}")
             logger.info("✅ INGESTION COMPLETED!")
             logger.info(f"{'=' * 60}")
-            logger.info(f"Setup: {self._setup.name}")  # type: ignore[possibly-missing-attribute]
-            logger.info(f"Total documents (turns): {self._chroma_db.count()}")  # type: ignore[possibly-missing-attribute]
+            logger.info(f"Setup: {setup.name}")
+            logger.info(f"Total documents (turns): {chroma_db.count()}")
             from src.utils.cost_tracker import get_cost_tracker
 
             logger.info(f"Total Cost: {get_cost_tracker().get_summary()}")

@@ -1,0 +1,1455 @@
+{
+  "metadata": {
+    "version": "2.0",
+    "generated_at": "2025-12-07T14:06:26.347051",
+    "model": "gemini-2.5-pro",
+    "total_queries": 100,
+    "description": "100 evaluation queries - 1 per session",
+    "stats": {
+      "total_queries": 100,
+      "by_type": {
+        "inference": 30,
+        "factual_recall": 52,
+        "multi_hop": 8,
+        "counterfactual": 5,
+        "temporal_reasoning": 5
+      },
+      "by_difficulty": {
+        "hard": 13,
+        "easy": 46,
+        "medium": 41
+      },
+      "sessions_covered": 100,
+      "cross_session_count": 16,
+      "cross_session_percent": 16.0
+    }
+  },
+  "queries": [
+    {
+      "id": "q001",
+      "query": "Apa tantangan terbesar yang dihadapi Aisha dalam menyiapkan campaign skincare untuk klien barunya?",
+      "type": "inference",
+      "difficulty": "hard",
+      "expected_answer": "Tantangan terbesar Aisha adalah menentukan visual dan tone of voice yang pas agar tidak terlihat 'memaksa' jualan, terutama karena target marketnya spesifik.",
+      "required_context": "Menentukan visual dan tone of voice yang pas agar tidak terlihat 'memaksa' jualan adalah hal yang paling menantang. Klien baru tersebut bergerak di bidang produk skincare. Target market untuk campaign tersebut spesifik.",
+      "reasoning_steps": "1. Identifikasi pernyataan tentang hal yang paling menantang. 2. Hubungkan tantangan tersebut dengan konteks campaign (skincare) dan karakteristiknya (target market spesifik). 3. Simpulkan bahwa tantangan tersebut diperparah oleh kebutuhan untuk tidak terlihat memaksa jualan pada target spesifik.",
+      "relevant_sessions": [
+        1
+      ],
+      "is_cross_session": false,
+      "source": "original_dataset"
+    },
+    {
+      "id": "q002",
+      "query": "Apa tantangan utama yang dihadapi Aisha dan Dewi dalam proyek kampanye untuk brand fashion lokal di awal Januari?",
+      "type": "factual_recall",
+      "difficulty": "easy",
+      "expected_answer": "Tantangan utamanya adalah mencari titik temu antara citra brand yang 'lokal' dengan keinginan klien untuk tampilan 'internasional'. Mereka kesulitan menentukan visual dan copy yang pas agar tidak terkesan 'maksa' dan khawatir tidak sesuai ekspektasi klien.",
+      "required_context": "Diskusi Aisha dengan chatbot mengenai proyek brand fashion lokal yang ingin go international.",
+      "reasoning_steps": "1. Identifikasi proyek yang dibahas di session 2. 2. Temukan bagian di mana Aisha menjelaskan kesulitan atau tantangan proyek tersebut.",
+      "relevant_sessions": [
+        2
+      ],
+      "is_cross_session": false,
+      "source": "auto_generated"
+    },
+    {
+      "id": "q003",
+      "query": "Siapa yang menyarankan Aisha untuk memilih konsep marketing 'lifestyle' untuk proyek Kopi Senja Pagi?",
+      "type": "factual_recall",
+      "difficulty": "easy",
+      "expected_answer": "Sahabatnya, Rizky, yang menyarankan konsep 'lifestyle' agar lebih 'jual mimpi' kepada audiens anak muda urban.",
+      "required_context": "Percakapan Aisha mengenai konsep awal untuk klien Kopi Senja Pagi.",
+      "reasoning_steps": "1. Cari sesi yang membahas proyek Kopi Senja Pagi. 2. Identifikasi siapa saja yang memberikan masukan. 3. Temukan nama Rizky dan sarannya yang spesifik.",
+      "relevant_sessions": [
+        3
+      ],
+      "is_cross_session": false,
+      "source": "auto_generated"
+    },
+    {
+      "id": "q004",
+      "query": "Apa nama kafe yang dikunjungi Aisha di Dago Atas dan apa keunikan kopi yang ia coba di sana?",
+      "type": "factual_recall",
+      "difficulty": "easy",
+      "expected_answer": "Nama kafenya adalah 'Sudut Tenang'. Keunikan kopinya adalah signature coffee yang menggunakan rempah seperti jahe dan kayu manis.",
+      "required_context": "Cerita Aisha tentang kunjungannya ke sebuah kafe baru di Dago Atas.",
+      "reasoning_steps": "1. Cari sesi di mana Aisha menyebutkan kunjungan ke kafe baru. 2. Ekstrak nama kafe ('Sudut Tenang'). 3. Ekstrak deskripsi kopi unik yang ia coba (dengan rempah jahe dan kayu manis).",
+      "relevant_sessions": [
+        4
+      ],
+      "is_cross_session": false,
+      "source": "auto_generated"
+    },
+    {
+      "id": "q005",
+      "query": "Metode manajemen prioritas apa yang Aisha pelajari dari buku dan bagaimana ia berencana menerapkannya pada pekerjaannya?",
+      "type": "factual_recall",
+      "difficulty": "medium",
+      "expected_answer": "Aisha mempelajari konsep matriks Eisenhower, yang memisahkan tugas menjadi kategori seperti 'Penting & Mendesak'. Ia berencana menerapkannya dengan mengkategorikan tugas-tugas dari proyek Kopi Senja Pagi, misalnya brainstorming konsep sebagai 'Penting & Gak Mendesak' dan follow-up influencer sebagai 'Penting & Mendesak'.",
+      "required_context": "Diskusi Aisha tentang buku manajemen prioritas yang ia baca.",
+      "reasoning_steps": "1. Identifikasi sesi di mana Aisha membahas membaca buku manajemen. 2. Ekstrak nama metode yang dipelajari (matriks Eisenhower). 3. Jelaskan bagaimana ia mengaplikasikan metode tersebut pada contoh tugas spesifik.",
+      "relevant_sessions": [
+        5
+      ],
+      "is_cross_session": false,
+      "source": "auto_generated"
+    },
+    {
+      "id": "q006",
+      "query": "Apa tantangan baru yang muncul setelah meeting pertama Aisha dengan klien Kopi Senja Pagi?",
+      "type": "factual_recall",
+      "difficulty": "easy",
+      "expected_answer": "Tantangan barunya adalah timeline yang sangat cepat. Klien ingin kampanye tersebut sudah harus diluncurkan pada bulan berikutnya (Februari), sehingga Aisha dan Dewi harus bekerja dengan cepat.",
+      "required_context": "Hasil meeting pertama Aisha dan Dewi dengan Kopi Senja Pagi.",
+      "reasoning_steps": "1. Cari sesi yang membahas meeting pertama dengan Kopi Senja Pagi. 2. Identifikasi tantangan yang disebutkan Aisha setelah meeting tersebut, yaitu timeline yang mepet.",
+      "relevant_sessions": [
+        6
+      ],
+      "is_cross_session": false,
+      "source": "auto_generated"
+    },
+    {
+      "id": "q007",
+      "query": "Apa ide kampanye yang diusulkan oleh chatbot sebagai jalan tengah antara ide Aisha dan Dewi untuk Kopi Senja Pagi?",
+      "type": "factual_recall",
+      "difficulty": "medium",
+      "expected_answer": "Chatbot mengusulkan ide 'open submission' di media sosial, di mana followers diajak untuk mengirim cerita mereka. Cerita terbaik akan dijadikan konten. Ide ini menggabungkan konsep 'relatable' dari Dewi dan konsep 'humanis' dari Aisha.",
+      "required_context": "Sesi brainstorming Aisha dan Dewi untuk Kopi Senja Pagi, di mana mereka memiliki dua ide berbeda.",
+      "reasoning_steps": "1. Identifikasi dua ide kampanye dari Aisha ('Cerita di Balik Cangkir') dan Dewi ('A Day with Kopi Senja Pagi'). 2. Temukan saran yang diberikan oleh chatbot sebagai solusi. 3. Jelaskan ide 'open submission' tersebut.",
+      "relevant_sessions": [
+        7
+      ],
+      "is_cross_session": false,
+      "source": "auto_generated"
+    },
+    {
+      "id": "q008",
+      "query": "Mengapa Aisha mengalami creative block saat mengerjakan proyek brand fashion, meskipun idenya sedang lancar untuk proyek Kopi Senja Pagi?",
+      "type": "inference",
+      "difficulty": "medium",
+      "expected_answer": "Aisha mengalami creative block untuk proyek fashion karena ia terjebak dalam dilema antara konsep yang terlalu 'aman' (seperti gaya lama brand) dan yang terlalu 'edgy' (untuk audiens baru). Ia kesulitan menemukan keseimbangan yang pas, sementara untuk proyek kopi, ia merasa lebih 'klik' secara personal sehingga idenya lebih mengalir.",
+      "required_context": "Keluhan Aisha tentang creative block pada proyek fashion.",
+      "reasoning_steps": "1. Identifikasi bahwa creative block terjadi pada proyek fashion, bukan kopi. 2. Analisis penyebabnya, yaitu dilema antara 'aman' dan 'edgy'. 3. Simpulkan bahwa kesulitan ini yang menyebabkan kebuntuan, berbeda dengan proyek kopi yang lebih sesuai dengan passion-nya.",
+      "relevant_sessions": [
+        8
+      ],
+      "is_cross_session": false,
+      "source": "auto_generated"
+    },
+    {
+      "id": "q009",
+      "query": "Bagaimana saran spesifik dari Rizky Firmansyah di Session 9 membantu Aisha dan Dewi mengatasi creative block yang mereka alami di Session 8 terkait proyek fashion?",
+      "type": "multi_hop",
+      "difficulty": "medium",
+      "expected_answer": "Di Session 8, Aisha mengalami creative block karena terjebak antara konsep 'aman' dan 'edgy'. Di Session 9, Rizky menyarankan mereka untuk berhenti memikirkan visual dan fokus pada 3 kata yang merepresentasikan koleksi tersebut. Saran ini membantu mereka menemukan kata kunci 'Berani', 'Urban', dan 'Akar' yang menjadi fondasi konsep visual baru yang lebih solid.",
+      "required_context": "Session 8: Aisha mengalami creative block untuk proyek fashion. Session 9: Aisha menceritakan saran dari Rizky untuk menentukan 3 kata kunci.",
+      "reasoning_steps": "1. Identifikasi masalah 'creative block' di Session 8. 2. Cari solusi yang ditemukan di session berikutnya. 3. Hubungkan saran Rizky di Session 9 sebagai solusi langsung untuk masalah di Session 8.",
+      "relevant_sessions": [
+        9,
+        8
+      ],
+      "is_cross_session": true,
+      "source": "auto_generated"
+    },
+    {
+      "id": "q010",
+      "query": "Bagaimana kunjungan Aisha ke Dago Atas untuk hobi fotografinya secara tidak langsung memberikan ide baru untuk kampanye Kopi Senja Pagi?",
+      "type": "inference",
+      "difficulty": "medium",
+      "expected_answer": "Saat berada di Dago Atas untuk refreshing dan fotografi landscape, suasana alam di sana menginspirasi Aisha untuk mengembangkan konsep kampanye Kopi Senja Pagi menjadi lebih 'grounded'. Ia terpikir untuk membuat konten yang menunjukkan kopi dinikmati di alam, tidak hanya di perkotaan atau kafe, sehingga memperluas target audiens.",
+      "required_context": "Cerita Aisha tentang kunjungannya ke Dago Atas dan ide baru yang muncul untuk proyek kopi.",
+      "reasoning_steps": "1. Identifikasi tujuan awal Aisha ke Dago Atas (refreshing, hobi foto). 2. Temukan ide baru yang muncul saat di sana (konsep 'grounded'/'kopi di alam'). 3. Simpulkan bahwa lingkungan alam saat melakukan hobi menjadi pemicu ide kreatif untuk pekerjaannya.",
+      "relevant_sessions": [
+        10
+      ],
+      "is_cross_session": false,
+      "source": "auto_generated"
+    },
+    {
+      "id": "q011",
+      "query": "Apa karya seni spesifik yang dilihat Aisha di pameran seni di Braga yang menjadi inspirasi visual utama untuk konsep 'Berani, Urban, Akar'?",
+      "type": "factual_recall",
+      "difficulty": "medium",
+      "expected_answer": "Aisha melihat sebuah lukisan abstrak yang menggunakan teknik mixed media. Lukisan tersebut memiliki latar tekstur beton kasar ('Urban'), sapuan cat warna tanah ('Akar'), dan cipratan cat neon shocking pink ('Berani'). Kombinasi ini menjadi visualisasi sempurna dari konsep mereka.",
+      "required_context": "Kunjungan Aisha ke pameran seni di Braga dan inspirasi yang didapatkannya.",
+      "reasoning_steps": "1. Cari sesi di mana Aisha membahas kunjungannya ke pameran seni. 2. Ekstrak deskripsi detail dari karya seni yang paling menginspirasinya. 3. Hubungkan setiap elemen visual lukisan dengan tiga kata kunci konsep ('Berani, Urban, Akar').",
+      "relevant_sessions": [
+        11
+      ],
+      "is_cross_session": false,
+      "source": "auto_generated"
+    },
+    {
+      "id": "q012",
+      "query": "Bagaimana matriks Eisenhower yang dipelajari Aisha di Session 5 membantunya dalam mengelola proyek fashion dan Kopi Senja Pagi secara bersamaan?",
+      "type": "multi_hop",
+      "difficulty": "medium",
+      "expected_answer": "Di Session 5, Aisha mempelajari matriks Eisenhower untuk manajemen prioritas. Di Session 12, ia secara eksplisit menyebutkan bahwa matriks tersebut sangat berguna. Ia menggunakannya untuk memprioritaskan penyelesaian proyek fashion terlebih dahulu, sementara riset influencer untuk Kopi Senja Pagi bisa menunggu, sehingga fokusnya tidak terpecah.",
+      "required_context": "Session 5: Aisha belajar tentang matriks Eisenhower. Session 12: Aisha menyebutkan penggunaan matriks tersebut untuk mengatur prioritas antara dua proyek.",
+      "reasoning_steps": "1. Identifikasi konsep matriks Eisenhower dari Session 5. 2. Temukan bukti penerapan konsep tersebut di Session 12. 3. Jelaskan bagaimana konsep itu membantunya memprioritaskan proyek fashion di atas proyek kopi untuk sementara waktu.",
+      "relevant_sessions": [
+        12,
+        5
+      ],
+      "is_cross_session": true,
+      "source": "auto_generated"
+    },
+    {
+      "id": "q013",
+      "query": "Apa alasan utama yang membuat Aisha dan Dewi mulai mempertimbangkan untuk merekrut staf baru untuk agensi mereka?",
+      "type": "inference",
+      "difficulty": "easy",
+      "expected_answer": "Setelah proposal untuk proyek fashion disetujui, beban kerja agensi mereka meningkat secara signifikan. Mereka sadar bahwa untuk bisa terus berkembang dan agar mereka bisa lebih fokus pada strategi besar, mereka membutuhkan bantuan untuk menangani tugas-tugas eksekusi harian.",
+      "required_context": "Diskusi Aisha setelah proyek fashionnya disetujui klien.",
+      "reasoning_steps": "1. Identifikasi momen pemicu (proyek fashion disetujui). 2. Analisis percakapan Aisha dan Dewi tentang beban kerja yang bertambah. 3. Simpulkan bahwa kebutuhan untuk mendelegasikan tugas eksekusi menjadi alasan utama mereka mempertimbangkan rekrutmen.",
+      "relevant_sessions": [
+        13
+      ],
+      "is_cross_session": false,
+      "source": "auto_generated"
+    },
+    {
+      "id": "q014",
+      "query": "Apa yang menyebabkan Aisha menunda rencana rekrutmen staf baru yang sebelumnya sudah ia diskusikan dengan Dewi?",
+      "type": "factual_recall",
+      "difficulty": "easy",
+      "expected_answer": "Aisha menunda rencana rekrutmen setelah menerima email tagihan bulanan agensi yang angkanya lebih besar dari biasanya. Hal ini membuatnya ragu dan overthinking mengenai kestabilan finansial agensi untuk menambah pengeluaran tetap seperti gaji karyawan baru.",
+      "required_context": "Percakapan Aisha tentang tagihan bulanan agensi yang membengkak.",
+      "reasoning_steps": "1. Cari sesi di mana rencana rekrutmen dibahas kembali. 2. Identifikasi peristiwa pemicu penundaan (menerima tagihan besar). 3. Jelaskan alasan di balik keputusan tersebut (kekhawatiran finansial).",
+      "relevant_sessions": [
+        14
+      ],
+      "is_cross_session": false,
+      "source": "auto_generated"
+    },
+    {
+      "id": "q015",
+      "query": "Bagaimana workshop fotografi human interest yang diikuti Aisha mempengaruhi idenya untuk kampanye Kopi Senja Pagi?",
+      "type": "inference",
+      "difficulty": "medium",
+      "expected_answer": "Workshop tersebut menginspirasi Aisha untuk membuat kampanye Kopi Senja Pagi menjadi lebih otentik dan memiliki 'jiwa'. Ia terpikir untuk tidak hanya menampilkan produk, tetapi juga mengangkat cerita dari orang-orang di baliknya, seperti para barista atau petani kopi, dengan menggunakan pendekatan fotografi human interest untuk menangkap emosi yang jujur.",
+      "required_context": "Pengalaman Aisha setelah mengikuti workshop fotografi dan idenya untuk proyek kopi.",
+      "reasoning_steps": "1. Identifikasi insight utama yang didapat Aisha dari workshop (pentingnya koneksi dan emosi jujur). 2. Hubungkan insight tersebut dengan ide baru yang muncul untuk kampanye Kopi Senja Pagi (melibatkan barista/petani kopi). 3. Simpulkan bahwa workshop tersebut memperdalam konsep kampanyenya menjadi lebih humanis.",
+      "relevant_sessions": [
+        15
+      ],
+      "is_cross_session": false,
+      "source": "auto_generated"
+    },
+    {
+      "id": "q016",
+      "query": "Apa nama proyek fotografi personal yang direncanakan Aisha dan dari mana ia berencana memulai proyek tersebut?",
+      "type": "factual_recall",
+      "difficulty": "easy",
+      "expected_answer": "Nama proyeknya adalah 'wajah-wajah di balik secangkir kopi'. Ia berencana untuk memulai proyek tersebut dari kafe 'Sudut Tenang' yang pernah ia kunjungi sebelumnya.",
+      "required_context": "Diskusi Aisha tentang rencana proyek fotografi personalnya.",
+      "reasoning_steps": "1. Cari sesi di mana Aisha membahas ide proyek personal. 2. Ekstrak nama proyek tersebut. 3. Ekstrak lokasi pertama yang ia rencanakan untuk memulai proyeknya.",
+      "relevant_sessions": [
+        16
+      ],
+      "is_cross_session": false,
+      "source": "auto_generated"
+    },
+    {
+      "id": "q017",
+      "query": "Mengapa proposal dari klien fashion baru (modest wear) membuat Aisha merasa khawatir meskipun ia senang mendapatkannya?",
+      "type": "inference",
+      "difficulty": "medium",
+      "expected_answer": "Aisha khawatir karena ia sadar kapasitas timnya saat ini terbatas. Mereka belum jadi merekrut orang baru dan baru saja pusing karena masalah keuangan. Ia takut agensinya akan keteteran jika mengambil proyek besar lagi, terutama jika timeline-nya berbenturan dengan proyek Kopi Senja Pagi yang sedang berjalan.",
+      "required_context": "Reaksi Aisha saat menerima proposal dari klien baru.",
+      "reasoning_steps": "1. Identifikasi perasaan campur aduk Aisha (senang tapi khawatir). 2. Analisis penyebab kekhawatirannya: kapasitas tim yang terbatas, belum ada rekrutmen, dan kondisi finansial yang baru saja dievaluasi. 3. Simpulkan bahwa kekhawatirannya berakar pada manajemen sumber daya dan risiko burnout.",
+      "relevant_sessions": [
+        17
+      ],
+      "is_cross_session": false,
+      "source": "auto_generated"
+    },
+    {
+      "id": "q018",
+      "query": "Apa permintaan spesifik dari klien E21 yang membuat scope pekerjaannya lebih besar dari yang Aisha dan Dewi perkirakan semula?",
+      "type": "factual_recall",
+      "difficulty": "easy",
+      "expected_answer": "Klien E21 meminta adanya produksi video series untuk TikTok & Reels. Permintaan ini lebih besar dari perkiraan awal Aisha dan Dewi yang mengira proyek tersebut hanya membutuhkan kampanye foto.",
+      "required_context": "Hasil meeting Aisha dengan klien potensial E21.",
+      "reasoning_steps": "1. Cari sesi yang membahas hasil meeting dengan E21. 2. Identifikasi perbedaan antara ekspektasi awal (hanya foto) dengan permintaan aktual klien (video series).",
+      "relevant_sessions": [
+        18
+      ],
+      "is_cross_session": false,
+      "source": "auto_generated"
+    },
+    {
+      "id": "q019",
+      "query": "Jika Aisha dan Dewi memutuskan untuk menolak proyek E21 karena profit yang tipis, apa dampak negatif potensial bagi agensi mereka?",
+      "type": "counterfactual",
+      "difficulty": "medium",
+      "expected_answer": "Jika mereka menolak proyek E21, mereka akan kehilangan kesempatan untuk mendapatkan portofolio video series yang sangat berharga. Seperti yang disinggung oleh Rizky, proyek ini bisa menjadi 'loss leader project' yang dapat digunakan untuk menarik klien-klien yang lebih besar di masa depan. Menolaknya berarti kehilangan momentum untuk naik kelas.",
+      "required_context": "Dilema Aisha dan Dewi dalam memutuskan proyek E21.",
+      "reasoning_steps": "1. Identifikasi alasan utama untuk mengambil proyek E21 meskipun profit tipis (investasi portofolio). 2. Bayangkan skenario di mana mereka menolak proyek tersebut. 3. Simpulkan dampak negatifnya, yaitu kehilangan kesempatan strategis untuk pertumbuhan jangka panjang agensi.",
+      "relevant_sessions": [
+        19
+      ],
+      "is_cross_session": false,
+      "source": "auto_generated"
+    },
+    {
+      "id": "q020",
+      "query": "Apa tanda-tanda fisik dan mental yang menunjukkan bahwa Aisha sedang mengalami burnout di Session 20?",
+      "type": "inference",
+      "difficulty": "easy",
+      "expected_answer": "Secara fisik, Aisha merasa lelah dan bahkan merasa mual saat melihat laptop. Secara mental, ia merasa pikirannya sudah berada di batasnya, tidak bisa mengambil keputusan final soal proyek E21, dan merasa bingung karena merasa butuh jeda tetapi pekerjaan tidak bisa ditinggalkan.",
+      "required_context": "Keluhan Aisha tentang kondisinya saat menghadapi dilema proyek E21.",
+      "reasoning_steps": "1. Baca keluhan-keluhan Aisha di Session 20. 2. Kategorikan keluhan tersebut menjadi tanda-tanda fisik (lelah, mual) dan mental (pikiran di limit, bingung, tidak bisa memutuskan). 3. Sintesiskan jawaban berdasarkan kategori tersebut.",
+      "relevant_sessions": [
+        20
+      ],
+      "is_cross_session": false,
+      "source": "auto_generated"
+    },
+    {
+      "id": "q021",
+      "query": "Bagaimana pertemuan dengan Rizky di kafe 'Sudut Tenang' membantu Aisha pulih dari burnout yang dialaminya?",
+      "type": "inference",
+      "difficulty": "medium",
+      "expected_answer": "Pertemuan tersebut membantu Aisha pulih karena ia bisa benar-benar melepaskan diri dari pikiran pekerjaan. Mereka tidak membahas pekerjaan sama sekali, melainkan membicarakan hal-hal random dan nostalgia masa kuliah. Interaksi sosial yang ringan dan menyenangkan dengan sahabat di tempat yang nyaman ini berfungsi sebagai 'reset' mental, memberinya energi baru untuk menghadapi pekerjaan keesokan harinya.",
+      "required_context": "Cerita Aisha tentang pertemuannya dengan Rizky setelah merasa burnout.",
+      "reasoning_steps": "1. Identifikasi kondisi Aisha sebelum bertemu Rizky (burnout). 2. Analisis apa yang mereka lakukan saat bertemu (ngobrol random, nostalgia, tidak bahas kerja). 3. Simpulkan bagaimana aktivitas tersebut secara psikologis membantu meredakan stres dan memulihkan energinya.",
+      "relevant_sessions": [
+        21
+      ],
+      "is_cross_session": false,
+      "source": "auto_generated"
+    },
+    {
+      "id": "q022",
+      "query": "Mengapa proyek fotografi personal Aisha 'wajah-wajah di balik secangkir kopi' menjadi prioritas yang lebih rendah setelah proposal E21 diterima?",
+      "type": "inference",
+      "difficulty": "medium",
+      "expected_answer": "Proyek fotografi personal tersebut ditunda karena proyek E21 merupakan proyek klien yang besar dan mendesak dengan scope pekerjaan yang signifikan (video series). Aisha sadar bahwa proyek E21 akan menyita banyak waktu dan energi, sehingga ia harus memprioritaskan komitmen kepada klien demi portofolio dan kelangsungan agensi, menempatkan proyek passion-nya sebagai sesuatu yang bisa dikerjakan nanti.",
+      "required_context": "Keputusan Aisha setelah proposal E21 disetujui.",
+      "reasoning_steps": "1. Identifikasi bahwa proyek E21 diterima. 2. Temukan keputusan Aisha terkait proyek personalnya setelah kabar tersebut. 3. Analisis alasannya, yaitu skala besar dan urgensi proyek klien (E21) yang secara logis harus didahulukan daripada proyek pribadi tanpa deadline.",
+      "relevant_sessions": [
+        22
+      ],
+      "is_cross_session": false,
+      "source": "auto_generated"
+    },
+    {
+      "id": "q023",
+      "query": "Apa saran yang diberikan Dewi kepada Aisha sebagai pendekatan awal untuk proyek foto personal 'wajah-wajah di balik secangkir kopi'?",
+      "type": "factual_recall",
+      "difficulty": "easy",
+      "expected_answer": "Dewi menyarankan Aisha untuk menjadi pelanggan setia terlebih dahulu di kafe targetnya (Sudut Tenang) agar bisa membangun keakraban dengan para barista sebelum mulai memotret. Tujuannya adalah agar pendekatannya lebih natural dan tidak terkesan 'menodong'.",
+      "required_context": "Diskusi Aisha tentang rencananya memulai proyek fotografi personal.",
+      "reasoning_steps": "1. Cari sesi di mana Aisha membahas cara memulai proyek foto personalnya. 2. Identifikasi saran spesifik yang datang dari Dewi. 3. Jelaskan saran tersebut dan tujuannya.",
+      "relevant_sessions": [
+        23
+      ],
+      "is_cross_session": false,
+      "source": "auto_generated"
+    },
+    {
+      "id": "q024",
+      "query": "Bagaimana perasaan Aisha setelah proposal E21 diterima, dan mengapa perasaannya campur aduk?",
+      "type": "factual_recall",
+      "difficulty": "medium",
+      "expected_answer": "Aisha merasa sangat lega dan senang. Namun, perasaannya campur aduk karena setelah euforia, ia langsung teringat akan realita bahwa mereka benar-benar harus mengerjakan proyek dengan scope yang sangat besar, terutama bagian video series. Ada sedikit rasa 'waduh' atau kekhawatiran tentang bagaimana strategi eksekusinya.",
+      "required_context": "Reaksi Aisha setelah mendapat kabar bahwa proposal E21 diterima.",
+      "reasoning_steps": "1. Identifikasi perasaan utama Aisha (lega, senang). 2. Temukan alasan mengapa perasaannya juga campur aduk, yaitu kesadaran akan besarnya tanggung jawab proyek tersebut.",
+      "relevant_sessions": [
+        24
+      ],
+      "is_cross_session": false,
+      "source": "auto_generated"
+    },
+    {
+      "id": "q025",
+      "query": "Apa langkah pertama yang direncanakan Aisha dan Dewi setelah proyek E21 disetujui?",
+      "type": "factual_recall",
+      "difficulty": "easy",
+      "expected_answer": "Langkah pertama mereka adalah mengadakan kick-off meeting internal untuk memecah timeline dan membagi tugas. Prioritas utama mereka setelah itu adalah segera mencari videografer dan editor freelance yang sesuai dengan budget dan gaya E21.",
+      "required_context": "Diskusi Aisha dan Dewi setelah merayakan diterimanya proposal E21.",
+      "reasoning_steps": "1. Cari sesi yang membahas rencana tindak lanjut proyek E21. 2. Identifikasi dua langkah awal yang mereka sebutkan: kick-off meeting internal dan pencarian freelance videografer.",
+      "relevant_sessions": [
+        25
+      ],
+      "is_cross_session": false,
+      "source": "auto_generated"
+    },
+    {
+      "id": "q026",
+      "query": "Mengapa mendapatkan proyek E21 menjadi sebuah 'validasi' penting bagi agensi Aisha dan Dewi?",
+      "type": "inference",
+      "difficulty": "medium",
+      "expected_answer": "Proyek E21 menjadi validasi karena ini adalah proyek video series besar pertama mereka dari klien yang cukup signifikan. Keberhasilan mendapatkan proyek ini membuktikan bahwa agensi kecil mereka mampu bersaing dan dipercaya untuk menangani pekerjaan yang kompleks, yang meningkatkan kepercayaan diri mereka dan menjadi pencapaian penting dalam pertumbuhan agensi.",
+      "required_context": "Perasaan Aisha setelah proyek E21 goal.",
+      "reasoning_steps": "1. Pahami konteks agensi Aisha yang masih kecil. 2. Analisis signifikansi proyek E21 (skala besar, video series). 3. Simpulkan mengapa memenangkan proyek semacam ini menjadi bukti atau 'validasi' atas kemampuan dan pertumbuhan agensi mereka.",
+      "relevant_sessions": [
+        26
+      ],
+      "is_cross_session": false,
+      "source": "auto_generated"
+    },
+    {
+      "id": "q027",
+      "query": "Apa kekhawatiran utama Aisha saat mempersiapkan materi untuk seminar UMKM pertamanya?",
+      "type": "factual_recall",
+      "difficulty": "easy",
+      "expected_answer": "Kekhawatiran utamanya adalah materi yang ia sampaikan kurang 'daging' atau tidak cukup aplikatif bagi para peserta UMKM. Ia juga merasa tertekan dan takut penjelasannya tidak mudah dimengerti atau ia akan nge-blank di tengah jalan.",
+      "required_context": "Perasaan Aisha setelah diundang menjadi pembicara seminar.",
+      "reasoning_steps": "1. Cari sesi di mana Aisha membahas persiapan seminarnya. 2. Ekstrak kekhawatiran-kekhawatiran yang ia sebutkan, seperti materi kurang 'daging' dan takut nge-blank.",
+      "relevant_sessions": [
+        27
+      ],
+      "is_cross_session": false,
+      "source": "auto_generated"
+    },
+    {
+      "id": "q028",
+      "query": "Momen apa yang paling berkesan bagi Aisha dan Dewi saat acara launching produk kopi E7?",
+      "type": "factual_recall",
+      "difficulty": "easy",
+      "expected_answer": "Momen paling berkesan adalah ketika CEO dari brand kopi tersebut menghampiri mereka dan mengatakan bahwa kampanye yang mereka buat telah 'menaikkan standar' brand mereka. Pujian ini terasa seperti memenangkan sebuah piala bagi mereka.",
+      "required_context": "Cerita Aisha tentang pengalamannya di acara launching klien kopi E7.",
+      "reasoning_steps": "1. Cari sesi yang membahas acara launching E7. 2. Identifikasi momen yang disebut Aisha sebagai yang paling berkesan. 3. Jelaskan momen tersebut, yaitu pujian dari CEO klien.",
+      "relevant_sessions": [
+        28
+      ],
+      "is_cross_session": false,
+      "source": "auto_generated"
+    },
+    {
+      "id": "q029",
+      "query": "Mengapa Aisha ragu dalam memilih studi kasus antara brand fashion dan brand kopi untuk materi seminarnya?",
+      "type": "inference",
+      "difficulty": "medium",
+      "expected_answer": "Aisha ragu karena kedua proyek tersebut memiliki tantangan yang unik dan ia ingin memastikan materi yang ia sampaikan paling relevan dan pesannya 'ngena' bagi audiens UMKM. Ia sadar bahwa relevansi studi kasus sangat bergantung pada latar belakang industri para peserta seminar, yang pada saat itu belum ia ketahui.",
+      "required_context": "Dilema Aisha dalam menyusun materi seminar.",
+      "reasoning_steps": "1. Identifikasi dilema Aisha (memilih antara dua studi kasus). 2. Analisis alasan keraguannya: keinginan untuk memberikan materi yang paling relevan dan berdampak. 3. Simpulkan bahwa keraguan ini muncul dari ketidaktahuannya tentang profil audiens, yang merupakan pertimbangan strategis.",
+      "relevant_sessions": [
+        29
+      ],
+      "is_cross_session": false,
+      "source": "auto_generated"
+    },
+    {
+      "id": "q030",
+      "query": "Jelaskan dilema yang dihadapi Aisha dan Dewi saat memilih videografer untuk proyek E21.",
+      "type": "factual_recall",
+      "difficulty": "medium",
+      "expected_answer": "Dilema mereka adalah memilih antara dua kandidat: satu yang portofolionya sangat bagus dan sinematik ('skill dewa') tetapi orangnya pasif saat diwawancara, dan satu lagi yang portofolionya bagus (standar profesional) tetapi orangnya sangat asik, komunikatif, dan proaktif dalam memberi ide. Mereka galau antara memprioritaskan hasil visual maksimal atau kelancaran proses kerja.",
+      "required_context": "Proses seleksi videografer untuk proyek E21.",
+      "reasoning_steps": "1. Cari sesi yang membahas seleksi videografer. 2. Identifikasi dua kandidat utama dan kelebihan serta kekurangan masing-masing. 3. Rumuskan dilema utama mereka: skill teknis superior vs. komunikasi dan kolaborasi yang superior.",
+      "relevant_sessions": [
+        30
+      ],
+      "is_cross_session": false,
+      "source": "auto_generated"
+    },
+    {
+      "id": "q031",
+      "query": "Apa alasan akhir Aisha dan Dewi memilih videografer yang komunikasinya lancar untuk proyek E21, dan bagaimana hal ini mempengaruhi rencana pengembangan agensi mereka?",
+      "type": "multi_hop",
+      "difficulty": "hard",
+      "expected_answer": "Mereka memilih videografer yang komunikatif dengan pertimbangan bahwa untuk proyek besar dan kejar tayang seperti E21, kelancaran proses kerja lebih krusial. Mereka beranggapan skill teknis masih bisa diarahkan, namun komunikasi yang buruk akan menghambat proyek. Pengalaman ini secara langsung memicu diskusi tentang pengembangan skill internal (in-house), di mana mereka berencana untuk mengikuti workshop agar tidak terlalu bergantung pada freelancer di masa depan.",
+      "required_context": "Session 30: Dilema memilih videografer. Session 31: Keputusan akhir dan diskusi tentang pengembangan tim.",
+      "reasoning_steps": "1. Identifikasi keputusan akhir pemilihan videografer di Session 31 dan alasannya (komunikasi lebih penting untuk kelancaran). 2. Hubungkan keputusan ini dengan diskusi baru yang muncul di sesi yang sama, yaitu tentang pentingnya skill in-house. 3. Simpulkan bagaimana pengalaman seleksi ini menjadi pemicu rencana strategis pengembangan agensi.",
+      "relevant_sessions": [
+        31,
+        30
+      ],
+      "is_cross_session": true,
+      "source": "auto_generated"
+    },
+    {
+      "id": "q032",
+      "query": "Bagaimana Aisha memastikan bahwa pilihannya untuk videografer proyek E21 adalah keputusan yang tepat?",
+      "type": "inference",
+      "difficulty": "easy",
+      "expected_answer": "Aisha merasa yakin dengan pilihannya setelah melakukan panggilan singkat dengan videografer terpilih. Dalam panggilan tersebut, videografer tersebut langsung menangkap vibe yang diinginkan, enak diajak diskusi, dan bahkan proaktif memberikan referensi visual yang out-of-the-box. Respons positif dan proaktif ini mengkonfirmasi bahwa memprioritaskan komunikasi adalah keputusan yang benar.",
+      "required_context": "Interaksi pertama Aisha dengan videografer terpilih untuk E21.",
+      "reasoning_steps": "1. Cari sesi setelah keputusan pemilihan videografer dibuat. 2. Temukan deskripsi interaksi pertama mereka. 3. Simpulkan bahwa sifat proaktif dan pemahaman yang cepat dari videografer menjadi validasi atas keputusan Aisha.",
+      "relevant_sessions": [
+        32
+      ],
+      "is_cross_session": false,
+      "source": "auto_generated"
+    },
+    {
+      "id": "q033",
+      "query": "Apa ketakutan terbesar Aisha terkait seminar pertamanya, dan bagaimana ia berencana mengatasinya?",
+      "type": "factual_recall",
+      "difficulty": "medium",
+      "expected_answer": "Ketakutan terbesarnya adalah sesi Q&A, di mana ia khawatir mendapat pertanyaan sulit yang tidak bisa ia jawab dan akan mempermalukan agensinya. Untuk mengatasinya, ia berencana membuat daftar 'nightmare questions' atau pertanyaan tersulit yang mungkin muncul dan menyiapkan jawabannya, serta berlatih presentasi di depan Dewi untuk mendapatkan feedback langsung.",
+      "required_context": "Kecemasan Aisha menjelang seminar pertamanya.",
+      "reasoning_steps": "1. Identifikasi sesi di mana Aisha mengungkapkan kegugupannya. 2. Ekstrak bagian spesifik yang paling ia takuti (sesi Q&A). 3. Jelaskan dua strategi yang ia rencanakan untuk mengatasi ketakutan tersebut (membuat list pertanyaan sulit dan berlatih di depan orang lain).",
+      "relevant_sessions": [
+        33
+      ],
+      "is_cross_session": false,
+      "source": "auto_generated"
+    },
+    {
+      "id": "q034",
+      "query": "Bagaimana pengalaman Aisha di seminar pertamanya berbeda dari ekspektasi dan ketakutannya?",
+      "type": "inference",
+      "difficulty": "easy",
+      "expected_answer": "Ekspektasi Aisha adalah ia akan sangat gugup, kaku, dan mungkin nge-blank, terutama saat sesi tanya jawab. Kenyataannya, setelah mulai presentasi, ia merasa lebih mengalir. Sesi tanya jawab yang paling ia takutkan justru menjadi bagian yang paling asik dan seru karena antusiasme peserta, berbanding terbalik dengan kekhawatirannya.",
+      "required_context": "Cerita Aisha setelah selesai mengisi seminar.",
+      "reasoning_steps": "1. Ingat kembali ketakutan Aisha sebelum seminar (gugup, takut sesi Q&A). 2. Bandingkan dengan cerita pengalamannya setelah seminar selesai. 3. Simpulkan perbedaan antara ekspektasi negatif dan realita positif yang ia alami.",
+      "relevant_sessions": [
+        34
+      ],
+      "is_cross_session": false,
+      "source": "auto_generated"
+    },
+    {
+      "id": "q035",
+      "query": "Apa pertanyaan dari peserta seminar yang paling berkesan bagi Aisha dan mengapa?",
+      "type": "factual_recall",
+      "difficulty": "medium",
+      "expected_answer": "Pertanyaan yang paling berkesan datang dari seorang ibu UMKM yang bertanya, 'Gimana caranya tetep kreatif kalo budget marketing kita mepet banget, Mbak?'. Pertanyaan ini sangat berkesan karena membuatnya teringat pada masa-masa awal ia dan Dewi merintis agensi dengan modal nekat, sehingga ia bisa menjawabnya dari hati dan pengalaman pribadi.",
+      "required_context": "Pengalaman Aisha saat sesi tanya jawab di seminarnya.",
+      "reasoning_steps": "1. Cari sesi di mana Aisha merefleksikan seminar yang baru saja ia ikuti. 2. Identifikasi pertanyaan spesifik yang ia sebut sebagai yang paling berkesan. 3. Jelaskan mengapa pertanyaan tersebut personal dan relevan baginya.",
+      "relevant_sessions": [
+        35
+      ],
+      "is_cross_session": false,
+      "source": "auto_generated"
+    },
+    {
+      "id": "q036",
+      "query": "Bagaimana kesuksesan seminar yang diikuti Aisha di bulan Februari mempengaruhi rencana masa depan agensinya?",
+      "type": "multi_hop",
+      "difficulty": "medium",
+      "expected_answer": "Kesuksesan seminar di bulan Februari, terutama melihat antusiasme peserta UMKM saat sesi Q&A (Session 36), memicu ide untuk membuat workshop kecil-kecilan. Ide ini kemudian menjadi lebih serius dipertimbangkan (Session 39) dan menjadi salah satu rencana utama agensi untuk bulan Maret setelah rapat evaluasi (Session 49), menunjukkan bahwa pengalaman seminar tersebut membuka potensi layanan baru bagi agensinya.",
+      "required_context": "Session 36 & 39: Munculnya ide workshop setelah seminar. Session 49: Ide workshop menjadi rencana serius.",
+      "reasoning_steps": "1. Identifikasi ide 'workshop' yang muncul setelah seminar di Session 36. 2. Lacak perkembangan ide ini di sesi-sesi berikutnya (Session 39, 49). 3. Simpulkan bagaimana satu acara (seminar) menjadi cikal bakal rencana pengembangan bisnis baru untuk agensi.",
+      "relevant_sessions": [
+        36,
+        39,
+        49
+      ],
+      "is_cross_session": true,
+      "source": "auto_generated"
+    },
+    {
+      "id": "q037",
+      "query": "Apa pertanyaan dari seorang ibu pemilik katering kecil yang membuat Aisha semakin yakin dengan ide membuat workshop UMKM?",
+      "type": "factual_recall",
+      "difficulty": "easy",
+      "expected_answer": "Ibu tersebut bertanya, 'Mbak, kalau modal kita buat iklan itu cuma seharga dua porsi nasi kotak, mending diapain ya?'. Pertanyaan yang sangat spesifik dan realistis ini menunjukkan adanya kebutuhan nyata akan bimbingan praktis bagi UMKM, yang meyakinkan Aisha bahwa workshop akan sangat bermanfaat.",
+      "required_context": "Refleksi Aisha setelah seminar E32.",
+      "reasoning_steps": "1. Cari sesi di mana Aisha kembali merefleksikan seminarnya. 2. Temukan pertanyaan spesifik dari pemilik katering yang ia ceritakan. 3. Jelaskan mengapa pertanyaan ini menjadi pendorong ide workshop.",
+      "relevant_sessions": [
+        37
+      ],
+      "is_cross_session": false,
+      "source": "auto_generated"
+    },
+    {
+      "id": "q038",
+      "query": "Apa yang menjadi fokus utama Aisha dan Dewi setelah seminar selesai dan sebelum syuting E21 dimulai?",
+      "type": "factual_recall",
+      "difficulty": "easy",
+      "expected_answer": "Fokus utama mereka adalah persiapan syuting E21. Mereka mengadakan meeting final dengan videografer untuk menentukan shot list dan timeline detail, serta mengurus koordinasi jadwal dengan para talent.",
+      "required_context": "Aktivitas Aisha setelah seminar dan menjelang syuting E21.",
+      "reasoning_steps": "1. Cari sesi setelah seminar dan sebelum syuting. 2. Identifikasi tugas-tugas persiapan syuting E21 yang disebutkan Aisha.",
+      "relevant_sessions": [
+        38
+      ],
+      "is_cross_session": false,
+      "source": "auto_generated"
+    },
+    {
+      "id": "q039",
+      "query": "Mengapa Aisha merasa deg-degan sekaligus excited menjelang syuting proyek E21?",
+      "type": "inference",
+      "difficulty": "easy",
+      "expected_answer": "Aisha merasa demikian karena ini adalah proyek video series pertama bagi agensinya. Perasaan deg-degan muncul dari tekanan dan tanggung jawab untuk menghasilkan karya yang bagus pada proyek perdana berskala besar ini, sementara rasa excited muncul karena ia tidak sabar untuk mengeksekusi ide-ide kreatifnya dan melihat hasilnya.",
+      "required_context": "Perasaan Aisha sebelum syuting E21 dimulai.",
+      "reasoning_steps": "1. Identifikasi perasaan Aisha (deg-degan dan excited). 2. Analisis konteksnya: ini adalah proyek video series pertama. 3. Simpulkan bahwa deg-degan berasal dari tekanan, dan excited berasal dari antisipasi proses kreatif.",
+      "relevant_sessions": [
+        39
+      ],
+      "is_cross_session": false,
+      "source": "auto_generated"
+    },
+    {
+      "id": "q040",
+      "query": "Scene atau adegan apa yang paling ditunggu-tunggu oleh Aisha untuk dieksekusi dalam syuting E21 dan mengapa?",
+      "type": "factual_recall",
+      "difficulty": "medium",
+      "expected_answer": "Scene yang paling ia tunggu adalah 'hero shot' di mana talent berjalan di tengah keramaian kota dengan ekspresi yang powerful. Adegan ini sangat penting baginya karena visualnya terinspirasi langsung dari pameran seni yang pernah ia kunjungi dan ia merasa adegan ini akan menjadi highlight utama dari keseluruhan video.",
+      "required_context": "Antisipasi Aisha menjelang syuting E21.",
+      "reasoning_steps": "1. Cari sesi di mana Aisha membahas detail syuting E21. 2. Identifikasi scene spesifik yang ia sebut sebagai yang paling dinantikan ('hero shot'). 3. Jelaskan alasan mengapa scene tersebut spesial baginya (terinspirasi dari pameran seni).",
+      "relevant_sessions": [
+        40
+      ],
+      "is_cross_session": false,
+      "source": "auto_generated"
+    },
+    {
+      "id": "q041",
+      "query": "Bagaimana keberhasilan proyek E21 dan seminar UMKM secara berurutan mempengaruhi motivasi Aisha untuk tujuan pribadinya membeli apartemen?",
+      "type": "temporal_reasoning",
+      "difficulty": "hard",
+      "expected_answer": "Awalnya, motivasi membeli apartemen adalah tujuan jangka panjang (Session 1, 5). Setelah sukses memberikan seminar (Session 34), ia mulai lebih serius mencari info KPR bersama Rizky. Puncaknya adalah setelah syuting E21 berjalan lancar (Session 41), ia merasa 'oh, ternyata bisa ya', yang mengubah impian apartemen dari sesuatu yang abstrak menjadi tujuan yang konkret dan bisa dicapai. Keberhasilan profesional ini secara langsung menjadi bahan bakar dan validasi bahwa ia mampu mencapai tujuan finansial pribadinya.",
+      "required_context": "Session 34: Aisha mulai serius soal KPR setelah seminar. Session 41: Aisha merasa impian apartemen lebih nyata setelah melihat proyek E21 berjalan lancar.",
+      "reasoning_steps": "1. Identifikasi tujuan awal (apartemen). 2. Lacak momen-momen keberhasilan profesional (seminar, proyek E21). 3. Analisis bagaimana setiap keberhasilan tersebut meningkatkan keseriusan dan keyakinan Aisha terhadap tujuan pribadinya. 4. Sintesiskan perubahan dari impian menjadi tujuan konkret yang didorong oleh kesuksesan kerja.",
+      "relevant_sessions": [
+        41,
+        34,
+        1
+      ],
+      "is_cross_session": true,
+      "source": "auto_generated"
+    },
+    {
+      "id": "q042",
+      "query": "Dari mana datangnya tawaran proyek freelance pertama yang diterima Aisha setelah seminarnya?",
+      "type": "factual_recall",
+      "difficulty": "easy",
+      "expected_answer": "Tawaran tersebut datang dari salah satu peserta seminar UMKM yang ia isi. Peserta tersebut terkesan dengan presentasi Aisha dan menawarinya proyek untuk memfoto produk UMKM-nya, yaitu sebuah brand kerudung.",
+      "required_context": "Cerita Aisha tentang tawaran proyek freelance baru.",
+      "reasoning_steps": "1. Cari sesi di mana Aisha menyebutkan tawaran freelance. 2. Identifikasi asal dari tawaran tersebut (peserta seminar). 3. Sebutkan jenis produk yang akan difoto (kerudung).",
+      "relevant_sessions": [
+        42
+      ],
+      "is_cross_session": false,
+      "source": "auto_generated"
+    },
+    {
+      "id": "q043",
+      "query": "Apa dilema utama Aisha terkait tawaran proyek foto freelance dan bagaimana ia berencana menyelesaikannya?",
+      "type": "factual_recall",
+      "difficulty": "medium",
+      "expected_answer": "Dilema utamanya adalah timeline yang mepet dan berbenturan dengan jadwal post-production proyek E21 yang padat. Ia takut jika memaksakan diri akan burnout atau hasilnya tidak maksimal. Ia berencana menyelesaikannya dengan mencoba menegosiasikan timeline dengan klien freelance tersebut, meminta pengunduran jadwal selama satu atau dua minggu.",
+      "required_context": "Keraguan Aisha dalam menerima tawaran proyek foto freelance.",
+      "reasoning_steps": "1. Identifikasi masalah utama yang dihadapi Aisha (timeline bentrok). 2. Jelaskan kekhawatirannya (burnout, hasil tidak maksimal). 3. Sebutkan solusi yang ia pertimbangkan (negosiasi timeline).",
+      "relevant_sessions": [
+        43
+      ],
+      "is_cross_session": false,
+      "source": "auto_generated"
+    },
+    {
+      "id": "q044",
+      "query": "Bagaimana hasil negosiasi Aisha dengan klien freelance UMKM mengenai jadwal pemotretan?",
+      "type": "factual_recall",
+      "difficulty": "easy",
+      "expected_answer": "Negosiasinya berhasil dengan sangat baik. Kliennya sangat pengertian dan setuju untuk mengundur jadwal pemotretan selama dua minggu dari rencana awal, sehingga Aisha bisa fokus menyelesaikan post-production E21 terlebih dahulu.",
+      "required_context": "Update Aisha mengenai negosiasi jadwal dengan klien freelance.",
+      "reasoning_steps": "1. Cari sesi setelah Aisha berencana melakukan negosiasi. 2. Ekstrak hasil dari negosiasi tersebut (berhasil, jadwal diundur dua minggu).",
+      "relevant_sessions": [
+        44
+      ],
+      "is_cross_session": false,
+      "source": "auto_generated"
+    },
+    {
+      "id": "q045",
+      "query": "Bagaimana inspirasi dari pameran seni (Session 11) dan saran dari Rizky (Session 9) akhirnya terwujud dalam draft pertama video E21 (Session 45)?",
+      "type": "multi_hop",
+      "difficulty": "hard",
+      "expected_answer": "Saran Rizky di Session 9 melahirkan konsep 'Berani, Urban, Akar'. Inspirasi dari lukisan di pameran seni di Session 11 memberikan visualisasi konkret untuk konsep tersebut, terutama untuk 'hero shot'. Di Session 45, Aisha melihat draft pertama video E21 dan merasa sangat puas karena eksekusi 'hero shot' tersebut berhasil menangkap feel 'Berani, Urban, Akar' persis seperti yang ia bayangkan, menunjukkan bahwa kedua inspirasi dari sesi sebelumnya berhasil terwujud.",
+      "required_context": "Session 9: Konsep 'Berani, Urban, Akar'. Session 11: Inspirasi visual dari pameran. Session 45: Hasilnya terlihat di draft video.",
+      "reasoning_steps": "1. Identifikasi konsep kunci dari Session 9. 2. Identifikasi inspirasi visual dari Session 11. 3. Temukan momen di Session 45 di mana kedua elemen tersebut terkonfirmasi telah berhasil dieksekusi dalam bentuk video. 4. Hubungkan ketiga titik tersebut menjadi sebuah alur dari ide ke realisasi.",
+      "relevant_sessions": [
+        45,
+        9,
+        11
+      ],
+      "is_cross_session": true,
+      "source": "auto_generated"
+    },
+    {
+      "id": "q046",
+      "query": "Apa konsep awal yang dipikirkan Aisha untuk proyek foto freelance-nya dan bagaimana ini mencerminkan gaya fotografinya?",
+      "type": "inference",
+      "difficulty": "medium",
+      "expected_answer": "Konsep awalnya adalah membuat foto produk yang 'clean' dan minimalis, namun dengan sentuhan 'human interest', seperti menggunakan properti tangan atau bayangan orang agar produknya lebih 'hidup'. Ini sangat mencerminkan gaya fotografinya yang cenderung bercerita dan otentik, tidak hanya fokus pada estetika produk semata, mirip dengan pendekatan pada proyek personalnya.",
+      "required_context": "Ide awal Aisha untuk proyek foto freelance.",
+      "reasoning_steps": "1. Ekstrak ide konsep yang disebutkan Aisha (clean, minimalis, sentuhan human interest). 2. Hubungkan konsep ini dengan gaya fotografi Aisha yang telah diketahui dari sesi-sesi sebelumnya (suka human interest, foto bercerita). 3. Simpulkan bahwa konsep ini adalah manifestasi dari signature style-nya.",
+      "relevant_sessions": [
+        46
+      ],
+      "is_cross_session": false,
+      "source": "auto_generated"
+    },
+    {
+      "id": "q047",
+      "query": "Bagaimana Aisha berencana membuat foto untuk klien UMKM kerajinan tangan agar tidak sekadar menjadi foto katalog biasa?",
+      "type": "factual_recall",
+      "difficulty": "easy",
+      "expected_answer": "Aisha berencana membuat foto yang 'bercerita' dengan tidak hanya menampilkan produknya, tetapi juga menyertakan sentuhan 'tangan' si pembuat. Ia ingin menangkap proses pembuatannya atau suasana di workshop untuk memberikan 'nyawa' dan kisah di balik setiap produk.",
+      "required_context": "Ide Aisha untuk proyek foto produk kerajinan tangan.",
+      "reasoning_steps": "1. Cari sesi di mana Aisha membahas konsep foto untuk klien UMKM kerajinan tangan. 2. Ekstrak ide spesifiknya, yaitu menampilkan proses dan suasana workshop, bukan hanya produk jadi.",
+      "relevant_sessions": [
+        47
+      ],
+      "is_cross_session": false,
+      "source": "auto_generated"
+    },
+    {
+      "id": "q048",
+      "query": "Bagaimana kolaborasi antara Aisha dan Dewi dalam proyek foto freelance untuk produk kerajinan tangan?",
+      "type": "inference",
+      "difficulty": "easy",
+      "expected_answer": "Dalam proyek ini, mereka berkolaborasi dengan pembagian peran yang jelas. Aisha lebih fokus pada eksekusi kreatif dan visual (fotografi), sementara Dewi membantu dalam aspek konseptual dan strategis. Mereka berdiskusi bersama untuk mematangkan ide, menunjukkan bahwa meskipun ini proyek fotografi, Dewi tetap terlibat dalam aspek strateginya.",
+      "required_context": "Diskusi Aisha dan Dewi mengenai proyek foto freelance.",
+      "reasoning_steps": "1. Perhatikan bahwa meskipun Aisha yang memotret, ia tetap berdiskusi dengan Dewi. 2. Analisis peran masing-masing: Aisha sebagai eksekutor visual, Dewi sebagai partner diskusi strategis. 3. Simpulkan bentuk kolaborasi mereka.",
+      "relevant_sessions": [
+        48
+      ],
+      "is_cross_session": false,
+      "source": "auto_generated"
+    },
+    {
+      "id": "q049",
+      "query": "Apa dua rencana besar agensi untuk bulan Maret setelah keberhasilan proyek E21?",
+      "type": "factual_recall",
+      "difficulty": "easy",
+      "expected_answer": "Dua rencana besar mereka adalah (1) mulai serius merealisasikan ide workshop untuk UMKM, dan (2) menjadi lebih proaktif dalam mencari klien baru yang sejenis dengan E21 untuk memperkuat portofolio video mereka.",
+      "required_context": "Hasil rapat evaluasi bulanan di akhir Februari.",
+      "reasoning_steps": "1. Cari sesi yang membahas rapat evaluasi dan rencana untuk bulan berikutnya. 2. Identifikasi dua rencana utama yang disebutkan Aisha untuk bulan Maret.",
+      "relevant_sessions": [
+        49
+      ],
+      "is_cross_session": false,
+      "source": "auto_generated"
+    },
+    {
+      "id": "q050",
+      "query": "Bagaimana saran dari Bapak Suryo Santoso mempengaruhi pendekatan Aisha dalam proyek fotografi personalnya?",
+      "type": "inference",
+      "difficulty": "medium",
+      "expected_answer": "Saran dari Bapak Suryo Santoso menekankan pentingnya membangun koneksi dengan subjek foto. Ini memperkuat pendekatan Aisha untuk tidak langsung 'menodong' kamera, melainkan meluangkan waktu untuk ngobrol santai dan membangun chemistry terlebih dahulu, seperti yang ia rencanakan dengan para pengrajin dan barista. Saran ini mengvalidasi metode pendekatan personal dan organik yang menjadi ciri khasnya.",
+      "required_context": "Diskusi Aisha tentang saran dari ayahnya terkait fotografi.",
+      "reasoning_steps": "1. Identifikasi saran spesifik dari Bapak Suryo Santoso (bangun koneksi dulu). 2. Hubungkan saran tersebut dengan pendekatan yang sudah dan akan dilakukan Aisha dalam proyek-proyeknya. 3. Simpulkan bahwa saran tersebut memperkuat dan memvalidasi metode kerja Aisha.",
+      "relevant_sessions": [
+        50
+      ],
+      "is_cross_session": false,
+      "source": "auto_generated"
+    },
+    {
+      "id": "q051",
+      "query": "Siapa nama klien proyek foto freelance produk kerajinan tangan, dan mengapa Aisha merasa visinya sejalan dengan klien tersebut?",
+      "type": "factual_recall",
+      "difficulty": "easy",
+      "expected_answer": "Nama kliennya adalah Bu Rina. Aisha merasa visinya sejalan karena Bu Rina juga tidak ingin fotonya sekadar menjadi katalog produk biasa, melainkan ingin ada 'jiwa' di dalamnya. Bu Rina sangat antusias dengan ide Aisha untuk memotret detail tangan pengrajin dan proses pembuatannya.",
+      "required_context": "Pertemuan pertama Aisha dengan klien proyek foto kerajinan tangan.",
+      "reasoning_steps": "1. Cari sesi pertemuan Aisha dengan klien baru. 2. Ekstrak nama klien (Bu Rina). 3. Identifikasi kesamaan visi mereka, yaitu keinginan untuk foto yang memiliki 'jiwa' dan bercerita.",
+      "relevant_sessions": [
+        51
+      ],
+      "is_cross_session": false,
+      "source": "auto_generated"
+    },
+    {
+      "id": "q052",
+      "query": "Bagaimana proyek foto dengan Bu Rina bisa menjadi studi kasus untuk ide workshop UMKM yang sedang direncanakan Aisha dan Dewi?",
+      "type": "inference",
+      "difficulty": "medium",
+      "expected_answer": "Proyek ini bisa menjadi studi kasus yang sempurna karena mencakup proses lengkap dari bagaimana sebuah brand UMKM dapat membangun citra yang otentik melalui storytelling visual. Aisha dapat menunjukkan proses dari brief awal, pengembangan konsep human interest, eksekusi foto, hingga hasil akhir yang tidak hanya menjual produk tetapi juga cerita di baliknya. Ini adalah contoh nyata dan aplikatif bagi peserta workshop.",
+      "required_context": "Koneksi yang dibuat Aisha antara proyek Bu Rina dan ide workshop.",
+      "reasoning_steps": "1. Pahami esensi proyek Bu Rina (storytelling visual untuk UMKM). 2. Pahami tujuan workshop UMKM (mengajarkan branding praktis). 3. Simpulkan bagaimana alur kerja proyek Bu Rina bisa dipecah menjadi materi ajar yang konkret dan inspiratif untuk workshop tersebut.",
+      "relevant_sessions": [
+        52
+      ],
+      "is_cross_session": false,
+      "source": "auto_generated"
+    },
+    {
+      "id": "q053",
+      "query": "Bagaimana Aisha dan Dewi berencana menyegarkan konten untuk klien lama mereka yang formulanya sudah ada?",
+      "type": "factual_recall",
+      "difficulty": "medium",
+      "expected_answer": "Mereka berencana menyegarkannya dengan pendekatan berbasis data. Pertama, mereka menganalisis performa konten 3 bulan terakhir untuk mencari pola. Berdasarkan data bahwa audiens lebih suka konten 'behind the scene', mereka akan memperbanyak konten jenis itu. Selain itu, terinspirasi dari seminar, mereka akan menambahkan sentuhan humanis dengan menyisipkan cerita dari staf klien.",
+      "required_context": "Strategi konten baru yang diimplementasikan Aisha dan Dewi.",
+      "reasoning_steps": "1. Identifikasi tantangan (menyegarkan konten lama). 2. Jelaskan langkah pertama mereka (analisis data). 3. Sebutkan dua strategi baru yang mereka terapkan (perbanyak konten 'behind the scene' dan tambahkan cerita staf).",
+      "relevant_sessions": [
+        53
+      ],
+      "is_cross_session": false,
+      "source": "auto_generated"
+    },
+    {
+      "id": "q054",
+      "query": "Jika Aisha dan Dewi memutuskan untuk langsung mengundang praktisi dari luar untuk semua sesi training tim, apa keuntungan dan kerugiannya?",
+      "type": "counterfactual",
+      "difficulty": "hard",
+      "expected_answer": "Keuntungannya adalah tim akan mendapatkan insight industri terkini dari para ahli di bidangnya, dan beban persiapan materi bagi Aisha dan Dewi akan berkurang. Namun, kerugiannya adalah mereka akan kehilangan kesempatan untuk melatih skill leadership dan mengajar. Selain itu, materi dari praktisi luar mungkin kurang relevan dengan studi kasus dan alur kerja spesifik di agensi mereka, serta biayanya akan lebih besar dibandingkan jika mereka menangani sebagian sesi sendiri.",
+      "required_context": "Rencana training tim internal Aisha dan Dewi.",
+      "reasoning_steps": "1. Identifikasi rencana training awal (sebagian internal, sebagian eksternal). 2. Bayangkan skenario di mana semua training di-handle oleh pihak eksternal. 3. Analisis sisi positif (insight baru, beban kerja kurang) dan negatif (kehilangan kesempatan leadership, potensi materi kurang relevan, biaya lebih tinggi) dari skenario tersebut.",
+      "relevant_sessions": [
+        54
+      ],
+      "is_cross_session": false,
+      "source": "auto_generated"
+    },
+    {
+      "id": "q055",
+      "query": "Apa struktur kurikulum yang disarankan oleh chatbot untuk workshop copywriting internal yang akan diadakan Aisha dan Dewi?",
+      "type": "factual_recall",
+      "difficulty": "easy",
+      "expected_answer": "Chatbot menyarankan struktur tiga sesi: sesi pertama membahas fundamental (teori seperti tone of voice dan riset audiens), sesi kedua adalah bedah studi kasus (penerapan teori pada proyek nyata seperti E21), dan sesi ketiga adalah praktik langsung di mana tim mencoba membuat copy untuk klien fiktif.",
+      "required_context": "Diskusi Aisha tentang kesulitan menyusun kurikulum training.",
+      "reasoning_steps": "1. Cari sesi di mana Aisha bingung soal kurikulum training. 2. Ekstrak saran spesifik yang diberikan oleh chatbot mengenai struktur tiga sesi.",
+      "relevant_sessions": [
+        55
+      ],
+      "is_cross_session": false,
+      "source": "auto_generated"
+    },
+    {
+      "id": "q056",
+      "query": "Apa tone warna yang ingin dicapai Aisha untuk foto-foto proyek Bu Rina dan mengapa?",
+      "type": "inference",
+      "difficulty": "easy",
+      "expected_answer": "Aisha ingin mencapai tone warna yang warm (hangat) dan natural. Pilihan ini bertujuan untuk menciptakan kesan yang otentik dan 'membumi', yang sesuai dengan produk kerajinan tangan yang memiliki 'jiwa' dan cerita. Tone hangat juga akan memperkuat emosi dan kehangatan dari para pengrajinnya.",
+      "required_context": "Diskusi Aisha tentang konsep visual proyek Bu Rina.",
+      "reasoning_steps": "1. Identifikasi tone warna yang diinginkan Aisha (warm dan natural). 2. Analisis alasan di balik pilihan tersebut dengan menghubungkannya pada esensi produk (kerajinan tangan, otentik, 'jiwa'). 3. Simpulkan bahwa tone tersebut dipilih untuk mendukung narasi cerita.",
+      "relevant_sessions": [
+        56
+      ],
+      "is_cross_session": false,
+      "source": "auto_generated"
+    },
+    {
+      "id": "q057",
+      "query": "Apa tantangan teknis utama yang dihadapi Aisha saat sesi foto pertama di workshop Bu Rina dan bagaimana ia mengatasinya?",
+      "type": "factual_recall",
+      "difficulty": "easy",
+      "expected_answer": "Tantangan teknis utamanya adalah pencahayaan di dalam workshop yang agak remang-remang. Ia mengatasinya dengan mencoba memanfaatkan cahaya natural dari jendela atau pintu, yang ternyata bisa membuat tekstur produk menjadi lebih dramatis.",
+      "required_context": "Pengalaman Aisha saat sesi foto di workshop Bu Rina.",
+      "reasoning_steps": "1. Cari sesi yang menceritakan sesi foto pertama di workshop. 2. Identifikasi tantangan yang disebutkan (pencahayaan remang). 3. Ekstrak solusi yang ia coba (memanfaatkan cahaya natural dari jendela).",
+      "relevant_sessions": [
+        57
+      ],
+      "is_cross_session": false,
+      "source": "auto_generated"
+    },
+    {
+      "id": "q058",
+      "query": "Siapa nama salah satu pengrajin yang ceritanya sangat berkesan bagi Aisha, dan cerita apa yang disampaikannya?",
+      "type": "factual_recall",
+      "difficulty": "medium",
+      "expected_answer": "Nama pengrajin tersebut adalah Ibu Wati. Ia bercerita bahwa motif batik yang ia buat adalah warisan dari neneknya, dan setiap goresan canting yang ia buat terasa seperti sebuah doa. Cerita ini sangat berkesan bagi Aisha karena ia merasa berhasil menangkap 'jiwa' yang ia cari.",
+      "required_context": "Interaksi Aisha dengan para pengrajin di workshop.",
+      "reasoning_steps": "1. Cari sesi di mana Aisha menceritakan interaksinya dengan pengrajin. 2. Ekstrak nama pengrajin yang spesifik (Ibu Wati). 3. Jelaskan cerita yang disampaikan oleh Ibu Wati mengenai motif batik dan canting.",
+      "relevant_sessions": [
+        58
+      ],
+      "is_cross_session": false,
+      "source": "auto_generated"
+    },
+    {
+      "id": "q059",
+      "query": "Apa konsep penataan interior apartemen studio yang paling menarik perhatian Aisha di pameran desain?",
+      "type": "factual_recall",
+      "difficulty": "easy",
+      "expected_answer": "Konsep yang paling menarik perhatiannya adalah penggunaan partisi kaca untuk memisahkan area tidur dan living room agar ruangan tetap terkesan luas, serta penggunaan furnitur multifungsi seperti meja kopi yang bisa menjadi meja makan kecil atau sofa yang bisa menjadi sofabed.",
+      "required_context": "Pengalaman Aisha mengunjungi pameran desain interior.",
+      "reasoning_steps": "1. Cari sesi tentang kunjungan Aisha ke pameran desain. 2. Identifikasi dua elemen desain spesifik yang ia sebutkan: partisi kaca dan furnitur multifungsi.",
+      "relevant_sessions": [
+        59
+      ],
+      "is_cross_session": false,
+      "source": "auto_generated"
+    },
+    {
+      "id": "q060",
+      "query": "Bagaimana pameran desain interior (Session 59) dan proyek foto freelance (Session 58) secara bersamaan memperkuat motivasi Aisha untuk tujuan pribadinya?",
+      "type": "multi_hop",
+      "difficulty": "medium",
+      "expected_answer": "Proyek foto freelance yang sukses (Session 58, 60) memberinya kepuasan batin dan validasi atas passion-nya. Sementara itu, pameran desain interior (Session 59) memberinya visualisasi yang jelas dan konkret tentang apartemen impiannya. Kombinasi dari kepuasan kerja dan visualisasi tujuan ini secara signifikan memperkuat motivasinya untuk lebih serius menabung demi apartemen tersebut.",
+      "required_context": "Session 58 & 60: Proyek foto sebagai 'terapi'. Session 59: Inspirasi dari pameran desain.",
+      "reasoning_steps": "1. Identifikasi dampak proyek foto (kepuasan batin) dari Session 58/60. 2. Identifikasi dampak pameran desain (visualisasi tujuan) dari Session 59. 3. Gabungkan kedua dampak tersebut untuk menjelaskan bagaimana keduanya saling memperkuat motivasi Aisha.",
+      "relevant_sessions": [
+        60,
+        58,
+        59
+      ],
+      "is_cross_session": true,
+      "source": "auto_generated"
+    },
+    {
+      "id": "q061",
+      "query": "Apa tantangan utama dalam merancang kampanye video pendek untuk klien lama Aisha, dan apa ide awal untuk mengatasinya?",
+      "type": "factual_recall",
+      "difficulty": "medium",
+      "expected_answer": "Tantangan utamanya adalah bagaimana membuat brand yang sudah 'mapan' bisa terlihat asik dan relevan di platform seperti TikTok tanpa terkesan 'maksa' atau 'cringe'. Ide awal untuk mengatasinya adalah dengan membuat challenge atau menggunakan sound yang sedang viral tetapi di-twist agar sesuai dengan pesan brand.",
+      "required_context": "Sesi brainstorming Aisha dan tim untuk kampanye klien lama.",
+      "reasoning_steps": "1. Cari sesi brainstorming untuk klien lama. 2. Identifikasi tantangan yang disebutkan (brand mapan di TikTok, hindari 'cringe'). 3. Ekstrak ide solusi awal yang mereka diskusikan (challenge, twist sound viral).",
+      "relevant_sessions": [
+        61
+      ],
+      "is_cross_session": false,
+      "source": "auto_generated"
+    },
+    {
+      "id": "q062",
+      "query": "Bagaimana hasil foto proyek freelance pertama Aisha untuk Bu Rina akan dimanfaatkan untuk pengembangan agensi di masa depan?",
+      "type": "inference",
+      "difficulty": "medium",
+      "expected_answer": "Hasil foto tersebut akan dimanfaatkan dalam dua cara utama. Pertama, akan dibuat menjadi photo series untuk portofolio agensi, menunjukkan kemampuan mereka dalam product photography dengan pendekatan storytelling. Kedua, proyek ini akan dijadikan studi kasus nyata dan materi ajar untuk workshop UMKM yang sedang mereka rencanakan, menunjukkan secara konkret bagaimana membangun branding visual yang otentik.",
+      "required_context": "Rencana Aisha setelah sesi pemotretan untuk Bu Rina selesai.",
+      "reasoning_steps": "1. Identifikasi rencana Aisha untuk hasil foto (portofolio dan studi kasus). 2. Analisis bagaimana kedua pemanfaatan tersebut berkontribusi pada pertumbuhan agensi (memperkuat portofolio dan memperkaya materi workshop). 3. Simpulkan dampak strategisnya bagi pengembangan agensi.",
+      "relevant_sessions": [
+        62
+      ],
+      "is_cross_session": false,
+      "source": "auto_generated"
+    },
+    {
+      "id": "q063",
+      "query": "Apa konsep akhir yang disepakati tim Aisha untuk kampanye video pendek klien mereka agar tetap otentik?",
+      "type": "factual_recall",
+      "difficulty": "easy",
+      "expected_answer": "Konsep akhirnya adalah membuat seri konten 'a day in our workshop' yang menunjukkan proses di balik layar brand tersebut. Pendekatannya dibuat sinematik dengan storytelling yang kuat, mirip dengan pendekatan human interest, untuk menjaga 'jiwa' brand dan tidak hanya ikut-ikutan tren.",
+      "required_context": "Hasil akhir brainstorming tim Aisha untuk kampanye video pendek.",
+      "reasoning_steps": "1. Cari sesi di mana Aisha menceritakan hasil akhir brainstorming. 2. Ekstrak konsep yang disepakati ('a day in our workshop'). 3. Jelaskan pendekatan dan tujuannya (sinematik, storytelling, menjaga 'jiwa' brand).",
+      "relevant_sessions": [
+        63
+      ],
+      "is_cross_session": false,
+      "source": "auto_generated"
+    },
+    {
+      "id": "q064",
+      "query": "Bagaimana obrolan Aisha dengan Rizky Firmansyah memperkuat kembali fokusnya pada tujuan finansial pribadinya?",
+      "type": "inference",
+      "difficulty": "easy",
+      "expected_answer": "Obrolan dengan Rizky, yang suportif dan mengerti perjuangannya dari awal, berfungsi sebagai pengingat dan pendorong semangat. Rizky secara proaktif menanyakan kembali tentang rencana apartemen, yang membuat Aisha kembali termotivasi untuk lebih disiplin dalam menabung dan mengelola keuangan agensi.",
+      "required_context": "Pertemuan Aisha dengan Rizky.",
+      "reasoning_steps": "1. Identifikasi topik pembicaraan Aisha dan Rizky (update agensi, rencana apartemen). 2. Analisis peran Rizky sebagai sahabat yang suportif. 3. Simpulkan bahwa obrolan tersebut berfungsi sebagai 'reminder' yang positif dan memperkuat komitmen Aisha terhadap tujuannya.",
+      "relevant_sessions": [
+        64
+      ],
+      "is_cross_session": false,
+      "source": "auto_generated"
+    },
+    {
+      "id": "q065",
+      "query": "Bagaimana Aisha menghubungkan penataan ruang yang efisien dengan manajemen kerja di agensinya?",
+      "type": "multi_hop",
+      "difficulty": "hard",
+      "expected_answer": "Setelah terinspirasi oleh furnitur multifungsi dan penataan ruang yang efisien di pameran desain (Session 59 & 65), Aisha berpikir untuk menerapkan prinsip 'efisiensi' yang sama ke alur kerja agensi. Ini menunjukkan kemampuannya untuk mentransfer konsep dari satu domain (desain interior) ke domain lain (manajemen kerja) untuk meningkatkan produktivitas timnya bersama Dewi.",
+      "required_context": "Session 59: Aisha mendapat inspirasi dari pameran desain. Session 65: Aisha membahas inspirasi tersebut lebih detail.",
+      "reasoning_steps": "1. Identifikasi inspirasi utama dari pameran desain di Session 59 dan 65 (efisiensi ruang). 2. Temukan momen di mana Aisha membuat koneksi antara konsep tersebut dengan alur kerja agensi. 3. Jelaskan proses transfer konsep ini sebagai sebuah ide untuk inovasi manajemen.",
+      "relevant_sessions": [
+        65,
+        59
+      ],
+      "is_cross_session": true,
+      "source": "auto_generated"
+    },
+    {
+      "id": "q066",
+      "query": "Jika klien menolak konsep kampanye TikTok berbasis 'sudut pandang karyawan junior', apa alternatif konsep yang kemungkinan akan Aisha dan Dewi usulkan?",
+      "type": "counterfactual",
+      "difficulty": "hard",
+      "expected_answer": "Jika konsep tersebut ditolak karena dianggap terlalu 'nyeleneh', kemungkinan Aisha dan Dewi akan kembali ke ide awal mereka yang lebih aman, seperti membuat challenge atau menggunakan sound viral yang di-twist (seperti dibahas di Session 61). Alternatif lain, mereka mungkin akan mengusulkan konsep 'behind the scenes' yang lebih fokus pada proses pembuatan produk secara sinematik, tanpa melibatkan karyawan sebagai talent utama, untuk menjaga citra brand yang lebih 'polished'.",
+      "required_context": "Session 61: Ide awal kampanye TikTok. Session 66: Konsep akhir yang diajukan.",
+      "reasoning_steps": "1. Identifikasi konsep yang diajukan (sudut pandang karyawan). 2. Bayangkan skenario penolakan. 3. Kembali ke sesi brainstorming sebelumnya (Session 61) untuk mencari ide-ide alternatif yang lebih 'aman'. 4. Formulasikan alternatif yang logis berdasarkan diskusi-diskusi sebelumnya.",
+      "relevant_sessions": [
+        66,
+        61
+      ],
+      "is_cross_session": true,
+      "source": "auto_generated"
+    },
+    {
+      "id": "q067",
+      "query": "Apa ide 'audisi' yang direncanakan Aisha dan Dewi untuk mencari talent internal bagi kampanye TikTok klien mereka?",
+      "type": "factual_recall",
+      "difficulty": "easy",
+      "expected_answer": "Mereka berencana membuat semacam audisi kecil-kecilan yang menyenangkan di kantor klien untuk mencari karyawan internal yang tidak kaku di depan kamera dan memiliki kepribadian yang ceria, sesuai dengan vibe brand yang diinginkan.",
+      "required_context": "Proses pencarian talent untuk kampanye TikTok.",
+      "reasoning_steps": "1. Cari sesi di mana Aisha membahas kesulitan mencari talent internal. 2. Identifikasi ide 'audisi' yang mereka diskusikan sebagai solusi.",
+      "relevant_sessions": [
+        67
+      ],
+      "is_cross_session": false,
+      "source": "auto_generated"
+    },
+    {
+      "id": "q068",
+      "query": "Bagaimana perjalanan Aisha ke Yogyakarta direncanakan untuk mendukung proyek fotografi personalnya yang tertunda?",
+      "type": "inference",
+      "difficulty": "medium",
+      "expected_answer": "Perjalanan ke Yogyakarta direncanakan sebagai 'pemanasan' atau riset awal untuk proyek personalnya 'wajah-wajah di balik secangkir kopi'. Dengan mengunjungi tempat-tempat otentik seperti Bantul dan kedai kopi legendaris, ia berharap bisa mengumpulkan mood, inspirasi, dan mungkin menemukan subjek foto potensial, sehingga ketika proyeknya dilanjutkan secara resmi, ia sudah memiliki bahan dan energi kreatif yang baru.",
+      "required_context": "Rencana Aisha untuk perjalanannya ke Yogyakarta.",
+      "reasoning_steps": "1. Identifikasi tujuan perjalanan Aisha ke Yogyakarta (refreshing, hunting foto). 2. Hubungkan aktivitas hunting fotonya dengan proyek personal yang pernah ia sebutkan. 3. Simpulkan bahwa perjalanan ini berfungsi ganda sebagai liburan sekaligus riset dan pemanasan untuk proyek passion-nya.",
+      "relevant_sessions": [
+        68
+      ],
+      "is_cross_session": false,
+      "source": "auto_generated"
+    },
+    {
+      "id": "q069",
+      "query": "Siapa yang akhirnya ditemukan sebagai talent untuk kampanye TikTok klien, dan mengapa penemuan ini melegakan bagi Aisha?",
+      "type": "factual_recall",
+      "difficulty": "easy",
+      "expected_answer": "Talent yang ditemukan adalah seorang anak dari tim marketing klien tersebut yang ternyata natural di depan kamera. Penemuan ini sangat melegakan bagi Aisha karena ia bisa berangkat liburan ke Yogyakarta dengan tenang, tanpa ada pikiran pekerjaan yang mengganjal terkait pencarian talent.",
+      "required_context": "Update tentang pencarian talent untuk kampanye TikTok.",
+      "reasoning_steps": "1. Cari sesi di mana Aisha memberikan update tentang talent. 2. Identifikasi siapa yang terpilih (anak dari tim marketing). 3. Jelaskan mengapa hal ini melegakan baginya (bisa liburan dengan tenang).",
+      "relevant_sessions": [
+        69
+      ],
+      "is_cross_session": false,
+      "source": "auto_generated"
+    },
+    {
+      "id": "q070",
+      "query": "Apa saja persiapan yang dilakukan Aisha dan Dewi untuk hari pertama eksekusi kampanye TikTok?",
+      "type": "factual_recall",
+      "difficulty": "easy",
+      "expected_answer": "Persiapan mereka untuk hari pertama (kick-off) meliputi briefing talent, finalisasi skrip, dan menyiapkan properti untuk syuting keesokan harinya.",
+      "required_context": "Aktivitas Aisha pada hari kick-off kampanye TikTok.",
+      "reasoning_steps": "1. Cari sesi yang membahas hari pertama eksekusi kampanye. 2. List tiga kegiatan utama yang mereka lakukan: briefing, finalisasi skrip, dan persiapan properti.",
+      "relevant_sessions": [
+        70
+      ],
+      "is_cross_session": false,
+      "source": "auto_generated"
+    },
+    {
+      "id": "q071",
+      "query": "Mengapa perjalanan ke Yogyakarta menjadi penting bagi Aisha dari sudut pandang profesional dan personal?",
+      "type": "temporal_reasoning",
+      "difficulty": "medium",
+      "expected_answer": "Secara personal, perjalanan ini penting sebagai 'creative reset' setelah periode kerja yang padat (proyek E21, kampanye TikTok), memungkinkannya untuk mengerjakan hobi fotografinya (Session 71). Secara profesional, perjalanan ini secara tidak langsung menjadi sumber inspirasi visual (arsitektur Kotagede di Session 74) dan materi potensial untuk konten agensi, menunjukkan bagaimana waktu istirahat dapat mengisi kembali 'baterai' kreativitas yang penting untuk pekerjaannya.",
+      "required_context": "Session 71: Perjalanan sebagai 'creative reset'. Session 74: Mendapat inspirasi arsitektur di Kotagede.",
+      "reasoning_steps": "1. Identifikasi alasan personal Aisha untuk pergi ke Jogja (refreshing, hobi). 2. Identifikasi manfaat profesional yang ia dapatkan (inspirasi visual). 3. Sintesiskan kedua aspek tersebut untuk menjelaskan pentingnya perjalanan ini secara holistik.",
+      "relevant_sessions": [
+        71,
+        74
+      ],
+      "is_cross_session": true,
+      "source": "auto_generated"
+    },
+    {
+      "id": "q072",
+      "query": "Apa yang Aisha beli secara impulsif sebelum berangkat ke Yogyakarta dan apa pemicunya?",
+      "type": "factual_recall",
+      "difficulty": "easy",
+      "expected_answer": "Aisha membeli beberapa perintilan untuk menata ulang sudut kerjanya, seperti rak dinding melayang dan storage box. Pemicunya adalah inspirasi yang ia dapatkan dari pameran desain interior yang ia kunjungi sebelumnya.",
+      "required_context": "Cerita Aisha tentang aktivitasnya sebelum berangkat ke Yogyakarta.",
+      "reasoning_steps": "1. Identifikasi barang yang dibeli Aisha (rak dinding, storage box). 2. Identifikasi peristiwa yang memicu pembelian tersebut (pameran desain interior).",
+      "relevant_sessions": [
+        72
+      ],
+      "is_cross_session": false,
+      "source": "auto_generated"
+    },
+    {
+      "id": "q073",
+      "query": "Apa tema dari seri foto kecil yang direncanakan Aisha dari hasil fotonya di Pasar Beringharjo?",
+      "type": "factual_recall",
+      "difficulty": "easy",
+      "expected_answer": "Aisha berencana membuat seri foto kecil dengan tema 'Senyum Pagi di Pasar'.",
+      "required_context": "Rencana Aisha untuk foto-foto yang ia ambil di Pasar Beringharjo, Yogyakarta.",
+      "reasoning_steps": "1. Cari sesi di mana Aisha membahas hasil fotonya di pasar. 2. Ekstrak nama atau tema spesifik yang ia sebutkan untuk seri fotonya.",
+      "relevant_sessions": [
+        73
+      ],
+      "is_cross_session": false,
+      "source": "auto_generated"
+    },
+    {
+      "id": "q074",
+      "query": "Bagaimana pengalaman Aisha di Yogyakarta, mulai dari hunting foto di pasar hingga melihat arsitektur, mempengaruhi visinya sebagai seorang kreator?",
+      "type": "temporal_reasoning",
+      "difficulty": "hard",
+      "expected_answer": "Perjalanan ke Yogyakarta mempertajam visinya sebagai kreator yang fokus pada otentisitas dan cerita. Awalnya di Pasar Beringharjo (Session 73), ia fokus menangkap emosi manusia ('Senyum Pagi di Pasar'). Kemudian, di Kotagede (Session 74), ia terkesima oleh detail arsitektur yang 'bercerita'. Pengalaman ini mengukuhkan identitas kreatifnya, bahwa baik dalam fotografi human interest maupun dalam melihat arsitektur, ia selalu mencari 'jiwa' dan narasi di baliknya, yang kemudian ia terapkan dalam strategi agensinya.",
+      "required_context": "Session 73: Pengalaman di Pasar Beringharjo. Session 74: Pengalaman di Kotagede.",
+      "reasoning_steps": "1. Analisis pengalaman di Pasar Beringharjo (fokus pada emosi). 2. Analisis pengalaman di Kotagede (fokus pada cerita di balik arsitektur). 3. Sintesiskan kedua pengalaman tersebut untuk menunjukkan penguatan visi kreatif Aisha yang berpusat pada storytelling dan otentisitas.",
+      "relevant_sessions": [
+        74,
+        73
+      ],
+      "is_cross_session": true,
+      "source": "auto_generated"
+    },
+    {
+      "id": "q075",
+      "query": "Selain arsitektur, interaksi seperti apa yang menjadi fokus Aisha saat memotret di Candi Prambanan?",
+      "type": "factual_recall",
+      "difficulty": "easy",
+      "expected_answer": "Fokusnya adalah interaksi antara turis dengan arsitektur candi itu sendiri. Ia lebih tertarik memotret sisi human interest-nya daripada hanya arsitektur candi yang megah.",
+      "required_context": "Cerita Aisha tentang kunjungannya ke Candi Prambanan.",
+      "reasoning_steps": "1. Cari sesi di mana Aisha membahas kunjungannya ke Prambanan. 2. Identifikasi fokus fotografinya di sana (interaksi turis dan arsitektur).",
+      "relevant_sessions": [
+        75
+      ],
+      "is_cross_session": false,
+      "source": "auto_generated"
+    },
+    {
+      "id": "q076",
+      "query": "Bagaimana sudut kerja baru Aisha yang telah ditata ulang mempengaruhi motivasinya?",
+      "type": "inference",
+      "difficulty": "medium",
+      "expected_answer": "Sudut kerja yang lebih rapi, terang, dan personal memberikan dampak psikologis yang positif bagi Aisha. Secara langsung, ini meningkatkan mood dan semangat kerjanya. Secara tidak langsung, sudut kerja baru ini berfungsi sebagai 'pengingat visual' dan manifestasi kecil dari apartemen impiannya, sehingga memperkuat motivasinya untuk terus bekerja keras dan disiplin menabung.",
+      "required_context": "Efek dari penataan ulang sudut kerja Aisha.",
+      "reasoning_steps": "1. Identifikasi perubahan pada sudut kerja (rapi, terang, personal). 2. Analisis dampak langsung yang ia sebutkan (semangat kerja). 3. Analisis dampak tidak langsungnya (sebagai pengingat tujuan apartemen). 4. Simpulkan bagaimana perubahan fisik tersebut mempengaruhi kondisi psikologis dan motivasinya.",
+      "relevant_sessions": [
+        76
+      ],
+      "is_cross_session": false,
+      "source": "auto_generated"
+    },
+    {
+      "id": "q077",
+      "query": "Apa temuan utama dari analisis data awal kampanye TikTok, dan bagaimana tim Aisha berencana mengoptimalkannya?",
+      "type": "factual_recall",
+      "difficulty": "medium",
+      "expected_answer": "Temuan utamanya adalah video yang 'hook'-nya langsung menampilkan sisi humanis atau kelucuan talent mendapatkan views yang lebih tinggi, sementara video yang diawali dengan menunjukkan produk cenderung di-skip. Untuk mengoptimalkannya, mereka berencana merevisi skrip ke depan agar lebih menonjolkan talent dan sisi personalnya.",
+      "required_context": "Analisis data awal kampanye TikTok.",
+      "reasoning_steps": "1. Cari sesi yang membahas data kampanye TikTok. 2. Identifikasi perbandingan performa antara dua jenis video. 3. Jelaskan temuan utamanya (sisi humanis lebih berhasil). 4. Sebutkan rencana tindak lanjutnya (revisi skrip).",
+      "relevant_sessions": [
+        77
+      ],
+      "is_cross_session": false,
+      "source": "auto_generated"
+    },
+    {
+      "id": "q078",
+      "query": "Foto spesifik apa dari perjalanan ke Yogyakarta yang paling berkesan bagi Aisha dan mengapa?",
+      "type": "factual_recall",
+      "difficulty": "easy",
+      "expected_answer": "Foto yang paling berkesan adalah foto candid seorang ibu penjual jamu di Pasar Beringharjo yang sedang tersenyum saat melayani pembeli. Foto ini sangat berkesan karena ia merasa berhasil menangkap 'nyawa' dari Jogja dalam satu frame dengan ekspresi yang tulus dan pencahayaan yang pas.",
+      "required_context": "Refleksi Aisha tentang foto-foto dari Yogyakarta.",
+      "reasoning_steps": "1. Cari sesi di mana Aisha merefleksikan hasil fotonya dari Jogja. 2. Identifikasi foto spesifik yang ia sebut sebagai favorit (ibu penjual jamu). 3. Jelaskan alasan mengapa foto tersebut sangat berkesan baginya.",
+      "relevant_sessions": [
+        78
+      ],
+      "is_cross_session": false,
+      "source": "auto_generated"
+    },
+    {
+      "id": "q079",
+      "query": "Bagaimana keberhasilan kampanye TikTok yang dioptimasi (Session 77) menjadi validasi untuk materi training internal 'Storytelling for Brands' (Session 79)?",
+      "type": "multi_hop",
+      "difficulty": "medium",
+      "expected_answer": "Di Session 77, data menunjukkan bahwa konten TikTok yang lebih humanis dan personal (menonjolkan talent) memiliki performa lebih baik. Keberhasilan ini menjadi validasi konkret bahwa storytelling otentik adalah kunci. Di Session 79, Aisha secara sadar menghubungkan temuan ini sebagai penguat materi untuk training internal 'Storytelling for Brands', membuktikan kepada timnya bahwa pendekatan yang akan ia ajarkan benar-benar efektif dan terbukti berhasil di proyek nyata.",
+      "required_context": "Session 77: Hasil optimasi kampanye TikTok. Session 79: Perencanaan materi training.",
+      "reasoning_steps": "1. Identifikasi kesuksesan strategi humanis di kampanye TikTok dari Session 77. 2. Cari momen di Session 79 di mana Aisha merencanakan materi training. 3. Hubungkan bagaimana keberhasilan di Session 77 menjadi bukti nyata dan studi kasus yang kuat untuk diajarkan dalam training.",
+      "relevant_sessions": [
+        79,
+        77
+      ],
+      "is_cross_session": true,
+      "source": "auto_generated"
+    },
+    {
+      "id": "q080",
+      "query": "Apa nama brand home decor yang menawari Aisha proyek foto freelance kedua dan bagaimana mereka menemukannya?",
+      "type": "factual_recall",
+      "difficulty": "easy",
+      "expected_answer": "Nama brand-nya adalah 'Serat Alam'. Mereka menemukan Aisha setelah melihat hasil fotonya untuk proyek sebelumnya dengan Bu Rina.",
+      "required_context": "Tawaran proyek freelance kedua untuk Aisha.",
+      "reasoning_steps": "1. Cari sesi di mana Aisha mendapat tawaran freelance baru. 2. Ekstrak nama brand ('Serat Alam'). 3. Identifikasi bagaimana brand tersebut bisa mengetahui karya Aisha (dari proyek Bu Rina).",
+      "relevant_sessions": [
+        80
+      ],
+      "is_cross_session": false,
+      "source": "auto_generated"
+    },
+    {
+      "id": "q081",
+      "query": "Apa yang membuat Aisha memutuskan untuk menulis dan mempublikasikan blog post tentang perjalanannya ke Yogyakarta?",
+      "type": "inference",
+      "difficulty": "easy",
+      "expected_answer": "Aisha memutuskan untuk menulis blog post karena ia merasa sayang jika foto-foto dan pengalamannya hanya disimpan di hardisk. Ia melihat potensi untuk mengubah pengalamannya menjadi konten yang bisa bermanfaat dan memberikan inspirasi bagi orang lain, yang sejalan dengan profesinya sebagai content creator.",
+      "required_context": "Alasan Aisha menulis blog post tentang Yogyakarta.",
+      "reasoning_steps": "1. Identifikasi tindakan Aisha (menulis blog post). 2. Analisis alasannya (sayang kalau hanya disimpan, ingin bermanfaat). 3. Simpulkan bahwa ini adalah manifestasi dari nalurinya sebagai seorang content creator.",
+      "relevant_sessions": [
+        81
+      ],
+      "is_cross_session": false,
+      "source": "auto_generated"
+    },
+    {
+      "id": "q082",
+      "query": "Apa ide optimasi baru yang dipikirkan Aisha dan Dewi untuk kampanye TikTok setelah video Q&A dianggap kurang 'nendang'?",
+      "type": "factual_recall",
+      "difficulty": "easy",
+      "expected_answer": "Mereka berpikir untuk membuat mini-series 'a day in the life' versi singkat dengan talent tersebut. Tujuannya adalah untuk menunjukkan sisi yang lebih personal dan 'manusiawi' dari brand, dengan menampilkan momen-momen kecil yang natural dalam keseharian si talent.",
+      "required_context": "Sesi brainstorming untuk optimasi kampanye TikTok.",
+      "reasoning_steps": "1. Cari sesi brainstorming setelah video Q&A. 2. Identifikasi ide baru yang muncul ('a day in the life'). 3. Jelaskan konsep dan tujuan dari ide tersebut.",
+      "relevant_sessions": [
+        82
+      ],
+      "is_cross_session": false,
+      "source": "auto_generated"
+    },
+    {
+      "id": "q083",
+      "query": "Jika Aisha tidak pernah mengunjungi pameran seni di Braga (Session 11), bagaimana kemungkinan konsep untuk proyek video E21 akan berbeda?",
+      "type": "counterfactual",
+      "difficulty": "hard",
+      "expected_answer": "Jika Aisha tidak mengunjungi pameran seni, ia tidak akan mendapatkan inspirasi visual yang kuat untuk 'hero shot' dari lukisan abstrak tersebut. Akibatnya, konsep visual untuk E21 mungkin akan kurang berani dan artistik. Mereka bisa jadi tetap terjebak dalam dilema antara 'aman' dan 'edgy' (Session 8) lebih lama, dan hasil akhirnya mungkin akan lebih konvensional atau tidak memiliki 'highlight' visual yang sekuat yang akhirnya mereka produksi.",
+      "required_context": "Session 8: Creative block. Session 11: Inspirasi dari pameran. Session 40 & 41: Pentingnya 'hero shot' tersebut.",
+      "reasoning_steps": "1. Identifikasi peran krusial pameran seni dalam memberikan inspirasi visual (Session 11). 2. Bayangkan pameran itu tidak terjadi. 3. Simpulkan dampaknya: tidak ada inspirasi visual konkret, creative block mungkin berlanjut, dan hasil akhir video E21 akan kehilangan adegan paling ikoniknya.",
+      "relevant_sessions": [
+        83,
+        8,
+        11,
+        41
+      ],
+      "is_cross_session": true,
+      "source": "auto_generated"
+    },
+    {
+      "id": "q084",
+      "query": "Mengapa negosiasi kontrak dengan Serat Alam terasa lebih mudah dan kolaboratif bagi Aisha?",
+      "type": "inference",
+      "difficulty": "easy",
+      "expected_answer": "Negosiasi terasa lebih mudah karena sejak awal visi kreatif antara Aisha dan Serat Alam sudah sejalan. Karena fondasi utamanya (visi) sudah sama, diskusi mengenai detail teknis dan angka menjadi lebih seperti mencari solusi bersama untuk mencapai tujuan yang sama, bukan adu argumen atau tawar-menawar yang alot.",
+      "required_context": "Pengalaman Aisha saat negosiasi kontrak dengan Serat Alam.",
+      "reasoning_steps": "1. Identifikasi hasil negosiasi (lancar, kolaboratif). 2. Analisis alasan yang disebutkan Aisha (visi sudah sama). 3. Simpulkan bahwa kesamaan visi menjadi kunci yang membuat proses negosiasi yang biasanya tegang menjadi lebih mudah.",
+      "relevant_sessions": [
+        84
+      ],
+      "is_cross_session": false,
+      "source": "auto_generated"
+    },
+    {
+      "id": "q085",
+      "query": "Bagaimana buku tentang sejarah desain interior Indonesia mempengaruhi konsep foto Aisha untuk proyek Serat Alam?",
+      "type": "inference",
+      "difficulty": "medium",
+      "expected_answer": "Buku tersebut memberikan kedalaman filosofis pada konsep foto Aisha. Ia tidak lagi hanya melihat produk Serat Alam sebagai objek estetis, tetapi sebagai bagian dari warisan budaya dan kearifan lokal dalam penggunaan material. Ini menginspirasinya untuk mengangkat cerita di balik material dan prosesnya, membuat konsep fotonya menjadi lebih dari sekadar visual, tetapi juga sebuah narasi budaya.",
+      "required_context": "Insight yang didapat Aisha dari buku desain interior dan hubungannya dengan proyek Serat Alam.",
+      "reasoning_steps": "1. Identifikasi insight utama dari buku (filosofi di balik material lokal). 2. Hubungkan insight tersebut dengan proyek Serat Alam. 3. Simpulkan bagaimana buku itu mengubah atau memperdalam pendekatan konseptual Aisha, dari estetika menjadi narasi budaya.",
+      "relevant_sessions": [
+        85
+      ],
+      "is_cross_session": false,
+      "source": "auto_generated"
+    },
+    {
+      "id": "q086",
+      "query": "Apa dua prioritas utama yang ingin Aisha ajarkan dalam workshop AI internal untuk timnya?",
+      "type": "counterfactual",
+      "difficulty": "medium",
+      "expected_answer": "Jika Aisha harus memilih dua prioritas utama dari diskusinya, ia kemungkinan akan fokus pada: 1) Pemanfaatan AI untuk analisis data audiens yang lebih mendalam, agar tim bisa menciptakan konten yang lebih personal dan efektif. 2) Penggunaan tools AI untuk efisiensi proses kreatif, seperti membantu brainstorming ide atau menulis draf awal copy, untuk mempercepat alur kerja.",
+      "required_context": "Session 93: Diskusi tentang workshop AI.",
+      "reasoning_steps": "1. Identifikasi diskusi tentang workshop AI di Session 93. 2. Ekstrak dua area utama yang dibahas: analisis audiens dan efisiensi kreatif. 3. Formulasikan jawaban berdasarkan dua poin prioritas tersebut.",
+      "relevant_sessions": [
+        86,
+        93
+      ],
+      "is_cross_session": true,
+      "source": "auto_generated"
+    },
+    {
+      "id": "q087",
+      "query": "Bagaimana keberhasilan optimasi kampanye TikTok menjadi validasi bagi pendekatan storytelling yang diusung agensi Aisha?",
+      "type": "inference",
+      "difficulty": "medium",
+      "expected_answer": "Keberhasilan tersebut menjadi validasi karena membuktikan secara data bahwa audiens lebih merespons positif terhadap konten yang humanis dan personal (menampilkan talent) daripada konten yang hard-selling (menampilkan produk). Ini mengkonfirmasi hipotesis Aisha dan Dewi bahwa storytelling otentik adalah kunci untuk membangun engagement, dan memberikan mereka kepercayaan diri untuk terus menerapkan pendekatan ini di proyek-proyek selanjutnya.",
+      "required_context": "Feedback positif dari klien setelah optimasi kampanye TikTok.",
+      "reasoning_steps": "1. Identifikasi perubahan strategi (dari produk-sentris ke humanis). 2. Identifikasi hasilnya (engagement naik, klien senang). 3. Simpulkan bagaimana hasil ini menjadi bukti nyata ('validasi') bahwa pendekatan storytelling mereka efektif.",
+      "relevant_sessions": [
+        87
+      ],
+      "is_cross_session": false,
+      "source": "auto_generated"
+    },
+    {
+      "id": "q088",
+      "query": "Apa saja perkembangan positif yang dialami Aisha dari bulan Februari hingga April yang membuatnya semakin termotivasi untuk menabung demi apartemen?",
+      "type": "temporal_reasoning",
+      "difficulty": "hard",
+      "expected_answer": "Dari Februari hingga April, Aisha mengalami serangkaian keberhasilan: proyek E21 selesai dengan sukses (Feb), ia berhasil menjadi pembicara seminar (Feb), mendapatkan dua proyek foto freelance (Feb & Apr), dan memenangkan proposal klien besar baru (Apr). Rentetan keberhasilan profesional ini tidak hanya meningkatkan kepercayaan dirinya, tetapi juga secara nyata menstabilkan cash flow agensi, mengubah tujuan membeli apartemen dari sekadar mimpi menjadi target finansial yang semakin realistis dan dapat dicapai.",
+      "required_context": "Session 49: Proyek E21 selesai. Session 80: Proyek freelance kedua. Session 88: Motivasi menabung. Session 99: Klien baru diterima.",
+      "reasoning_steps": "1. Identifikasi serangkaian keberhasilan profesional Aisha dari Februari hingga April. 2. Analisis bagaimana setiap keberhasilan tersebut berdampak pada kondisi finansial dan psikologisnya. 3. Sintesiskan perkembangan ini untuk menunjukkan bagaimana motivasinya untuk menabung tumbuh seiring dengan kesuksesan agensinya.",
+      "relevant_sessions": [
+        88,
+        49,
+        80,
+        99
+      ],
+      "is_cross_session": true,
+      "source": "auto_generated"
+    },
+    {
+      "id": "q089",
+      "query": "Apa insight baru yang didapat Aisha dari webinar tentang AI di digital marketing?",
+      "type": "factual_recall",
+      "difficulty": "easy",
+      "expected_answer": "Insight baru yang paling menarik baginya adalah tentang personalisasi konten menggunakan AI. Ia belajar bahwa AI dapat membantu menganalisis data audiens secara lebih mendalam, sehingga memungkinkan pembuatan konten atau iklan yang super spesifik untuk setiap segmen audiens.",
+      "required_context": "Pengalaman Aisha mengikuti webinar tentang AI.",
+      "reasoning_steps": "1. Cari sesi di mana Aisha membahas webinar AI. 2. Ekstrak insight utama yang ia sebutkan, yaitu tentang personalisasi konten.",
+      "relevant_sessions": [
+        89
+      ],
+      "is_cross_session": false,
+      "source": "auto_generated"
+    },
+    {
+      "id": "q090",
+      "query": "Gaya desain apa yang menjadi inspirasi utama Aisha untuk moodboard proyek 'Serat Alam', dan mengapa ia memilihnya?",
+      "type": "factual_recall",
+      "difficulty": "medium",
+      "expected_answer": "Gaya desain yang menjadi inspirasi utamanya adalah Japandi (Japanese-Scandinavian). Ia memilihnya karena gaya ini simpel, fungsional, namun tetap terasa hangat, yang ia rasa sangat cocok dengan filosofi produk 'Serat Alam' yang mengandalkan material alami dan kesederhanaan.",
+      "required_context": "Persiapan Aisha untuk proyek fotografi 'Serat Alam'.",
+      "reasoning_steps": "1. Cari sesi yang membahas moodboard proyek 'Serat Alam'. 2. Identifikasi nama gaya desain yang ia sebutkan (Japandi). 3. Jelaskan alasan mengapa ia merasa gaya tersebut cocok untuk brand kliennya.",
+      "relevant_sessions": [
+        90
+      ],
+      "is_cross_session": false,
+      "source": "auto_generated"
+    },
+    {
+      "id": "q091",
+      "query": "Apa ide 'paket' layanan baru yang didiskusikan Aisha dan Dewi untuk UMKM?",
+      "type": "factual_recall",
+      "difficulty": "easy",
+      "expected_answer": "Mereka mendiskusikan ide untuk membuat paket layanan bernama 'TikTok Starter Pack'. Paket ini dirancang untuk UMKM yang baru mau masuk ke TikTok dan sudah mencakup layanan lengkap mulai dari brainstorming konsep, produksi beberapa video awal, hingga pelatihan cara membaca insight dasar.",
+      "required_context": "Diskusi Aisha dan Dewi tentang ekspansi layanan agensi.",
+      "reasoning_steps": "1. Cari sesi yang membahas makan siang Aisha dan Dewi tentang ide baru. 2. Identifikasi nama paket layanan yang mereka sebutkan ('TikTok Starter Pack'). 3. Jelaskan isi dari paket layanan tersebut.",
+      "relevant_sessions": [
+        91
+      ],
+      "is_cross_session": false,
+      "source": "auto_generated"
+    },
+    {
+      "id": "q092",
+      "query": "Perubahan apa pada sudut kerja Aisha yang paling membuatnya senang dan mengapa?",
+      "type": "inference",
+      "difficulty": "easy",
+      "expected_answer": "Perubahan yang paling membuatnya senang adalah sekarang semua kabel bisa disembunyikan. Hal ini penting baginya karena memberikan tampilan yang sangat rapi dan 'clean', yang sejalan dengan seleranya pada desain minimalis dan membantunya merasa lebih teratur dan fokus saat bekerja.",
+      "required_context": "Hasil penataan ulang sudut kerja Aisha.",
+      "reasoning_steps": "1. Identifikasi furnitur baru yang dibeli Aisha. 2. Temukan detail spesifik dari penataan baru yang paling ia sukai (kabel tersembunyi). 3. Simpulkan mengapa detail kecil ini penting baginya (menciptakan kerapian, sesuai selera minimalis).",
+      "relevant_sessions": [
+        92
+      ],
+      "is_cross_session": false,
+      "source": "auto_generated"
+    },
+    {
+      "id": "q093",
+      "query": "Bagaimana Aisha dan Dewi berencana membagi peran dalam workshop AI internal untuk tim mereka?",
+      "type": "factual_recall",
+      "difficulty": "medium",
+      "expected_answer": "Mereka berencana membagi peran agar seimbang antara konsep dan eksekusi. Aisha akan lebih fokus pada bagian strategis dan analisis data, sementara Dewi akan fokus pada penerapan praktisnya untuk copywriting dan ideasi konten.",
+      "required_context": "Perencanaan workshop AI internal.",
+      "reasoning_steps": "1. Cari sesi di mana Aisha membahas pembagian peran untuk workshop AI. 2. Jelaskan peran masing-masing: Aisha untuk strategi/analisis, dan Dewi untuk penerapan praktis.",
+      "relevant_sessions": [
+        93
+      ],
+      "is_cross_session": false,
+      "source": "auto_generated"
+    },
+    {
+      "id": "q094",
+      "query": "Bagaimana Aisha menggunakan analogi dari buku desain interior untuk menjelaskan konsep AI kepada timnya?",
+      "type": "inference",
+      "difficulty": "hard",
+      "expected_answer": "Aisha berencana menggunakan analogi di mana AI adalah 'fondasi' data dari sebuah bangunan, sementara berbagai tools AI adalah 'furnitur' yang bisa dipilih sesuai kebutuhan. Analogi ini bertujuan untuk menyederhanakan konsep AI yang kompleks, membuatnya lebih mudah dipahami dan tidak terlalu teknis atau menakutkan bagi tim, dengan menghubungkannya ke konsep desain yang lebih familiar.",
+      "required_context": "Ide Aisha untuk materi workshop AI setelah membaca buku desain.",
+      "reasoning_steps": "1. Identifikasi ide analogi yang muncul di benak Aisha. 2. Jelaskan analogi tersebut (AI = fondasi, tools = furnitur). 3. Analisis tujuan dari penggunaan analogi ini, yaitu untuk menyederhanakan konsep yang rumit dan membuatnya lebih mudah diterima oleh tim.",
+      "relevant_sessions": [
+        94
+      ],
+      "is_cross_session": false,
+      "source": "auto_generated"
+    },
+    {
+      "id": "q095",
+      "query": "Bagaimana proyek foto Serat Alam akan digunakan sebagai materi untuk workshop UMKM yang direncanakan Aisha dan Dewi?",
+      "type": "factual_recall",
+      "difficulty": "medium",
+      "expected_answer": "Aisha berencana menggunakan foto-foto dari proyek Serat Alam sebagai contoh konkret tentang bagaimana cara 'bercerita' melalui visual produk. Ini akan melengkapi materi workshop yang tidak hanya fokus pada teori copywriting, tetapi juga menunjukkan penerapan storytelling visual yang kuat untuk branding UMKM.",
+      "required_context": "Rencana Aisha untuk memanfaatkan hasil proyek Serat Alam.",
+      "reasoning_steps": "1. Cari sesi yang membahas evaluasi bulanan dan rencana workshop. 2. Identifikasi bagaimana proyek Serat Alam akan diintegrasikan ke dalam workshop. 3. Jelaskan perannya sebagai studi kasus untuk storytelling visual.",
+      "relevant_sessions": [
+        95
+      ],
+      "is_cross_session": false,
+      "source": "auto_generated"
+    },
+    {
+      "id": "q096",
+      "query": "Inspirasi apa yang didapat Aisha dari pameran seni kontemporer dan bagaimana ia menerapkannya pada post-produksi foto Serat Alam?",
+      "type": "factual_recall",
+      "difficulty": "medium",
+      "expected_answer": "Aisha terinspirasi oleh sebuah instalasi seni yang menggunakan benang warna-warni dan sorotan lampu untuk menciptakan bayangan yang artistik. Ia menerapkan inspirasi ini pada post-produksi foto Serat Alam dengan menjadi lebih berani memainkan kontras antara area terang dan bayangan, membuat produknya terlihat lebih 'hidup' dan dramatis.",
+      "required_context": "Pengalaman Aisha di pameran seni kontemporer dan dampaknya pada pekerjaannya.",
+      "reasoning_steps": "1. Identifikasi karya seni yang menginspirasi Aisha (instalasi benang dan bayangan). 2. Jelaskan bagaimana inspirasi tersebut diterapkan secara teknis dalam proses editing foto (memainkan kontras terang dan bayangan).",
+      "relevant_sessions": [
+        96
+      ],
+      "is_cross_session": false,
+      "source": "auto_generated"
+    },
+    {
+      "id": "q097",
+      "query": "Apa dilema strategis yang dihadapi Aisha dan Dewi mengenai arah masa depan agensi mereka setelah menerima proposal baru?",
+      "type": "inference",
+      "difficulty": "hard",
+      "expected_answer": "Dilema mereka adalah antara melanjutkan model bisnis yang sudah berjalan (siklus mengejar, mendapatkan, dan mengeksekusi klien baru untuk menjaga cash flow) atau beralih ke arah yang lebih sesuai dengan passion dan visi jangka panjang mereka (mengembangkan layanan baru seperti workshop UMKM yang lebih bermakna tapi memiliki ketidakpastian finansial). Ini adalah persimpangan jalan antara pertumbuhan kuantitatif (banyak klien) dan kualitatif (jenis layanan dan makna).",
+      "required_context": "Refleksi Aisha setelah menerima proposal baru.",
+      "reasoning_steps": "1. Identifikasi pemicu refleksi (proposal baru). 2. Analisis dua pilihan yang dipertimbangkan Aisha: model bisnis lama vs. arah baru. 3. Rumuskan dilema ini dalam istilah strategis: pertumbuhan berbasis volume vs. pertumbuhan berbasis pengembangan layanan dan makna.",
+      "relevant_sessions": [
+        97
+      ],
+      "is_cross_session": false,
+      "source": "auto_generated"
+    },
+    {
+      "id": "q098",
+      "query": "Jelaskan evolusi visi agensi Aisha dan Dewi, dari awal yang berfokus pada eksekusi proyek hingga visi yang lebih selektif dan berbasis storytelling.",
+      "type": "temporal_reasoning",
+      "difficulty": "hard",
+      "expected_answer": "Awalnya, agensi berfokus pada penyelesaian proyek yang datang, seperti kampanye skincare dan fashion (Session 1-2). Seiring waktu, terutama setelah keberhasilan proyek seperti E21 dan seminar UMKM (Session 34), mereka mulai menyadari kekuatan storytelling. Puncaknya adalah setelah proyek foto freelance dan refleksi di Session 97 & 98, visi mereka menjadi lebih tajam: mereka ingin lebih selektif, proaktif mendekati brand yang 'berjiwa', dan fokus pada proyek yang 'bercerita', bukan hanya mengejar angka atau klien semata.",
+      "required_context": "Session 2: Fokus pada eksekusi. Session 34: Titik balik setelah seminar. Session 98: Visi baru yang lebih solid.",
+      "reasoning_steps": "1. Identifikasi fokus awal agensi (menyelesaikan proyek). 2. Temukan titik-titik balik penting yang membentuk kesadaran baru (seminar, proyek personal). 3. Analisis perumusan visi baru di sesi-sesi akhir (selektif, proaktif, berbasis cerita). 4. Rangkai perubahan ini menjadi sebuah narasi evolusi visi agensi.",
+      "relevant_sessions": [
+        98,
+        2,
+        34,
+        97
+      ],
+      "is_cross_session": true,
+      "source": "auto_generated"
+    },
+    {
+      "id": "q099",
+      "query": "Apa self-reward yang dibeli Aisha untuk merayakan diterimanya proposal klien baru dan untuk melengkapi sudut kerja barunya?",
+      "type": "factual_recall",
+      "difficulty": "easy",
+      "expected_answer": "Sebagai self-reward dan untuk melengkapi sudut kerjanya, Aisha membeli beberapa tanaman hias indoor agar suasana ruang kerjanya menjadi lebih segar.",
+      "required_context": "Aktivitas Aisha setelah proposalnya diterima.",
+      "reasoning_steps": "1. Cari sesi setelah Aisha mendapat kabar baik tentang proposal. 2. Identifikasi barang yang ia beli sebagai perayaan (tanaman hias indoor).",
+      "relevant_sessions": [
+        99
+      ],
+      "is_cross_session": false,
+      "source": "auto_generated"
+    },
+    {
+      "id": "q100",
+      "query": "Apa saja jenis tanaman hias yang dibeli Aisha untuk sudut kerjanya?",
+      "type": "factual_recall",
+      "difficulty": "easy",
+      "expected_answer": "Aisha membeli tanaman Monstera kecil dan Lidah Mertua.",
+      "required_context": "Cerita Aisha tentang tanaman barunya.",
+      "reasoning_steps": "1. Cari sesi yang membahas tanaman hias Aisha. 2. Ekstrak nama spesifik dari dua jenis tanaman yang ia sebutkan.",
+      "relevant_sessions": [
+        100
+      ],
+      "is_cross_session": false,
+      "source": "auto_generated"
+    }
+  ]
+}

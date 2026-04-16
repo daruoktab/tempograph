@@ -1,0 +1,30 @@
+{
+  "version": 1,
+  "skills": {
+    "gemini-api-dev": {
+      "source": "google-gemini/gemini-skills",
+      "sourceType": "github",
+      "computedHash": "a72a3164552bd1764bca52d33806f4578572af3c279611a5bda420b6a9ca68c4"
+    },
+    "gemini-interactions-api": {
+      "source": "google-gemini/gemini-skills",
+      "sourceType": "github",
+      "computedHash": "a7017c7e4219aed7e8b6b81c4a6f8906490801b0c6e9c8189cd9721a0c55c845"
+    },
+    "novita-ai": {
+      "source": "novitalabs/novita-skills",
+      "sourceType": "github",
+      "computedHash": "2fb8d63e5d2dd12f26579cfd2ddb0eb85c1b1204ec18e57705a23d2d7bbedf4f"
+    },
+    "novita-docs": {
+      "source": "novitalabs/novita-skills",
+      "sourceType": "github",
+      "computedHash": "bcf769eff32c5380d6c482479c8284975370fe5ecb0ef1c3e20cafc535354e38"
+    },
+    "surrealdb": {
+      "source": "24601/surreal-skills",
+      "sourceType": "github",
+      "computedHash": "85b404612aee2e71f716ba855dde586367279d6b297f82fa59a8b9d800f1e226"
+    }
+  }
+}

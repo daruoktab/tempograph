@@ -34,7 +34,9 @@ from dataclasses import dataclass, asdict
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from tqdm import tqdm
+from src.config.experiment_setups import ExperimentSetup
 from src.evaluation.metrics import context_sufficiency_llm_judge, MetricResult
+from src.rag.retrieval.vanilla_retriever import VanillaRetriever
 
 logging.basicConfig(
     level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s"
@@ -42,7 +44,7 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 # Paths
-QUERIES_PATH = Path("output/final_dataset_v1/evaluation_queries_100.json")
+QUERIES_PATH = Path("output/example_dataset/evaluation_queries_100.json")
 OUTPUT_DIR = Path("output/evaluation_results")
 OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
 
@@ -113,8 +115,15 @@ class VanillaEvaluator:
         self.with_llm_judge = with_llm_judge
         self.judge_model = judge_model
         self.with_rerank = with_rerank
-        self._retriever = None
-        self._setup = None
+        self._retriever: Optional[VanillaRetriever] = None
+        self._setup: Optional[ExperimentSetup] = None
+
+    def _eval_ctx(self) -> tuple[ExperimentSetup, VanillaRetriever]:
+        if self._setup is None or self._retriever is None:
+            raise RuntimeError(
+                "VanillaEvaluator.initialize() must be called before evaluate()."
+            )
+        return self._setup, self._retriever
 
     async def initialize(self):
         """Initialize retriever"""
@@ -205,6 +214,7 @@ class VanillaEvaluator:
 
     async def evaluate(self) -> Dict[str, Any]:
         """Run evaluation on all queries"""
+        _, retriever = self._eval_ctx()
         queries = self._load_queries()
         logger.info(f"Loaded {len(queries)} queries")
 
@@ -216,7 +226,7 @@ class VanillaEvaluator:
             start = time.perf_counter()
 
             # Retrieve
-            result = await self._retriever.retrieve(q["query"])  # type: ignore[possibly-missing-attribute]
+            result = await retriever.retrieve(q["query"])
 
             retrieval_time_ms = (time.perf_counter() - start) * 1000
 
@@ -297,6 +307,7 @@ class VanillaEvaluator:
 
     def _calculate_summary(self, results: List[QueryResult]) -> EvaluationSummary:
         """Calculate aggregate metrics"""
+        setup, _ = self._eval_ctx()
         total = len(results)
 
         # Overall metrics
@@ -349,7 +360,7 @@ class VanillaEvaluator:
                 }
 
         return EvaluationSummary(
-            setup_name=self._setup.name,  # type: ignore[possibly-missing-attribute]
+            setup_name=setup.name,
             total_queries=total,
             timestamp=datetime.now().isoformat(),
             mean_hit_rate=mean_hr,

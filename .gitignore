@@ -15,11 +15,9 @@ ty_remaining.txt
 # Environment
 .env
 
-# Token usage logs (runtime generated)
+# Token usage logs (runtime generated); keep shipped example for reference
 output/**/token_usage.jsonl
-
-# Old evaluation queries (replaced by evaluation_queries_100.json)
-output/final_dataset_v1/evaluation_queries.json
+!/output/example_dataset/token_usage.jsonl
 
 # JetBrains IDE settings
 .idea/

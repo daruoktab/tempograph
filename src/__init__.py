@@ -11,7 +11,7 @@ Modules:
 - ingestion: Pipeline untuk ingest conversation ke knowledge graph
 - retrieval: Agentic retrieval dengan temporal filtering
 - evaluation: Metrics dan evaluator untuk RAG performance
-- graph_client: Neo4j/Graphiti wrapper
+- graph_client: SurrealDB temporal graph + vector client
 """
 
 __version__ = "0.1.0"

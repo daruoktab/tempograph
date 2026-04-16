@@ -616,13 +616,10 @@ async def context_sufficiency_llm_judge(
         MetricResult with score 0-1 and detailed breakdown
     """
     import json
-    import google.generativeai as _genai_module
-    from ..config.settings import get_config
+    from google import genai
+    from google.genai import types as genai_types
 
-    # Extract needed symbols (not in __all__ but available at runtime)
-    _configure = getattr(_genai_module, "configure")
-    _GenerativeModel = getattr(_genai_module, "GenerativeModel")
-    _GenerationConfig = getattr(_genai_module, "GenerationConfig")
+    from ..config.settings import get_config
 
     if not retrieved_context:
         return MetricResult(
@@ -639,16 +636,12 @@ async def context_sufficiency_llm_judge(
         )
 
     try:
-        # Configure Gemini
         config = get_config()
-        _configure(api_key=config.gemini.api_key)
+        gclient = genai.Client(api_key=config.gemini.api_key)
 
         # Rate limiting for LLM Judge
         rate_limiter = get_rate_limiter()
         await rate_limiter.wait_if_needed(judge_model, estimated_tokens=2000)
-
-        # Use gemini-2.5-pro as the judge
-        model = _GenerativeModel(judge_model)
 
         # Format prompt
         prompt = CONTEXT_SUFFICIENCY_PROMPT.format(
@@ -657,11 +650,11 @@ async def context_sufficiency_llm_judge(
             expected_answer=expected_answer,
         )
 
-        # Generate evaluation
-        response = model.generate_content(
-            prompt,
-            generation_config=_GenerationConfig(
-                temperature=0.1,  # Low temperature for consistent evaluation
+        response = gclient.models.generate_content(
+            model=judge_model,
+            contents=prompt,
+            config=genai_types.GenerateContentConfig(
+                temperature=0.1,
                 response_mime_type="application/json",
             ),
         )
@@ -669,10 +662,9 @@ async def context_sufficiency_llm_judge(
         # Log token usage and record success
         if response.usage_metadata:
             log_token_usage(response.usage_metadata, judge_model)
-            total_tokens = (
-                response.usage_metadata.prompt_token_count
-                + response.usage_metadata.candidates_token_count
-            )
+            pt = response.usage_metadata.prompt_token_count or 0
+            ct = response.usage_metadata.candidates_token_count or 0
+            total_tokens = pt + ct
             rate_limiter.record_success(judge_model, total_tokens)
 
             # Track Cost
@@ -680,18 +672,14 @@ async def context_sufficiency_llm_judge(
                 from ..utils.cost_tracker import get_cost_tracker
 
                 tracker = get_cost_tracker()
-                await tracker.track(
-                    response.usage_metadata.prompt_token_count,
-                    response.usage_metadata.candidates_token_count,
-                    judge_model,
-                )
+                await tracker.track(pt, ct, judge_model)
             except ImportError:
                 pass
         else:
             rate_limiter.record_success(judge_model)
 
         # Parse response
-        result_text = response.text.strip()
+        result_text = (response.text or "").strip()
         # Handle potential markdown code blocks
         if result_text.startswith("```"):
             result_text = result_text.split("```")[1]

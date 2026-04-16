@@ -25,7 +25,7 @@ import re  # noqa: E402
 import warnings  # noqa: E402
 from pathlib import Path  # noqa: E402
 from datetime import datetime  # noqa: E402
-from typing import List, Dict, Any, Optional  # noqa: E402
+from typing import List, Dict, Any, Optional  # noqa: E402  # Any used in session extraction
 from dataclasses import dataclass, asdict  # noqa: E402
 
 # Suppress warnings
@@ -33,7 +33,6 @@ os.environ["TF_CPP_MIN_LOG_LEVEL"] = "3"
 os.environ["TOKENIZERS_PARALLELISM"] = "false"
 warnings.filterwarnings("ignore")
 logging.getLogger("neo4j").setLevel(logging.CRITICAL)
-logging.getLogger("graphiti_core").setLevel(logging.WARNING)
 logging.getLogger("sentence_transformers").setLevel(logging.ERROR)
 logging.getLogger("transformers").setLevel(logging.ERROR)
 
@@ -41,15 +40,13 @@ logging.getLogger("transformers").setLevel(logging.ERROR)
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from tqdm import tqdm  # noqa: E402
-from graphiti_core import Graphiti  # noqa: E402
-
 logging.basicConfig(
     level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s"
 )
 logger = logging.getLogger(__name__)
 
 # Paths
-QUERIES_PATH = Path("output/final_dataset_v1/evaluation_queries_100.json")
+QUERIES_PATH = Path("output/example_dataset/evaluation_queries_100.json")
 OUTPUT_DIR = Path("output/evaluation_results")
 OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
 
@@ -127,64 +124,49 @@ class AgenticEvaluator:
                 logger.warning(f"Failed to load cached agentic results: {e}")
 
         self._graphiti = None
+        self._tc = None
         self._setup = None
         self._group_id = None
         self._queries = None
-        self._neo4j_driver = None  # For session extraction
+        self._neo4j_driver = None  # legacy; Surreal uses _tc
 
     async def _extract_session_ids_from_facts(self, facts: List[str]) -> List[int]:
-        """
-        Extract session IDs from retrieved facts by querying Neo4j.
-        Join fact text -> edge -> episode -> session_id.
-        """
-        if not self._neo4j_driver or not facts:
+        """Map fact strings back to session ids via SurrealDB episode_name."""
+        if not getattr(self, "_tc", None) or not facts:
             return []
-
-        session_ids = []
-
+        db = getattr(self._tc, "_db", None)
+        if db is None:
+            return []
+        session_ids: List[int] = []
+        gid = self._group_id
         try:
-            # Build query to find edges matching the facts and get their episode names
-            # We match on fact text (case-insensitive partial match)
-            for fact in facts[:15]:  # Limit to avoid huge queries
-                # Strip [FACT] and [DETAIL] prefixes from Hybrid results
+            for fact in facts[:15]:
                 clean_fact = fact
                 if clean_fact.startswith("[FACT] "):
-                    clean_fact = clean_fact[7:]  # Remove "[FACT] " (7 chars)
+                    clean_fact = clean_fact[7:]
                 elif clean_fact.startswith("[DETAIL] "):
-                    clean_fact = clean_fact[9:]  # Remove "[DETAIL] " (9 chars)
-
-                # Escape single quotes in fact text
-                fact_escaped = clean_fact.replace("'", "\\'").replace('"', '\\"')[
-                    :200
-                ]  # Truncate for safety
-
-                result = await self._neo4j_driver.execute_query(
-                    f"""
-                    MATCH ()-[r:RELATES_TO {{group_id: '{self._group_id}'}}]->()
-                    WHERE r.fact CONTAINS '{fact_escaped[:50]}'
-                    WITH r.uuid as edge_uuid
-                    MATCH (ep:Episodic {{group_id: '{self._group_id}'}})
-                    WHERE edge_uuid IN ep.entity_edges
-                    RETURN ep.name as episode_name
-                    LIMIT 1
-                    """
+                    clean_fact = clean_fact[9:]
+                needle = clean_fact[:120].replace('"', "")
+                res = await db.query(
+                    "SELECT episode_name FROM extracted_fact WHERE group_id = $gid "
+                    "AND fact_text CONTAINS $needle LIMIT 1",
+                    {"gid": gid, "needle": needle},
                 )
-
-                if result and result.records:
-                    for record in result.records:
-                        episode_name = record.get("episode_name") or (
-                            record[0] if isinstance(record, (list, tuple)) else None
-                        )
-                        if episode_name:
-                            # Parse session_X format
-                            match = re.search(r"session_(\d+)", str(episode_name))
-                            if match:
-                                sess_id = int(match.group(1))
-                                if sess_id not in session_ids:
-                                    session_ids.append(sess_id)
+                rows: List[Any] = []
+                if isinstance(res, list) and res and isinstance(res[0], dict):
+                    r0 = res[0].get("result")
+                    rows = r0 if isinstance(r0, list) else ([r0] if r0 else [])
+                if rows:
+                    r = rows[0]
+                    en = r.get("episode_name") if isinstance(r, dict) else None
+                    if en:
+                        m = re.search(r"session_(\d+)", str(en))
+                        if m:
+                            sid = int(m.group(1))
+                            if sid not in session_ids:
+                                session_ids.append(sid)
         except Exception as e:
-            logger.debug(f"Error extracting session IDs: {e}")
-
+            logger.debug("Error extracting session IDs: %s", e)
         return session_ids
 
     def _calculate_hit_rate(
@@ -268,69 +250,7 @@ class AgenticEvaluator:
         print(f"  Group ID: {self._group_id}")
         print(f"  Embedder: {self._setup.embedder.name}")
 
-        # Neo4jDriverShim to handle vector parameter sanitization (Copied from ingest_agentic.py)
-        from graphiti_core.driver.neo4j_driver import Neo4jDriver
-
-        class Neo4jDriverShim(Neo4jDriver):
-            """Shim to handle vector parameter sanitization and connection retries"""
-
-            async def execute_query(self, cypher_query_, parameters_=None, **kwargs):
-                # Consolidate parameters
-                params_from_kwargs = kwargs.pop("params", {})
-                parameters_from_kwargs = kwargs.pop("parameters_", {})
-                params = (
-                    parameters_ or params_from_kwargs or parameters_from_kwargs or {}
-                )
-
-                # Capture direct kwargs that might be params
-                keys_to_move = list(kwargs.keys())
-                for k in keys_to_move:
-                    params[k] = kwargs.pop(k)
-
-                # Sanitize vectors
-                sanitized_params = params.copy()
-                for k, v in params.items():
-                    # Check for vectors
-                    if "vector" in k or (isinstance(v, list) and len(v) > 100):
-                        # CASE 1: NESTED LIST (flatten)
-                        if (
-                            isinstance(v, list)
-                            and len(v) > 0
-                            and isinstance(v[0], list)
-                        ):
-                            sanitized_params[k] = v[0]
-
-                try:
-                    return await super().execute_query(
-                        cypher_query_, params=sanitized_params, **kwargs
-                    )
-                except Exception as e:
-                    # Retry logic for connection errors
-                    if any(
-                        x in str(e).lower() for x in ["sessionexpired", "connection"]
-                    ):
-                        logger.warning(f"Neo4j connection error, retrying: {e}")
-                        await asyncio.sleep(1)
-                        # Simple retry once
-                        return await super().execute_query(
-                            cypher_query_, params=sanitized_params, **kwargs
-                        )
-                    raise e
-
-        # Create Neo4j driver using Shim
-        driver = Neo4jDriverShim(
-            uri=config.neo4j.uri,
-            user=config.neo4j.user,
-            password=config.neo4j.password,
-            database=config.neo4j.database,
-        )
-        self._neo4j_driver = driver  # Save reference for session extraction
-
-        # Create LLM client
-        from graphiti_core.llm_client.gemini_client import GeminiClient
-        from graphiti_core.llm_client.config import LLMConfig
-
-        from src.utils.cost_tracker import get_cost_tracker
+        self._neo4j_driver = None
 
         # NovitaLLMClient for RetrievalAgent sufficiency check (Gemma only)
         self._novita_llm_client = None
@@ -398,127 +318,33 @@ class AgenticEvaluator:
             )
             print("  Sufficiency LLM: google/gemma-3-27b-it (Novita direct)")
 
-        # Standard GeminiClient for Graphiti (always, for both Gemma and Gemini)
-        model_name = "gemini-2.5-flash"
-
-        class TrackingGeminiClient(GeminiClient):
-            async def generate_response(self, messages, response_model=None, **kwargs):  # type: ignore[invalid-method-override]
-                response = await super().generate_response(
-                    messages, response_model, **kwargs
-                )
-                try:
-                    tracker = get_cost_tracker()
-                    model_name_str = self.config.model or "unknown"
-                    usage = getattr(response, "usage_metadata", None)
-                    if usage is not None:
-                        await tracker.track(
-                            getattr(usage, "prompt_token_count", 0),
-                            getattr(usage, "candidates_token_count", 0),
-                            model_name_str,
-                        )
-                    else:
-                        await tracker.track(
-                            int(len(str(messages)) / 4),
-                            int(len(str(response)) / 4),
-                            model_name_str,
-                        )
-                except Exception:
-                    pass
-                return response
-
-        llm_config = LLMConfig(api_key=config.gemini.api_key, model=model_name)
-        llm_client = TrackingGeminiClient(config=llm_config)
-        print(f"  Using LLM for Graphiti: {model_name}")
-
-        # Create embedder - SAME as ingestion!
-        if self._setup.embedder.provider == "huggingface":
-            from graphiti_core.embedder.client import EmbedderClient
-            from sentence_transformers import SentenceTransformer
-
-            class SentenceTransformerEmbedderShim(EmbedderClient):
-                """Same shim as ingest_agentic.py"""
-
-                def __init__(self, model_name: str):
-                    self.model = SentenceTransformer(model_name, trust_remote_code=True)
-
-                async def create(self, input_data) -> Any:
-                    import asyncio
-                    import functools
-
-                    loop = asyncio.get_running_loop()
-                    is_single_string = isinstance(input_data, str)
-
-                    encoder: Any = self.model.encode
-                    if is_single_string:
-                        func = functools.partial(encoder, input_data)
-                    else:
-                        func = functools.partial(
-                            encoder,
-                            list(input_data),
-                            batch_size=32,
-                            show_progress_bar=False,
-                        )
-
-                    embeddings = await loop.run_in_executor(None, func)
-                    return embeddings.tolist()
-
-                async def create_batch(self, input_data) -> Any:  # type: ignore[invalid-method-override]
-                    return await self.create(input_data)
-
-            embedder = SentenceTransformerEmbedderShim(
-                model_name=self._setup.embedder.name
-            )
-            print(f"  Using LOCAL embedder: {self._setup.embedder.name}")
-        else:
-            # Gemini embedder with cost tracking
-            from graphiti_core.embedder.gemini import (
-                GeminiEmbedder,
-                GeminiEmbedderConfig,
-            )
-
-            # Tracking wrapper for embedder (same as ingest_agentic.py)
-            class TrackingGeminiEmbedder(GeminiEmbedder):
-                async def create(self, input_data):
-                    result = await super().create(input_data)
-
-                    # Track cost
-                    try:
-                        if isinstance(input_data, str):
-                            total_chars = len(input_data)
-                        else:
-                            total_chars = sum(len(str(s)) for s in input_data)
-
-                        # Estimate tokens (4 chars per token)
-                        input_tokens = total_chars // 4
-
-                        from src.utils.cost_tracker import get_cost_tracker
-
-                        tracker = get_cost_tracker()
-                        await tracker.track(
-                            input_tokens, 0, config.gemini.embedding_model
-                        )
-                    except Exception as e:
-                        logger.debug(f"Embedding cost tracking failed: {e}")
-
-                    return result
-
-            embed_config = GeminiEmbedderConfig(
-                api_key=config.gemini.api_key,
-                embedding_model=config.gemini.embedding_model,
-            )
-            embedder = TrackingGeminiEmbedder(config=embed_config)
-            print("  Using Gemini API embedder (with cost tracking)")
-
-        # Create Graphiti instance
-        self._graphiti = Graphiti(
-            graph_driver=driver, llm_client=llm_client, embedder=embedder
+        model_name = (
+            self._setup.llm_extraction.name
+            if self._setup and self._setup.llm_extraction
+            else "gemini-2.5-flash"
         )
+        llm_client = type(
+            "SuffGeminiCfg",
+            (),
+            {
+                "config": type(
+                    "C",
+                    (),
+                    {
+                        "model": model_name,
+                        "api_key": config.gemini.api_key,
+                        "base_url": None,
+                    },
+                )()
+            },
+        )()
+        print(f"  Sufficiency LLM (direct GenAI): {model_name}")
 
-        # Load queries
-        with open(QUERIES_PATH) as f:
-            data = json.load(f)
-        self._queries = data["queries"]
-        print(f"  Loaded {len(self._queries)} queries")
+        from src.rag.graph_client import TemporalGraphClient
+
+        self._tc = TemporalGraphClient(setup=self._setup)
+        await self._tc.initialize()
+        self._graphiti = self._tc
 
         # Initialize RetrievalAgent for non-hybrid setups (true agentic loop)
         if self.setup_name in ("gemini", "gemma"):
@@ -681,7 +507,7 @@ class AgenticEvaluator:
 
             # 3. Create Hybrid Retriever
             self._hybrid_retriever = HybridRetriever(
-                graph_client=self._graph_wrapper,  # type: ignore[invalid-argument-type]
+                graph_client=self._graph_wrapper,
                 vanilla_retriever=vanilla_retriever,
                 setup=HYBRID_SETUP,
             )
@@ -851,7 +677,6 @@ class AgenticEvaluator:
                         f"[DEBUG] Agent used {agent_result.iterations} iterations for: {query[:30]}..."
                     )
             else:
-                # Fallback to direct Graphiti search
                 assert self._graphiti is not None
                 assert self._group_id is not None
                 search_results = await self._graphiti.search(
@@ -860,7 +685,7 @@ class AgenticEvaluator:
                 retrieved_facts = (
                     [r.fact for r in search_results] if search_results else []
                 )
-                retrieval_metadata = {"source": "graphiti_direct"}
+                retrieval_metadata = {"source": "surreal_direct"}
 
         elapsed_ms = (time.time() - start_time) * 1000
 
@@ -956,9 +781,10 @@ class AgenticEvaluator:
 
     async def close(self):
         """Cleanup"""
-        if self._graphiti and hasattr(self._graphiti, "graph_driver"):
+        tc = getattr(self, "_tc", None)
+        if tc is not None:
             try:
-                await self._graphiti.graph_driver.close()  # type: ignore[union-attr]
+                await tc.close()
             except Exception:
                 pass
 
@@ -983,7 +809,7 @@ async def main():
     parser.add_argument(
         "--batch",
         action="store_true",
-        help="Use Batch API for 50% cost reduction (async, results within 24h)",
+        help="Use Batch API for 50%% cost reduction (async, results within 24h)",
     )
     parser.add_argument(
         "--reuse-agentic-from",

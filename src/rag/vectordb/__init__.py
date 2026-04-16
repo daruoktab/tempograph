@@ -1,20 +1,23 @@
-# src/vectordb/__init__.py
+# src/rag/vectordb/__init__.py
 """
-Vector Database Module
-======================
-ChromaDB untuk Vanilla RAG (pure vector similarity search).
+Vector store for Vanilla RAG (SurrealDB MTREE cosine; legacy name chroma kept as alias).
 """
 
-from .chroma_client import (
-    ChromaVectorDB,
+from ..surreal.vanilla_store import (
+    SurrealVanillaVectorDB,
     VanillaDocument,
     VanillaSearchResult,
-    get_chroma_client,
+    get_surreal_vanilla_client,
 )
+
+ChromaVectorDB = SurrealVanillaVectorDB
+get_chroma_client = get_surreal_vanilla_client
 
 __all__ = [
     "ChromaVectorDB",
+    "SurrealVanillaVectorDB",
     "VanillaDocument",
     "VanillaSearchResult",
     "get_chroma_client",
+    "get_surreal_vanilla_client",
 ]

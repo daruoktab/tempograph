@@ -1,11 +1,12 @@
 # src/embedders/gemini_embedder.py
 """
-Gemini Embedding Model Wrapper (Simple - no graphiti dependency)
-Uses google.generativeai directly for Vanilla RAG.
+Gemini Embedding Model Wrapper (google-genai SDK).
 """
 
-from typing import Any, List
+from typing import List
 import logging
+
+from google import genai
 
 from .base import BaseEmbedder, EmbedderType
 
@@ -14,69 +15,66 @@ logger = logging.getLogger(__name__)
 
 class GeminiEmbedderWrapper(BaseEmbedder):
     """
-    Simple wrapper untuk Google Gemini Embedding API.
-    Menggunakan google.generativeai langsung (tanpa graphiti).
+    Wrapper untuk Google Gemini Embedding API (``google.genai``).
     """
 
-    # Model options dengan dimensi
     MODELS = {"models/gemini-embedding-001": 768, "gemini-embedding-001": 768}
 
-    # Pricing per 1M tokens (Paid Tier, Dec 2024)
-    # Standard: $0.15, Batch: $0.075
     EMBEDDING_PRICE_PER_1M = 0.15
 
     def __init__(self, api_key: str, model_name: str = "models/gemini-embedding-001"):
         super().__init__(model_name=model_name, model_type=EmbedderType.GEMINI)
         self.api_key = api_key
-        self._genai: Any = None
+        self._client: genai.Client | None = None
         self._cost_tracker = None
 
-        # Set dimension from known models
         if model_name in self.MODELS:
             self._dimension = self.MODELS[model_name]
 
     async def initialize(self):
         """Initialize Gemini embedder"""
-        import google.generativeai as genai
+        self._client = genai.Client(api_key=self.api_key)
 
-        _configure = getattr(genai, "configure")
-        _configure(api_key=self.api_key)
-        self._genai = genai
-
-        # Try to get cost tracker (optional)
         try:
             from ..utils.cost_tracker import CostTracker
 
             self._cost_tracker = CostTracker.get_instance()
         except Exception:
-            pass  # Cost tracking not available
+            pass
 
-        # Verify dimension with test embedding if not known
         if self._dimension is None:
-            _embed_content = getattr(genai, "embed_content")
-            result = _embed_content(model=self.model_name, content="test")
-            self._dimension = len(result["embedding"])
+            resp = self._client.models.embed_content(
+                model=self.model_name,
+                contents="test",
+            )
+            em = (resp.embeddings or [None])[0]
+            self._dimension = len(em.values) if em and em.values else 0
 
         logger.info(
-            f"Gemini embedder initialized: {self.model_name} (dim={self._dimension})"
+            "Gemini embedder initialized: %s (dim=%s)",
+            self.model_name,
+            self._dimension,
         )
 
     async def _embed_impl(self, texts: List[str]) -> List[List[float]]:
         """Embed texts using Gemini API"""
-        if self._genai is None:
+        if self._client is None:
             raise RuntimeError("Embedder not initialized")
 
-        embeddings = []
+        embeddings: List[List[float]] = []
         total_tokens = 0
 
         for text in texts:
-            result = self._genai.embed_content(model=self.model_name, content=text)
-            embeddings.append(result["embedding"])
-
-            # Estimate token count (rough: 4 chars per token)
+            result = self._client.models.embed_content(
+                model=self.model_name,
+                contents=text,
+            )
+            emb = (result.embeddings or [None])[0]
+            if not emb or not emb.values:
+                raise RuntimeError("Empty embedding from Gemini API")
+            embeddings.append(list(emb.values))
             total_tokens += len(text) // 4
 
-        # Track cost if tracker available
         if self._cost_tracker and total_tokens > 0:
             await self._cost_tracker.track(
                 input_tokens=total_tokens, output_tokens=0, model_name=self.model_name
@@ -85,5 +83,5 @@ class GeminiEmbedderWrapper(BaseEmbedder):
         return embeddings
 
     async def close(self):
-        """Cleanup (Gemini doesn't need explicit cleanup)"""
-        self._genai = None
+        """Cleanup"""
+        self._client = None

@@ -94,19 +94,16 @@ class RateLimitConfig:
 
 
 @dataclass
-class Neo4jConfig:
-    """Neo4j database configuration"""
+class SurrealDBConfig:
+    """SurrealDB connection (graph + vectors)."""
 
-    uri: str = field(
-        default_factory=lambda: os.getenv("NEO4J_URI", "bolt://localhost:7687")
+    url: str = field(
+        default_factory=lambda: os.getenv("SURREAL_URL", "ws://127.0.0.1:8000")
     )
-    user: str = field(default_factory=lambda: os.getenv("NEO4J_USER", "neo4j"))
-    password: str = field(default_factory=lambda: os.getenv("NEO4J_PASSWORD", ""))
-    database: str = field(default_factory=lambda: os.getenv("NEO4J_DATABASE", "neo4j"))
-
-    def __post_init__(self):
-        if not self.password:
-            raise ValueError("NEO4J_PASSWORD environment variable is required")
+    username: str = field(default_factory=lambda: os.getenv("SURREAL_USER", "root"))
+    password: str = field(default_factory=lambda: os.getenv("SURREAL_PASS", "root"))
+    namespace: str = field(default_factory=lambda: os.getenv("SURREAL_NS", "skripsi"))
+    database: str = field(default_factory=lambda: os.getenv("SURREAL_DB", "pending"))
 
 
 @dataclass
@@ -120,8 +117,8 @@ class GeminiConfig:
     model_medium: str = "gemini-2.5-flash"  # Medium tasks: extraction, classification
     model_easy: str = "gemini-2.5-flash-lite"  # Simple tasks: reranking, parsing
 
-    # Gemma 3 models (via Gemini API using google.genai)
-    gemma_model: str = "gemma-3-27b-it"  # Gemma 3 27B Instruct
+    # Legacy field name: Gemma **chat** in this repo uses Novita (see NovitaConfig), not Gemini API.
+    gemma_model: str = "gemma-3-27b-it"  # Gemma 3 27B Instruct (logical id)
 
     # Embedding model
     embedding_model: str = "models/gemini-embedding-001"
@@ -271,7 +268,7 @@ class EvaluationConfig:
 class Config:
     """Main configuration class combining all configs"""
 
-    neo4j: Neo4jConfig = field(default_factory=Neo4jConfig)
+    surreal: SurrealDBConfig = field(default_factory=SurrealDBConfig)
     gemini: GeminiConfig = field(default_factory=GeminiConfig)
     openrouter: OpenRouterConfig = field(default_factory=OpenRouterConfig)
     novita: NovitaConfig = field(default_factory=NovitaConfig)
@@ -285,7 +282,7 @@ class Config:
     rate_limit: RateLimitConfig = field(default_factory=RateLimitConfig)
 
     # Paths
-    dataset_path: str = "output/final_dataset_v1/conversation_dataset.json"
+    dataset_path: str = "output/example_dataset/conversation_dataset.json"
     output_dir: str = "output/evaluation_results"
 
     @classmethod
@@ -317,8 +314,8 @@ if __name__ == "__main__":
     try:
         config = get_config()
         print("Configuration loaded successfully!")
-        print(f"  Neo4j URI: {config.neo4j.uri}")
-        print(f"  Neo4j Database: {config.neo4j.database}")
+        print(f"  SurrealDB URL: {config.surreal.url}")
+        print(f"  SurrealDB NS/DB: {config.surreal.namespace}/{config.surreal.database}")
         print(f"  Gemini Model (Hard): {config.gemini.model_hard}")
         print(f"  Embedding Model: {config.gemini.embedding_model}")
         print(f"  Dataset Path: {config.dataset_path}")
