@@ -7,12 +7,15 @@ used from lightweight tooling (e.g. ``scripts/test_surreal_connection.py``) with
 
 from __future__ import annotations
 
-import typing as _t
+from typing import TYPE_CHECKING, Any
+
+if TYPE_CHECKING:
+    from .graph_client import TemporalGraphClient, SearchResult
 
 __all__ = ["TemporalGraphClient", "SearchResult"]
 
 
-def __getattr__(name: str) -> _t.Any:
+def __getattr__(name: str) -> Any:
     if name == "TemporalGraphClient":
         from .graph_client import TemporalGraphClient
 

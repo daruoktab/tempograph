@@ -22,25 +22,27 @@ from src.utils import (
 from google.genai import types as genai_types
 
 
-def _gemini_safety_none():
-    return [
-        genai_types.SafetySetting(
-            category=genai_types.HarmCategory.HARM_CATEGORY_HATE_SPEECH,
-            threshold=genai_types.HarmBlockThreshold.BLOCK_NONE,
-        ),
-        genai_types.SafetySetting(
-            category=genai_types.HarmCategory.HARM_CATEGORY_HARASSMENT,
-            threshold=genai_types.HarmBlockThreshold.BLOCK_NONE,
-        ),
-        genai_types.SafetySetting(
-            category=genai_types.HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT,
-            threshold=genai_types.HarmBlockThreshold.BLOCK_NONE,
-        ),
-        genai_types.SafetySetting(
-            category=genai_types.HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT,
-            threshold=genai_types.HarmBlockThreshold.BLOCK_NONE,
-        ),
+def _gemini_safety_none() -> list[genai_types.SafetySetting]:
+    """Disable Gemini safety blocking for dataset generation (via ``model_validate``)."""
+    pairs: list[dict[str, Any]] = [
+        {
+            "category": genai_types.HarmCategory.HARM_CATEGORY_HATE_SPEECH,
+            "threshold": genai_types.HarmBlockThreshold.BLOCK_NONE,
+        },
+        {
+            "category": genai_types.HarmCategory.HARM_CATEGORY_HARASSMENT,
+            "threshold": genai_types.HarmBlockThreshold.BLOCK_NONE,
+        },
+        {
+            "category": genai_types.HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT,
+            "threshold": genai_types.HarmBlockThreshold.BLOCK_NONE,
+        },
+        {
+            "category": genai_types.HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT,
+            "threshold": genai_types.HarmBlockThreshold.BLOCK_NONE,
+        },
     ]
+    return [genai_types.SafetySetting.model_validate(d) for d in pairs]
 
 # --- Configuration ---
 logging.basicConfig(
