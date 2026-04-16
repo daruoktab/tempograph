@@ -104,7 +104,7 @@ def main() -> int:
         str(_REPO_ROOT / "scripts" / "test_surreal_connection.py"),
     ]
 
-    proc: subprocess.Popen[str] | None = None
+    proc: subprocess.Popen[bytes] | None = None
     if not args.no_start:
         if not surreal_bin:
             print(

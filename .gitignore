@@ -4,6 +4,7 @@ __pycache__/
 
 # Local-only: agent skills (Cursor / tooling) — do not push
 .agents/
+skills-lock.json
 
 # Local-only: repo / branding name notes (not for remote)
 REPO_NAMING.local.md
