@@ -2,6 +2,12 @@
 __pycache__/
 *.pyc
 
+# Local-only: agent skills (Cursor / tooling) — do not push
+.agents/
+
+# Local-only: repo / branding name notes (not for remote)
+REPO_NAMING.local.md
+
 # Environment
 .env
 
