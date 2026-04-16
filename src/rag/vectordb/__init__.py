@@ -1,7 +1,5 @@
 # src/rag/vectordb/__init__.py
-"""
-Vector store for Vanilla RAG (SurrealDB MTREE cosine; legacy name chroma kept as alias).
-"""
+"""Public entry for dense session retrieval (implementation: ``surreal.vanilla_store``)."""
 
 from ..surreal.vanilla_store import (
     SESSION_PASSAGE_TABLE,
@@ -11,15 +9,10 @@ from ..surreal.vanilla_store import (
     get_surreal_vanilla_client,
 )
 
-ChromaVectorDB = SurrealVanillaVectorDB
-get_chroma_client = get_surreal_vanilla_client
-
 __all__ = [
-    "ChromaVectorDB",
     "SESSION_PASSAGE_TABLE",
     "SurrealVanillaVectorDB",
     "VanillaDocument",
     "VanillaSearchResult",
-    "get_chroma_client",
     "get_surreal_vanilla_client",
 ]

@@ -18,6 +18,7 @@ Usage:
     python scripts/evaluate_vanilla.py --setup gemma
     python scripts/evaluate_vanilla.py --setup all
     python scripts/evaluate_vanilla.py --setup gemini --no-llm-judge  # Skip LLM judge
+    python scripts/evaluate_vanilla.py --setup gemini --limit 10 --no-llm-judge  # First 10 queries (= sesi 1–10)
 """
 
 import asyncio
@@ -136,7 +137,7 @@ class VanillaEvaluator:
             SETUP_2V_VANILLA_GEMMA,
             RetrievalSettings,
         )
-        from src.rag.vectordb import get_chroma_client
+        from src.rag.vectordb import get_surreal_vanilla_client
         from src.embedders import create_embedder, EmbedderType
         from src.config.settings import get_config
 
@@ -153,9 +154,8 @@ class VanillaEvaluator:
             # Create custom retriever with modified settings
             config = get_config()
 
-            # Get ChromaDB client
             assert self._setup.storage.collection_name is not None
-            chroma_db = get_chroma_client(
+            passage_store = get_surreal_vanilla_client(
                 collection_name=self._setup.storage.collection_name,
                 persist_directory=self._setup.storage.persist_directory,
             )
@@ -167,14 +167,14 @@ class VanillaEvaluator:
                 gemini_api_key=config.gemini.api_key,
             )
             await embedder.initialize()
-            await chroma_db.initialize(embedder=embedder)
+            await passage_store.initialize(embedder=embedder)
 
             # Create retriever with direct retrieval settings (no rerank)
             direct_settings = RetrievalSettings(
                 embedding_top_k=10, rerank_top_k=10, similarity_threshold=0.0
             )
             self._retriever = VanillaRetriever(
-                chroma_db, settings=direct_settings, setup=self._setup
+                passage_store, settings=direct_settings, setup=self._setup
             )
             await self._retriever.initialize(embedder=embedder)
         else:
@@ -212,10 +212,13 @@ class VanillaEvaluator:
                 return 1.0 / (i + 1)
         return 0.0
 
-    async def evaluate(self) -> Dict[str, Any]:
-        """Run evaluation on all queries"""
+    async def evaluate(self, limit: Optional[int] = None) -> Dict[str, Any]:
+        """Run evaluation on all queries (or first ``limit`` queries)."""
         _, retriever = self._eval_ctx()
         queries = self._load_queries()
+        if limit is not None:
+            queries = queries[:limit]
+            logger.info(f"Using first {len(queries)} queries (--limit {limit})")
         logger.info(f"Loaded {len(queries)} queries")
 
         results: List[QueryResult] = []
@@ -377,6 +380,7 @@ async def evaluate_setup(
     with_llm_judge: bool = True,
     judge_model: str = "gemini-2.5-pro",
     with_rerank: bool = True,
+    limit: Optional[int] = None,
 ) -> Dict[str, Any]:
     """Evaluate a single setup"""
     evaluator = VanillaEvaluator(
@@ -386,7 +390,7 @@ async def evaluate_setup(
         with_rerank=with_rerank,
     )
     await evaluator.initialize()
-    return await evaluator.evaluate()
+    return await evaluator.evaluate(limit=limit)
 
 
 async def main():
@@ -412,6 +416,13 @@ async def main():
         action="store_true",
         help="Skip reranking for Gemini (use direct top-10 like Gemma)",
     )
+    parser.add_argument(
+        "--limit",
+        type=int,
+        default=None,
+        metavar="N",
+        help="Only first N queries from evaluation_queries_100.json (e.g. 10 = q001–q010, matches 10 sesi dataset contoh)",
+    )
 
     args = parser.parse_args()
     with_llm_judge = not args.no_llm_judge
@@ -424,6 +435,8 @@ async def main():
         f"LLM Judge: {'Enabled (' + args.judge_model + ')' if with_llm_judge else 'Disabled'}"
     )
     print(f"Reranking: {'Enabled' if with_rerank else 'Disabled (Gemini only)'}")
+    lim = args.limit
+    print(f"Query limit: {lim if lim is not None else 'all (100)'}")
     print()
 
     results = {}
@@ -431,7 +444,7 @@ async def main():
     if args.setup in ["gemini", "all"]:
         print("\n--- Evaluating Setup 1V: Vanilla Gemini ---")
         results["vanilla_gemini"] = await evaluate_setup(
-            "gemini", with_llm_judge, args.judge_model, with_rerank
+            "gemini", with_llm_judge, args.judge_model, with_rerank, limit=lim
         )
 
         # Save individual result - add suffix if no rerank
@@ -444,7 +457,7 @@ async def main():
     if args.setup in ["gemma", "all"]:
         print("\n--- Evaluating Setup 2V: Vanilla Gemma ---")
         results["vanilla_gemma"] = await evaluate_setup(
-            "gemma", with_llm_judge, args.judge_model, with_rerank
+            "gemma", with_llm_judge, args.judge_model, with_rerank, limit=lim
         )
 
         # Save individual result

@@ -12,7 +12,7 @@ from typing import List, Dict, Any, Optional, Tuple
 from dataclasses import dataclass, field
 from enum import Enum
 
-from ..graph_client import TemporalGraphClient, SearchResult
+from ..surreal.fact_graph import SearchResult, TemporalGraphClient
 from ...config.settings import get_config, RetrievalConfig
 
 logger = logging.getLogger(__name__)
@@ -73,7 +73,7 @@ class RetrievalAgent:
     - Multi-hop reasoning
 
     Args:
-        graph_client: Client untuk search ke knowledge graph
+        graph_client: Surreal fact-graph client (vector + entity traversal)
         config: Konfigurasi retrieval (min/max facts, iterations)
         llm_client: Optional LLM client untuk sufficiency evaluation
     """
@@ -237,11 +237,21 @@ class RetrievalAgent:
     ) -> List[SearchResult]:
         """
         Expand search by following entity relationships.
-        Used for multi-hop reasoning.
+        Uses graph ``entity`` → ``fact_involves`` → ``extracted_fact`` when available
+        (TemporalGraphClient), with legacy fallback on ``entity_names`` arrays.
         """
-        additional_results = []
+        additional_results: List[SearchResult] = []
+        seen_e: set[str] = set()
+        ordered: List[str] = []
+        for entity in list(plan.entities_to_find) + list(state.entities_found):
+            if not entity or entity in seen_e:
+                continue
+            seen_e.add(entity)
+            ordered.append(entity)
+            if len(ordered) >= 5:
+                break
 
-        for entity in state.entities_found[:3]:  # Limit expansion
+        for entity in ordered:
             entity_facts = await self.client.get_entity_facts(entity)
             additional_results.extend(entity_facts)
 
@@ -256,7 +266,7 @@ class RetrievalAgent:
     ) -> Tuple[bool, str]:
         """
         Ask LLM if the retrieved facts are sufficient to answer the query.
-        Uses direct API call (bypassing Graphiti) for Gemma compatibility.
+        Uses direct API call (bypassing any graph SDK wrapper) for Gemma compatibility.
 
         Returns:
             (is_sufficient, missing_info_hint)
@@ -310,7 +320,7 @@ INFO_KURANG: [jika TIDAK, sebutkan informasi apa yang masih kurang]"""
     async def _call_llm_direct(self, prompt: str) -> str:
         """
         Direct LLM call that works with both Gemini and Gemma.
-        Bypasses Graphiti's client to avoid Developer Instruction issues.
+        Calls the provider API directly to avoid SDK instruction quirks.
         """
         # Check if llm_client has config with model info
         client_cfg = getattr(self.llm_client, "config", None)
@@ -333,7 +343,7 @@ INFO_KURANG: [jika TIDAK, sebutkan informasi apa yang masih kurang]"""
                 raw = response.choices[0].message.content
                 return raw if raw is not None else ""
 
-            # Gemini: call Google Generative AI directly (no Graphiti)
+            # Gemini: Google GenAI SDK directly
             elif "gemini" in model.lower():
                 from google import genai
                 from google.genai import types as genai_types
@@ -434,6 +444,9 @@ INFO_KURANG: [jika TIDAK, sebutkan informasi apa yang masih kurang]"""
         # Step 3: Iterative execution
         state = RetrievalState()
         missing_info_hint = ""
+        for e in plan.entities_to_find:
+            if e and e not in state.entities_found:
+                state.entities_found.append(e)
 
         while state.iteration < self.MAX_ITERATIONS:
             state.iteration += 1
@@ -466,10 +479,10 @@ INFO_KURANG: [jika TIDAK, sebutkan informasi apa yang masih kurang]"""
                         if r.entity_name and r.entity_name not in state.entities_found:
                             state.entities_found.append(r.entity_name)
 
-            # Multi-hop expansion if needed and not at max facts
+            # Graph expansion: multi-hop plans, or any query with heuristic entity candidates
             if (
-                plan.requires_multi_hop
-                and state.entities_found
+                (plan.requires_multi_hop or bool(plan.entities_to_find))
+                and (state.entities_found or plan.entities_to_find)
                 and len(state.retrieved_facts) < self.MAX_FACTS
             ):
                 expansion = await self.expand_search(state, plan)

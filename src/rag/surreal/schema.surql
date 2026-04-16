@@ -21,7 +21,7 @@ DEFINE FIELD IF NOT EXISTS source_description ON extracted_fact TYPE option<stri
 DEFINE INDEX IF NOT EXISTS idx_fact_group ON extracted_fact FIELDS group_id;
 DEFINE INDEX IF NOT EXISTS idx_fact_embed ON extracted_fact FIELDS embedding MTREE DIMENSION 768 DIST COSINE;
 
--- Optional entity nodes (lightweight)
+-- Entity nodes (canonical names per group); facts link via ``fact_involves`` for graph retrieval.
 DEFINE TABLE IF NOT EXISTS entity SCHEMAFULL;
 DEFINE FIELD IF NOT EXISTS group_id ON entity TYPE string;
 DEFINE FIELD IF NOT EXISTS name ON entity TYPE string;

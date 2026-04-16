@@ -32,7 +32,7 @@ def _load_dotenv() -> None:
 
 
 async def _run(group_id: str) -> int:
-    from src.rag.graph_client import TemporalGraphClient
+    from src.rag.surreal.fact_graph import TemporalGraphClient
 
     client = TemporalGraphClient(group_id=group_id)
     try:

@@ -3,7 +3,7 @@ from typing import List, Dict, Any, Protocol
 from dataclasses import dataclass
 
 from ...config.experiment_setups import ExperimentSetup
-from ..graph_client import SearchResult
+from ..surreal.fact_graph import SearchResult
 from .vanilla_retriever import VanillaRetriever
 
 logger = logging.getLogger(__name__)

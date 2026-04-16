@@ -1,4 +1,4 @@
-# src/ingestion/episode_ingester.py
+# src/rag/ingestion/episode_ingester.py
 """
 Episode Ingester
 ================
@@ -14,7 +14,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from tqdm import tqdm
 
-from ..graph_client import TemporalGraphClient
+from ..surreal.fact_graph import TemporalGraphClient
 from ...config.settings import get_config, IngestionConfig
 
 logger = logging.getLogger(__name__)
@@ -195,7 +195,7 @@ class EpisodeIngester:
         limit_sessions: Optional[int] = None,
         limit_turns: Optional[int] = None,
         show_progress: bool = True,
-    ) -> Dict[str, int]:
+    ) -> Dict[str, int | str]:
         """
         Ingest entire dataset to knowledge graph.
 
@@ -206,7 +206,7 @@ class EpisodeIngester:
             show_progress: Whether to show progress
 
         Returns:
-            Statistics dict with ingested/error counts
+            Counts (``sessions_processed``, ``turns_ingested``, ``errors``) plus ``group_id`` (str).
         """
         # Load and parse dataset
         data = self.load_dataset(dataset_path)
@@ -244,7 +244,7 @@ class EpisodeIngester:
         }
 
         logger.info(f"Ingestion complete: {stats}")
-        return stats  # type: ignore[invalid-return-type]
+        return stats
 
     def get_stats(self) -> Dict[str, int]:
         """Get current ingestion statistics"""
@@ -256,7 +256,7 @@ async def run_ingestion(
     group_id: Optional[str] = None,
     limit_sessions: Optional[int] = None,
     limit_turns: Optional[int] = None,
-) -> Dict[str, int]:
+) -> Dict[str, int | str]:
     """
     Convenience function to run ingestion.
 
@@ -267,7 +267,7 @@ async def run_ingestion(
         limit_turns: Limit total turns
 
     Returns:
-        Ingestion statistics
+        Same as ``ingest_dataset``, plus ``graph_*`` integer counts from ``TemporalGraphClient.get_stats``.
     """
     client = TemporalGraphClient(group_id=group_id)
 

@@ -102,7 +102,7 @@ def _gemini_sufficiency_llm_stub(model_name: str, api_key: str):
 
 
 async def _count_facts(tc) -> int:
-    from src.rag.graph_client import _flatten_query  # noqa: PLC0415
+    from src.rag.surreal.fact_graph import _flatten_query  # noqa: PLC0415
 
     if tc._db is None:
         return 0
@@ -118,7 +118,7 @@ async def _count_facts(tc) -> int:
 
 async def _count_all_facts(tc) -> int:
     """Total extracted_fact rows (semua group) — untuk debug."""
-    from src.rag.graph_client import _flatten_query  # noqa: PLC0415
+    from src.rag.surreal.fact_graph import _flatten_query  # noqa: PLC0415
 
     if tc._db is None:
         return 0
@@ -130,15 +130,15 @@ async def _count_all_facts(tc) -> int:
 
 
 def _make_graph_adapter(tc, group_id: str):
-    from src.rag.graph_client import SearchResult
+    from src.rag.surreal.fact_graph import SearchResult
 
-    class GraphitiClientAdapter:
-        def __init__(self, graphiti, gid: str):
-            self.graphiti = graphiti
+    class SurrealFactGraphAdapter:
+        def __init__(self, fact_graph, gid: str):
+            self.fact_graph = fact_graph
             self.group_id = gid
 
         async def search(self, query: str, num_results: int = 10):
-            results = await self.graphiti.search(
+            results = await self.fact_graph.search(
                 query=query, group_ids=[self.group_id], num_results=num_results
             )
             if not results:
@@ -162,7 +162,7 @@ def _make_graph_adapter(tc, group_id: str):
         async def get_entity_facts(self, entity_name: str):
             return await self.search(entity_name, num_results=5)
 
-    return GraphitiClientAdapter(tc, group_id)
+    return SurrealFactGraphAdapter(tc, group_id)
 
 
 class _AgentGraphWrapper:
@@ -260,7 +260,7 @@ async def main() -> int:
         SETUP_1H_HYBRID_GEMINI,
         SETUP_1V_VANILLA_GEMINI,
     )
-    from src.rag.graph_client import TemporalGraphClient
+    from src.rag.surreal.fact_graph import TemporalGraphClient
     from src.rag.retrieval.hybrid_retriever import HybridRetriever
     from src.rag.retrieval.vanilla_retriever import create_vanilla_retriever
 

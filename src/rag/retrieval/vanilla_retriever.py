@@ -1,4 +1,4 @@
-# src/retrieval/vanilla_retriever.py
+# src/rag/retrieval/vanilla_retriever.py
 """
 Vanilla Retriever
 =================
@@ -19,7 +19,7 @@ import asyncio
 from typing import List, Dict, Any, Optional
 from dataclasses import dataclass, field
 
-from ..vectordb import ChromaVectorDB, VanillaSearchResult
+from ..vectordb import SurrealVanillaVectorDB, VanillaSearchResult
 from ...config.experiment_setups import ExperimentSetup, RetrievalSettings
 
 logger = logging.getLogger(__name__)
@@ -46,7 +46,7 @@ class VanillaRetriever:
 
     Flow:
     1. Embed query
-    2. Vector search in ChromaDB (top-K candidates)
+    2. Vector search in ``session_passage`` (top-K candidates)
     3. Rerank (filter to final top-K)
     4. Return results
 
@@ -55,7 +55,7 @@ class VanillaRetriever:
 
     def __init__(
         self,
-        chroma_db: ChromaVectorDB,
+        passage_store: SurrealVanillaVectorDB,
         settings: Optional[RetrievalSettings] = None,
         setup: Optional[ExperimentSetup] = None,
     ):
@@ -63,11 +63,11 @@ class VanillaRetriever:
         Initialize Vanilla Retriever.
 
         Args:
-            chroma_db: Vector store client (SurrealVanillaVectorDB; param name legacy)
+            passage_store: Dense session vector store (SurrealDB ``session_passage``).
             settings: Retrieval settings (top-k, threshold)
             setup: Experiment setup for model configuration
         """
-        self.db = chroma_db
+        self.db = passage_store
         self.setup = setup
 
         # Use settings from setup or provided settings or defaults
@@ -118,7 +118,7 @@ class VanillaRetriever:
         if self._embedder:
             query_embedding = await self._embedder.embed_single(query)
         else:
-            # Use ChromaDB's internal embedder (if configured)
+            # Use passage store embedder (if configured)
             query_embedding = None
 
         # Step 2: Vector search (get candidates)
@@ -159,7 +159,7 @@ class VanillaRetriever:
                         )
                     )
         else:
-            # Already sorted by similarity from ChromaDB
+            # Already sorted by similarity from vector search
             final_results = candidates[: self.settings.rerank_top_k]
 
         logger.debug(f"Final results: {len(final_results)} documents")
@@ -228,15 +228,14 @@ async def create_vanilla_retriever(setup: ExperimentSetup) -> VanillaRetriever:
     Returns:
         Initialized VanillaRetriever
     """
-    from ..vectordb import get_chroma_client
+    from ..vectordb import get_surreal_vanilla_client
     from ...embedders import create_embedder, EmbedderType
 
     if setup.rag_type.value != "vanilla":
         raise ValueError(f"Expected VANILLA setup, got {setup.rag_type}")
 
-    # Get ChromaDB client
     assert setup.storage.collection_name is not None
-    chroma_db = get_chroma_client(
+    passage_store = get_surreal_vanilla_client(
         collection_name=setup.storage.collection_name,
         persist_directory=setup.storage.persist_directory,
     )
@@ -258,11 +257,9 @@ async def create_vanilla_retriever(setup: ExperimentSetup) -> VanillaRetriever:
 
     await embedder.initialize()
 
-    # Initialize ChromaDB with embedder
-    await chroma_db.initialize(embedder=embedder)
+    await passage_store.initialize(embedder=embedder)
 
-    # Create retriever
-    retriever = VanillaRetriever(chroma_db, setup=setup)
+    retriever = VanillaRetriever(passage_store, setup=setup)
     await retriever.initialize(embedder=embedder)
 
     return retriever

@@ -120,7 +120,7 @@ for logger_name in [
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from src.config.experiment_setups import ExperimentSetup  # noqa: E402
-from src.rag.graph_client import TemporalGraphClient  # noqa: E402
+from src.rag.surreal.fact_graph import TemporalGraphClient  # noqa: E402
 from tqdm import tqdm  # noqa: E402
 
 logging.basicConfig(
@@ -446,7 +446,7 @@ class AgenticIngester:
             SETUP_2A_AGENTIC_GEMMA,
             SetupType,
         )
-        from src.rag.vectordb import get_chroma_client
+        from src.rag.vectordb import get_surreal_vanilla_client
 
         self._ingest_passages = ingest_passages
 
@@ -480,7 +480,7 @@ class AgenticIngester:
                 pcoll = CHROMA_COLLECTIONS[SetupType.VANILLA_GEMINI]
             else:
                 pcoll = CHROMA_COLLECTIONS[SetupType.VANILLA_GEMMA]
-            self._passage_store = get_chroma_client(pcoll)
+            self._passage_store = get_surreal_vanilla_client(pcoll)
             await self._passage_store.initialize(embedder=self._graph.embedder)
             logger.info(
                 "  Session passages: table session_passage, collection=%s (unified)",
@@ -950,7 +950,7 @@ async def ingest_setup(
 
 async def clear_group(group_id: str):
     """Clear all SurrealDB records for a logical group_id."""
-    from src.rag.graph_client import TemporalGraphClient
+    from src.rag.surreal.fact_graph import TemporalGraphClient
 
     client = TemporalGraphClient(group_id=group_id)
     try:
@@ -963,9 +963,9 @@ async def clear_group(group_id: str):
 
 async def clear_passage_collection(collection: str) -> None:
     """Clear dense session vectors for one logical collection (e.g. vanilla_gemini)."""
-    from src.rag.vectordb import get_chroma_client
+    from src.rag.vectordb import get_surreal_vanilla_client
 
-    db = get_chroma_client(collection)
+    db = get_surreal_vanilla_client(collection)
     await db.initialize(embedder=None)
     await db.clear()
     await db.close()

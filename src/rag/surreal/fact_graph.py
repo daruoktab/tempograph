@@ -1,8 +1,7 @@
-# src/rag/graph_client.py
+# src/rag/surreal/fact_graph.py
 """
-Temporal knowledge graph client backed by SurrealDB.
-
-Replaces Graphiti + Neo4j: episodes and extracted facts with vector search.
+SurrealDB temporal fact graph: episodes, ``extracted_fact`` vectors, ``entity`` nodes,
+and graph edges (``has_fact``, ``fact_involves``) for agentic / hybrid retrieval.
 """
 
 from __future__ import annotations
@@ -17,11 +16,11 @@ from typing import Any, Dict, List, Optional
 
 from surrealdb import RecordID
 
-from ..config.experiment_setups import ExperimentSetup
-from ..config.settings import GeminiConfig, SurrealDBConfig, get_config
-from ..embedders import BaseEmbedder, EmbedderType, create_embedder
-from ..embedders.factory import EmbedderConfig
-from .surreal.connection import apply_schema, connect_surreal
+from ...config.experiment_setups import ExperimentSetup
+from ...config.settings import GeminiConfig, SurrealDBConfig, get_config
+from ...embedders import BaseEmbedder, EmbedderType, create_embedder
+from ...embedders.factory import EmbedderConfig
+from .connection import apply_schema, connect_surreal
 
 logger = logging.getLogger(__name__)
 
@@ -87,8 +86,11 @@ class TemporalGraphClient:
     """
     SurrealDB-backed temporal graph for Agentic RAG.
 
-    - add_episode: stores episode + LLM-extracted facts with embeddings
-    - search: cosine similarity on extracted_fact.embedding
+    - add_episode: stores episode + LLM-extracted facts with embeddings; RELATE
+      ``has_fact`` (episode→fact) and ``fact_involves`` (fact→entity).
+    - search: cosine similarity on ``extracted_fact.embedding``, merged with
+      facts reachable from ``entity`` nodes whose names appear in the query
+      (``fact_involves`` traversal + optional score boost when also vector-hit).
     """
 
     def __init__(
@@ -162,6 +164,174 @@ class TemporalGraphClient:
         """Legacy attribute used by some tests; returns self for search routing."""
         return self
 
+    async def _vector_search_rows(
+        self, qv: List[float], gid: str, limit: int
+    ) -> List[Dict[str, Any]]:
+        sql = (
+            "SELECT fact_text, entity_names, valid_at, created_at, source_description, "
+            "vector::similarity::cosine(embedding, $qv) AS score "
+            "FROM extracted_fact WHERE group_id = $gid "
+            "ORDER BY score DESC LIMIT $lim"
+        )
+        res = await self._db.query(sql, {"qv": qv, "gid": gid, "lim": limit})
+        return _flatten_query(res)
+
+    @staticmethod
+    def _rows_to_search_results(rows: List[Dict[str, Any]], metadata_extra: Optional[Dict[str, Any]] = None) -> List[SearchResult]:
+        out: List[SearchResult] = []
+        extra = metadata_extra or {}
+        for r in rows:
+            names = r.get("entity_names") or []
+            en = names[0] if isinstance(names, list) and names else None
+            va = r.get("valid_at")
+            ca = r.get("created_at")
+            meta = {**extra, **(r.get("_retrieval_meta") or {})}
+            if isinstance(names, list) and names:
+                meta = {**meta, "entity_names": [str(x) for x in names]}
+            out.append(
+                SearchResult(
+                    fact=str(r.get("fact_text", "")),
+                    score=float(r.get("score", 0.0)),
+                    entity_name=str(en) if en else None,
+                    created_at=ca if isinstance(ca, datetime) else None,
+                    valid_at=va if isinstance(va, datetime) else None,
+                    source_description=r.get("source_description"),
+                    metadata=meta if meta else None,
+                )
+            )
+        return out
+
+    async def resolve_entities_in_query(self, query: str, group_id: Optional[str] = None) -> List[Dict[str, Any]]:
+        """
+        Return ``entity`` rows whose ``name`` is a case-insensitive substring of ``query``.
+        Used to anchor retrieval on ``fact_involves`` edges.
+        """
+        if self._db is None or not query or not str(query).strip():
+            return []
+        gid = group_id or self.group_id
+        q_lower = str(query).strip().lower()
+        sql = (
+            "SELECT id, name FROM entity WHERE group_id = $gid "
+            "AND string::contains($q, string::lowercase(name)) "
+            "AND string::len(name) >= 2 LIMIT 25"
+        )
+        try:
+            res = await self._db.query(sql, {"gid": gid, "q": q_lower})
+        except Exception as e:
+            logger.debug("resolve_entities_in_query failed: %s", e)
+            return []
+        return _flatten_query(res)
+
+    async def search_facts_for_entity_ids(
+        self,
+        entity_ids: List[Any],
+        qv: List[float],
+        group_id: Optional[str] = None,
+        limit: int = 30,
+    ) -> List[SearchResult]:
+        """
+        Facts linked to the given entity record ids via ``fact_involves`` (fact → entity),
+        ordered by cosine similarity to ``qv`` on the restricted set.
+        """
+        if self._db is None or not entity_ids:
+            return []
+        gid = group_id or self.group_id
+        sql = (
+            "SELECT fact_text, entity_names, valid_at, created_at, source_description, "
+            "vector::similarity::cosine(embedding, $qv) AS score "
+            "FROM extracted_fact WHERE group_id = $gid AND id IN ("
+            "SELECT in FROM fact_involves WHERE out IN $eids) "
+            "ORDER BY score DESC LIMIT $lim"
+        )
+        try:
+            res = await self._db.query(sql, {"qv": qv, "gid": gid, "eids": entity_ids, "lim": limit})
+        except Exception as e:
+            logger.warning("search_facts_for_entity_ids failed: %s", e)
+            return []
+        rows = _flatten_query(res)
+        return self._rows_to_search_results(rows, {"source": "entity_graph"})
+
+    @staticmethod
+    def _merge_vector_and_graph_results(
+        vector_hits: List[SearchResult],
+        graph_hits: List[SearchResult],
+        resolved_entity_names: List[str],
+        num_results: int,
+    ) -> List[SearchResult]:
+        """Dedupe by fact text, boost overlap between vector and graph + name overlap."""
+        names_lower = {n.lower() for n in resolved_entity_names if isinstance(n, str) and len(n) >= 2}
+
+        def _name_overlap(sr: SearchResult) -> bool:
+            if not names_lower:
+                return False
+            raw = sr.entity_name or ""
+            if isinstance(raw, str) and raw.lower() in names_lower:
+                return True
+            ens = (sr.metadata or {}).get("entity_names") or []
+            for n in ens:
+                if isinstance(n, str) and n.lower() in names_lower:
+                    return True
+            return False
+
+        merged: Dict[str, SearchResult] = {}
+        for r in vector_hits:
+            if not r.fact:
+                continue
+            meta = {**(r.metadata or {}), "source": "vector"}
+            merged[r.fact] = SearchResult(
+                fact=r.fact,
+                score=r.score,
+                entity_name=r.entity_name,
+                created_at=r.created_at,
+                valid_at=r.valid_at,
+                source_description=r.source_description,
+                metadata=meta,
+            )
+
+        for r in graph_hits:
+            if not r.fact:
+                continue
+            boost = 0.04 if r.fact in merged else 0.0
+            if r.fact in merged:
+                old = merged[r.fact]
+                new_score = min(1.0, max(old.score, r.score) + 0.03 + boost)
+                meta = {**(old.metadata or {}), "source": "vector+graph", "graph_linked": True}
+                merged[r.fact] = SearchResult(
+                    fact=old.fact,
+                    score=new_score,
+                    entity_name=old.entity_name or r.entity_name,
+                    created_at=old.created_at or r.created_at,
+                    valid_at=old.valid_at or r.valid_at,
+                    source_description=old.source_description or r.source_description,
+                    metadata=meta,
+                )
+            else:
+                meta = {**(r.metadata or {}), "source": "entity_graph"}
+                merged[r.fact] = SearchResult(
+                    fact=r.fact,
+                    score=min(1.0, r.score + boost),
+                    entity_name=r.entity_name,
+                    created_at=r.created_at,
+                    valid_at=r.valid_at,
+                    source_description=r.source_description,
+                    metadata=meta,
+                )
+
+        for fact, sr in list(merged.items()):
+            if _name_overlap(sr) and sr.metadata and sr.metadata.get("source") == "vector":
+                merged[fact] = SearchResult(
+                    fact=sr.fact,
+                    score=min(1.0, sr.score + 0.02),
+                    entity_name=sr.entity_name,
+                    created_at=sr.created_at,
+                    valid_at=sr.valid_at,
+                    source_description=sr.source_description,
+                    metadata={**(sr.metadata or {}), "entity_query_overlap": True},
+                )
+
+        ranked = sorted(merged.values(), key=lambda x: x.score, reverse=True)
+        return ranked[:num_results]
+
     async def search(
         self,
         query: Optional[str] = None,
@@ -169,10 +339,11 @@ class TemporalGraphClient:
         group_ids: Optional[List[str]] = None,
         **kwargs: Any,
     ) -> List[SearchResult]:
-        """Semantic search; accepts Graphiti-style keyword args (query=, group_ids=)."""
+        """Semantic search plus optional entity-graph recall (``fact_involves``)."""
         query = query or kwargs.pop("query", None)
         num_results = int(kwargs.pop("num_results", num_results))
         group_ids = group_ids or kwargs.pop("group_ids", None)
+        use_entity_graph = bool(kwargs.pop("use_entity_graph", True))
         if kwargs:
             logger.debug("search: ignored extra kwargs %s", list(kwargs.keys()))
         if not query:
@@ -187,31 +358,27 @@ class TemporalGraphClient:
         if not emb.embeddings:
             raise RuntimeError("Embedding API returned no vectors")
         qv = list(float(x) for x in emb.embeddings[0])
-        sql = (
-            "SELECT fact_text, entity_names, valid_at, created_at, source_description, "
-            "vector::similarity::cosine(embedding, $qv) AS score "
-            "FROM extracted_fact WHERE group_id = $gid "
-            "ORDER BY score DESC LIMIT $lim"
+
+        fetch_lim = max(num_results * 3, num_results + 10)
+        v_rows = await self._vector_search_rows(qv, gid, fetch_lim)
+        vector_results = self._rows_to_search_results(v_rows, {"source": "vector"})
+
+        if not use_entity_graph:
+            return vector_results[:num_results]
+
+        ent_rows = await self.resolve_entities_in_query(query, gid)
+        if not ent_rows:
+            return vector_results[:num_results]
+
+        eids = [r["id"] for r in ent_rows if r.get("id") is not None]
+        resolved_names = [str(r["name"]) for r in ent_rows if r.get("name") is not None]
+        graph_results = await self.search_facts_for_entity_ids(
+            eids, qv, gid, limit=max(num_results * 2, 20)
         )
-        res = await self._db.query(sql, {"qv": qv, "gid": gid, "lim": num_results})
-        rows = _flatten_query(res)
-        out: List[SearchResult] = []
-        for r in rows:
-            names = r.get("entity_names") or []
-            en = names[0] if isinstance(names, list) and names else None
-            va = r.get("valid_at")
-            ca = r.get("created_at")
-            out.append(
-                SearchResult(
-                    fact=str(r.get("fact_text", "")),
-                    score=float(r.get("score", 0.0)),
-                    entity_name=str(en) if en else None,
-                    created_at=ca if isinstance(ca, datetime) else None,
-                    valid_at=va if isinstance(va, datetime) else None,
-                    source_description=r.get("source_description"),
-                )
-            )
-        return out
+
+        return self._merge_vector_and_graph_results(
+            vector_results, graph_results, resolved_names, num_results
+        )
 
     async def add_episode(
         self,
@@ -223,7 +390,7 @@ class TemporalGraphClient:
         group_id: Optional[str] = None,
         episode_body: Optional[str] = None,
     ) -> str:
-        """Accepts both (content, ...) and Graphiti-style episode_body keyword."""
+        """Accepts ``content`` or legacy keyword ``episode_body`` (same text)."""
         if self._db is None:
             raise RuntimeError("Client not initialized")
         body = episode_body if episode_body is not None else content
@@ -402,28 +569,62 @@ Teks percakapan:
     async def get_entity_facts(self, entity_name: str, limit: int = 20) -> List[SearchResult]:
         if self._db is None:
             return []
-        sql = (
-            "SELECT fact_text, valid_at, created_at FROM extracted_fact "
-            "WHERE group_id = $gid AND array::contains(entity_names, $name) LIMIT $lim"
-        )
+        gid = self.group_id
+        rows: List[Dict[str, Any]] = []
         try:
-            res = await self._db.query(
-                sql, {"gid": self.group_id, "name": entity_name, "lim": limit}
+            er = await self._db.query(
+                "SELECT id FROM entity WHERE group_id = $gid "
+                "AND string::lowercase(name) = string::lowercase($name) LIMIT 1",
+                {"gid": gid, "name": entity_name},
             )
+            erows = _flatten_query(er)
         except Exception as e:
-            logger.warning("get_entity_facts query failed: %s", e)
-            return []
-        rows = _flatten_query(res)
-        return [
-            SearchResult(
-                fact=str(r.get("fact_text", "")),
-                score=1.0,
-                entity_name=entity_name,
-                created_at=r.get("created_at") if isinstance(r.get("created_at"), datetime) else None,
-                valid_at=r.get("valid_at") if isinstance(r.get("valid_at"), datetime) else None,
+            logger.debug("get_entity_facts entity lookup failed: %s", e)
+            erows = []
+
+        if erows and erows[0].get("id") is not None:
+            eid = erows[0]["id"]
+            try:
+                res = await self._db.query(
+                    "SELECT fact_text, entity_names, valid_at, created_at, source_description "
+                    "FROM extracted_fact WHERE group_id = $gid AND id IN ("
+                    "SELECT in FROM fact_involves WHERE out = $eid) "
+                    "ORDER BY created_at DESC LIMIT $lim",
+                    {"gid": gid, "eid": eid, "lim": limit},
+                )
+                rows = _flatten_query(res)
+            except Exception as e:
+                logger.debug("get_entity_facts graph traverse failed: %s", e)
+                rows = []
+
+        if not rows:
+            fb = (
+                "SELECT fact_text, entity_names, valid_at, created_at, source_description "
+                "FROM extracted_fact WHERE group_id = $gid AND array::contains(entity_names, $name) "
+                "ORDER BY created_at DESC LIMIT $lim"
             )
-            for r in rows
-        ]
+            try:
+                res = await self._db.query(fb, {"gid": gid, "name": entity_name, "lim": limit})
+                rows = _flatten_query(res)
+            except Exception as e:
+                logger.warning("get_entity_facts fallback failed: %s", e)
+                return []
+        out: List[SearchResult] = []
+        for r in rows:
+            names = r.get("entity_names") or []
+            en = names[0] if isinstance(names, list) and names else entity_name
+            out.append(
+                SearchResult(
+                    fact=str(r.get("fact_text", "")),
+                    score=1.0,
+                    entity_name=str(en) if en else entity_name,
+                    created_at=r.get("created_at") if isinstance(r.get("created_at"), datetime) else None,
+                    valid_at=r.get("valid_at") if isinstance(r.get("valid_at"), datetime) else None,
+                    source_description=r.get("source_description"),
+                    metadata={"source": "entity_expand"},
+                )
+            )
+        return out
 
     async def get_stats(self) -> Dict[str, int]:
         if self._db is None:

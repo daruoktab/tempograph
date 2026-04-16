@@ -162,7 +162,7 @@ class VanillaIngester:
             SETUP_1V_VANILLA_GEMINI,
             SETUP_2V_VANILLA_GEMMA,
         )
-        from src.rag.vectordb import get_chroma_client
+        from src.rag.vectordb import get_surreal_vanilla_client
         from src.embedders import create_embedder, EmbedderType
         from src.config.settings import get_config
 
@@ -200,7 +200,7 @@ class VanillaIngester:
 
         # Get ChromaDB client
         assert self._setup.storage.collection_name is not None
-        self._chroma_db = get_chroma_client(
+        self._chroma_db = get_surreal_vanilla_client(
             collection_name=self._setup.storage.collection_name,
             persist_directory=self._setup.storage.persist_directory,
         )
@@ -522,17 +522,17 @@ async def main():
 
     # Clear if requested
     if args.clear:
-        from src.rag.vectordb import get_chroma_client
+        from src.rag.vectordb import get_surreal_vanilla_client
         from src.config.experiment_setups import CHROMA_PERSIST_DIR
 
         if args.setup in ["gemini", "all"]:
-            db = get_chroma_client("vanilla_gemini", CHROMA_PERSIST_DIR)
+            db = get_surreal_vanilla_client("vanilla_gemini", CHROMA_PERSIST_DIR)
             await db.initialize()
             await db.clear()
             logger.info("Cleared vanilla_gemini collection")
 
         if args.setup in ["gemma", "all"]:
-            db = get_chroma_client("vanilla_gemma", CHROMA_PERSIST_DIR)
+            db = get_surreal_vanilla_client("vanilla_gemma", CHROMA_PERSIST_DIR)
             await db.initialize()
             await db.clear()
             logger.info("Cleared vanilla_gemma collection")
@@ -554,11 +554,11 @@ async def main():
     logger.info("FINAL DATABASE STATUS")
     logger.info("=" * 60)
 
-    from src.rag.vectordb import get_chroma_client
+    from src.rag.vectordb import get_surreal_vanilla_client
     from src.config.experiment_setups import CHROMA_PERSIST_DIR
 
     for name in ["vanilla_gemini", "vanilla_gemma"]:
-        db = get_chroma_client(name, CHROMA_PERSIST_DIR)
+        db = get_surreal_vanilla_client(name, CHROMA_PERSIST_DIR)
         await db.initialize()
         logger.info(f"  {name}: {db.count()} documents (sessions)")
 

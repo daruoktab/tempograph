@@ -64,7 +64,8 @@ your-repo/
 │   ├── rag/              # RAG system core
 │   │   ├── ingestion/    # Data ingestion to TKG
 │   │   ├── retrieval/    # Retrieval strategies
-│   │   └── vectordb/     # Vector database client
+│   │   ├── surreal/      # Surreal connection, schema, fact graph, session_passage store
+│   │   └── vectordb/     # Re-exports dense retrieval (implementation in surreal.vanilla_store)
 │   ├── llm/              # LLM provider abstraction
 │   ├── embedders/        # Embedding models
 │   ├── evaluation/       # Evaluation metrics

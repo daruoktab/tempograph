@@ -4,8 +4,8 @@
 Agentic RAG Evaluation Script
 ==============================
 
-Evaluate Agentic RAG setups (Neo4j Knowledge Graph) using 100 evaluation queries.
-Uses same initialization pattern as ingest_agentic.py for compatibility.
+Evaluate Agentic RAG setups (SurrealDB fact graph + retrieval agent) using evaluation queries.
+Uses the same initialization pattern as ``ingest_agentic.py`` for compatibility.
 
 Usage:
     python scripts/evaluate_agentic.py --setup gemma --limit 5 --no-llm-judge  # Quick test
@@ -95,7 +95,7 @@ class EvaluationSummary:
 
 
 class AgenticEvaluator:
-    """Evaluate Agentic RAG using same Graphiti init as ingest_agentic.py"""
+    """Evaluate Agentic RAG (Surreal ``TemporalGraphClient`` + ``RetrievalAgent``)."""
 
     def __init__(
         self,
@@ -123,7 +123,6 @@ class AgenticEvaluator:
             except Exception as e:
                 logger.warning(f"Failed to load cached agentic results: {e}")
 
-        self._graphiti = None
         self._tc = None
         self._setup = None
         self._group_id = None
@@ -188,7 +187,7 @@ class AgenticEvaluator:
         return 0.0
 
     async def initialize(self):
-        """Initialize Graphiti client - copied from ingest_agentic.py"""
+        """Initialize Surreal fact-graph client and retrievers (mirrors ingest flow)."""
         from src.config.experiment_setups import (
             SETUP_1A_AGENTIC_GEMINI,
             # SETUP_2A_AGENTIC_GEMMA,  # Commented - Gemma configs disabled
@@ -239,7 +238,7 @@ class AgenticEvaluator:
         print(f"  Setup: {self._setup.name}")
         print(f"  Queries: {len(self._queries)}")
 
-        # Logic for Vanilla (Skip Neo4j/Graphiti)
+        # Vanilla path: no fact graph client
         if self.setup_name in ("vanilla_gemini", "vanilla_gemma"):
             from src.rag.retrieval.vanilla_retriever import create_vanilla_retriever
 
@@ -340,29 +339,27 @@ class AgenticEvaluator:
         )()
         print(f"  Sufficiency LLM (direct GenAI): {model_name}")
 
-        from src.rag.graph_client import TemporalGraphClient
+        from src.rag.surreal.fact_graph import TemporalGraphClient
 
         self._tc = TemporalGraphClient(setup=self._setup)
         await self._tc.initialize()
-        self._graphiti = self._tc
 
         # Initialize RetrievalAgent for non-hybrid setups (true agentic loop)
         if self.setup_name in ("gemini", "gemma"):
             from src.rag.retrieval.agent import RetrievalAgent
-            from src.rag.graph_client import SearchResult
+            from src.rag.surreal.fact_graph import SearchResult
             from src.config.settings import RetrievalConfig
 
-            # Create adapter to wrap Graphiti for RetrievalAgent compatibility
-            class GraphitiClientAdapter:
-                """Adapter to make Graphiti compatible with RetrievalAgent's expected interface"""
+            class SurrealFactGraphAdapter:
+                """Thin adapter: ``RetrievalAgent`` expects ``search`` / ``get_entity_facts``."""
 
-                def __init__(self, graphiti, group_id):
-                    self.graphiti = graphiti
+                def __init__(self, fact_graph, group_id):
+                    self.fact_graph = fact_graph
                     self.group_id = group_id
 
                 async def search(self, query: str, num_results: int = 10):
-                    """Search using Graphiti and return SearchResult objects"""
-                    results = await self.graphiti.search(
+                    """Delegate to ``TemporalGraphClient.search``."""
+                    results = await self.fact_graph.search(
                         query=query, group_ids=[self.group_id], num_results=num_results
                     )
                     return (
@@ -392,8 +389,7 @@ class AgenticEvaluator:
                     """Get facts related to an entity by searching for it"""
                     return await self.search(entity_name, num_results=5)
 
-            # Create adapter and agent
-            adapter = GraphitiClientAdapter(self._graphiti, self._group_id)
+            adapter = SurrealFactGraphAdapter(self._tc, self._group_id)
             retrieval_config = RetrievalConfig(
                 max_iterations=5, num_results=5, similarity_threshold=0.3
             )
@@ -432,19 +428,18 @@ class AgenticEvaluator:
 
             # 1. Create RetrievalAgent-based Graph Client for multi-hop reasoning
             from src.rag.retrieval.agent import RetrievalAgent
-            from src.rag.graph_client import SearchResult
+            from src.rag.surreal.fact_graph import SearchResult
             from src.config.settings import RetrievalConfig
 
-            class _GraphitiClientAdapterHybrid:
-                """Adapter to make Graphiti compatible with RetrievalAgent's expected interface"""
+            class _SurrealFactGraphAdapterHybrid:
+                """Same as ``SurrealFactGraphAdapter`` for hybrid graph side."""
 
-                def __init__(self, graphiti, group_id):
-                    self.graphiti = graphiti
+                def __init__(self, fact_graph, group_id):
+                    self.fact_graph = fact_graph
                     self.group_id = group_id
 
                 async def search(self, query: str, num_results: int = 10):
-                    """Search using Graphiti and return SearchResult objects"""
-                    results = await self.graphiti.search(
+                    results = await self.fact_graph.search(
                         query=query, group_ids=[self.group_id], num_results=num_results
                     )
                     return (
@@ -471,7 +466,7 @@ class AgenticEvaluator:
                     return await self.search(entity_name, num_results=5)
 
             # Create agent with adapter and LLM for sufficiency check
-            adapter = _GraphitiClientAdapterHybrid(self._graphiti, self._group_id)
+            adapter = _SurrealFactGraphAdapterHybrid(self._tc, self._group_id)
             retrieval_config = RetrievalConfig(
                 max_iterations=5, num_results=5, similarity_threshold=0.3
             )
@@ -677,9 +672,9 @@ class AgenticEvaluator:
                         f"[DEBUG] Agent used {agent_result.iterations} iterations for: {query[:30]}..."
                     )
             else:
-                assert self._graphiti is not None
+                assert self._tc is not None
                 assert self._group_id is not None
-                search_results = await self._graphiti.search(
+                search_results = await self._tc.search(
                     query=query, group_ids=[self._group_id], num_results=10
                 )
                 retrieved_facts = (

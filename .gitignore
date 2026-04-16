@@ -13,6 +13,9 @@ REPO_NAMING.local.md
 ty_errors.txt
 ty_remaining.txt
 
+# Local SurrealKV files (run_with_local_surreal.py default on-disk store)
+data/surreal_local/
+
 # Environment
 .env
 

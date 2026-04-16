@@ -1,11 +1,15 @@
-"""SurrealDB persistence (vanilla vectors + agentic graph facts)."""
+"""SurrealDB persistence (connection + vanilla session vectors).
 
-from .connection import connect_surreal, apply_schema
+Agentic fact graph lives in ``fact_graph``; import it explicitly to avoid loading
+embedders in lightweight tooling (e.g. ``scripts/test_surreal_connection.py``).
+"""
+
+from .connection import apply_schema, connect_surreal
 from .vanilla_store import SurrealVanillaVectorDB, get_surreal_vanilla_client
 
 __all__ = [
-    "connect_surreal",
     "apply_schema",
-    "SurrealVanillaVectorDB",
+    "connect_surreal",
     "get_surreal_vanilla_client",
+    "SurrealVanillaVectorDB",
 ]

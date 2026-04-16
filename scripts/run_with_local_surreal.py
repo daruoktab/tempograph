@@ -9,7 +9,14 @@ Usage (dari root repo):
     python scripts/run_with_local_surreal.py -- python scripts/test_surreal_connection.py
     python scripts/run_with_local_surreal.py -- python scripts/ingest_vanilla.py
 
+    # Terminal terpisah: biarkan Surreal hidup untuk Surrealist / skrip lain (Ctrl+C stop):
+    python scripts/run_with_local_surreal.py --serve-only
+
 Tanpa argumen setelah ``--``, default: smoke test koneksi Surreal.
+
+Storage default: SurrealKV on-disk di ``data/surreal_local`` (relatif repo root).
+Override dengan env ``SURREAL_START_PATH`` (contoh: ``memory`` atau ``surrealkv://data/mydb``).
+Uji cepat tanpa disk: ``python scripts/run_with_local_surreal.py --memory -- ...``.
 
 Requires: binary ``surreal`` di PATH (install SurrealDB CLI), atau set ``SURREAL_CLI``.
 """
@@ -29,6 +36,19 @@ from pathlib import Path
 from urllib.parse import urlparse
 
 _REPO_ROOT = Path(__file__).resolve().parents[1]
+
+
+def _terminate_surreal(proc: subprocess.Popen[bytes] | None) -> None:
+    if proc is None or proc.poll() is not None:
+        return
+    if sys.platform == "win32":
+        proc.terminate()
+    else:
+        proc.send_signal(signal.SIGTERM)
+    try:
+        proc.wait(timeout=5)
+    except subprocess.TimeoutExpired:
+        proc.kill()
 
 
 def _load_env() -> None:
@@ -86,6 +106,16 @@ def main() -> int:
         help="Override --bind for surreal start (default from SURREAL_URL).",
     )
     p.add_argument(
+        "--memory",
+        action="store_true",
+        help="Use in-memory storage (default is SurrealKV under data/surreal_local).",
+    )
+    p.add_argument(
+        "--serve-only",
+        action="store_true",
+        help="Start Surreal and keep the process running (e.g. Surrealist). Ctrl+C stops the server. No child command.",
+    )
+    p.add_argument(
         "child",
         nargs=argparse.REMAINDER,
         help="Command after optional '--' (default: smoke test).",
@@ -94,15 +124,23 @@ def main() -> int:
     if args.child and args.child[0] == "--":
         args.child = args.child[1:]
 
+    if args.serve_only and args.no_start:
+        print("Cannot use --serve-only together with --no-start.", file=sys.stderr)
+        return 2
+    if args.serve_only and args.child:
+        print("Note: --serve-only ignores the child command; open another terminal for ingest/eval.", file=sys.stderr)
+
     surreal_url = os.getenv("SURREAL_URL", "ws://127.0.0.1:8000")
     user = os.getenv("SURREAL_USER", "root")
     password = os.getenv("SURREAL_PASS", "root")
     surreal_bin = os.getenv("SURREAL_CLI") or shutil.which("surreal")
 
-    child = args.child if args.child else [
-        sys.executable,
-        str(_REPO_ROOT / "scripts" / "test_surreal_connection.py"),
-    ]
+    child: list[str] | None = None
+    if not args.serve_only:
+        child = args.child if args.child else [
+            sys.executable,
+            str(_REPO_ROOT / "scripts" / "test_surreal_connection.py"),
+        ]
 
     proc: subprocess.Popen[bytes] | None = None
     if not args.no_start:
@@ -118,6 +156,16 @@ def main() -> int:
         host, port = _parse_bind_from_surreal_url(surreal_url)
         bind = args.bind_override or f"{host}:{port}"
 
+        if args.memory:
+            storage_path = "memory"
+        else:
+            storage_path = os.getenv("SURREAL_START_PATH", "").strip()
+            if not storage_path:
+                # SurrealDB 3: persist with SurrealKV; path relative to cwd (repo root).
+                kv_dir = _REPO_ROOT / "data" / "surreal_local"
+                kv_dir.mkdir(parents=True, exist_ok=True)
+                storage_path = "surrealkv://data/surreal_local"
+
         cmd = [
             surreal_bin,
             "start",
@@ -129,10 +177,10 @@ def main() -> int:
             password,
             "--bind",
             bind,
-            "memory",
+            storage_path,
         ]
         print("Repo root:", _REPO_ROOT)
-        print("Starting SurrealDB:", " ".join(cmd[:6]), "...", "(memory)")
+        print("Starting SurrealDB:", " ".join(cmd[:6]), "...", f"({storage_path})")
         proc = subprocess.Popen(
             cmd,
             cwd=str(_REPO_ROOT),
@@ -140,26 +188,36 @@ def main() -> int:
             stderr=None,
         )
 
-        def _cleanup() -> None:
-            if proc and proc.poll() is None:
-                if sys.platform == "win32":
-                    proc.terminate()
-                else:
-                    proc.send_signal(signal.SIGTERM)
-                try:
-                    proc.wait(timeout=5)
-                except subprocess.TimeoutExpired:
-                    proc.kill()
-
-        atexit.register(_cleanup)
+        atexit.register(lambda p=proc: _terminate_surreal(p))
 
         try:
             _wait_port(host, port)
         except SystemExit:
-            _cleanup()
+            _terminate_surreal(proc)
             raise
         print(f"OK: Surreal listening on {host}:{port} (matches SURREAL_URL host/port).")
 
+    if args.serve_only:
+        if proc is None:
+            print("--serve-only requires Surreal to be started (omit --no-start).", file=sys.stderr)
+            return 2
+        ns = os.getenv("SURREAL_NS", "tempograph")
+        db = os.getenv("SURREAL_DB", "main")
+        host, port = _parse_bind_from_surreal_url(surreal_url)
+        print()
+        print("SurrealDB is running. Leave this window open.")
+        print("  Surrealist: WS", f"{host}:{port}", "| Root auth:", user, "| then in query: USE NS", ns, "DB", db + ";")
+        print("  Other terminals: python scripts/run_with_local_surreal.py --no-start -- <command>")
+        print("Press Ctrl+C to stop the server.")
+        print()
+        try:
+            return int(proc.wait())
+        except KeyboardInterrupt:
+            print("\nStopping SurrealDB...", flush=True)
+            _terminate_surreal(proc)
+            return 0
+
+    assert child is not None
     print("Running:", " ".join(child))
     result = subprocess.run(child, cwd=str(_REPO_ROOT), env=os.environ.copy())
     return int(result.returncode)

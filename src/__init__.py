@@ -11,7 +11,7 @@ Modules:
 - ingestion: Pipeline untuk ingest conversation ke knowledge graph
 - retrieval: Agentic retrieval dengan temporal filtering
 - evaluation: Metrics dan evaluator untuk RAG performance
-- graph_client: SurrealDB temporal graph + vector client
+- rag.surreal.fact_graph: SurrealDB temporal fact graph + vector search client
 """
 
 __version__ = "0.1.0"
