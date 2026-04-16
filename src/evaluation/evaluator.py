@@ -416,7 +416,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "--dataset",
         type=str,
-        default="output/final_dataset_v1/conversation_dataset.json",
+        default="output/example_dataset/conversation_dataset.json",
     )
     parser.add_argument(
         "--output", type=str, default="output/evaluation_results/report.json"

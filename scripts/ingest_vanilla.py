@@ -49,7 +49,7 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 # Paths
-DATASET_PATH = Path("output/final_dataset_v1/conversation_dataset.json")
+DATASET_PATH = Path("output/example_dataset/conversation_dataset.json")
 CHECKPOINT_DIR = Path("data/checkpoints")
 CHECKPOINT_DIR.mkdir(parents=True, exist_ok=True)
 

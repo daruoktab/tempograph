@@ -46,7 +46,7 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 # Paths
-QUERIES_PATH = Path("output/final_dataset_v1/evaluation_queries_100.json")
+QUERIES_PATH = Path("output/example_dataset/evaluation_queries_100.json")
 OUTPUT_DIR = Path("output/evaluation_results")
 OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
 

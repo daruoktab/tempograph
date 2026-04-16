@@ -298,7 +298,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "--dataset",
         type=str,
-        default="output/final_dataset_v1/conversation_dataset.json",
+        default="output/example_dataset/conversation_dataset.json",
         help="Path to dataset",
     )
     parser.add_argument(

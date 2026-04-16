@@ -72,7 +72,9 @@ your-repo/
 ├── scripts/              # CLI scripts
 ├── examples/             # Example configs & data
 ├── data/                 # Dataset storage
-├── output/               # Evaluation outputs
+├── output/                   # Example data + eval run outputs
+│   ├── example_dataset/      # Sample bundle (conversations, events, 100 eval queries, token_usage); optional if you skip the generator
+│   └── evaluation_results/   # Written by evaluate_*.py
 └── tests/                # Unit tests
 ```
 

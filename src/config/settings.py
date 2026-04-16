@@ -282,7 +282,7 @@ class Config:
     rate_limit: RateLimitConfig = field(default_factory=RateLimitConfig)
 
     # Paths
-    dataset_path: str = "output/final_dataset_v1/conversation_dataset.json"
+    dataset_path: str = "output/example_dataset/conversation_dataset.json"
     output_dir: str = "output/evaluation_results"
 
     @classmethod

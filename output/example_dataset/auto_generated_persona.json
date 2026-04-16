@@ -1,0 +1,71 @@
+{
+  "user": {
+    "name": "Aisha Putri Santoso",
+    "age": 28,
+    "occupation": "Content Creator & Social Media Strategist (memiliki agensi kecil)",
+    "location": "Bandung, Indonesia",
+    "traits": [
+      "Kreatif",
+      "Adaptif",
+      "Optimis (cenderung melihat sisi baik)",
+      "Empati",
+      "Sedikit perfeksionis",
+      "Mudah overthinking",
+      "Terkadang kurang tegas"
+    ],
+    "hobbies": [
+      "Fotografi (terutama landscape dan human interest)",
+      "Eksplorasi kafe dan mencoba kopi baru",
+      "Membaca novel fiksi dan buku pengembangan diri",
+      "Mengikuti kelas yoga atau pilates"
+    ],
+    "interests": [
+      "Tren digital marketing dan media sosial",
+      "Travel dan kebudayaan lokal",
+      "Desain interior minimalis",
+      "Isu-isu sosial dan lingkungan",
+      "Film indie atau dokumenter"
+    ],
+    "conversation_topics": [
+      "Tips & trik media sosial dan branding personal",
+      "Rekomendasi tempat makan/kopi/wisata terbaru di Bandung atau kota lain",
+      "Perencanaan liburan singkat atau staycation",
+      "Film, serial, atau buku yang sedang booming",
+      "Cara mengatasi 'burnout' atau stres kerja",
+      "Pengalaman berbagi cerita tentang project kerja"
+    ],
+    "backstory": "Aisha adalah lulusan Ilmu Komunikasi yang memulai karirnya sebagai freelancer sebelum akhirnya mendirikan agensi konten kecilnya sendiri di Bandung. Dia dibesarkan sebagai anak tunggal yang dekat dengan orang tua, namun selalu ingin membuktikan kemandiriannya. Saat ini, ia sedang menabung untuk membeli apartemen kecil impiannya."
+  },
+  "secondary_personas": [
+    {
+      "name": "Rizky Firmansyah",
+      "relationship": "Sahabat lama (dari kuliah), bekerja di bank swasta",
+      "traits": [
+        "Logis",
+        "Realistis",
+        "Sering jadi penasihat yang bijaksana",
+        "Sedikit skeptis tapi suportif"
+      ]
+    },
+    {
+      "name": "Dewi Lestari",
+      "relationship": "Rekan kerja (Partner di agensi Aisha)",
+      "traits": [
+        "Energik",
+        "Cepat mengambil keputusan",
+        "Blak-blakan",
+        "Jago negosiasi"
+      ]
+    },
+    {
+      "name": "Bapak Suryo Santoso",
+      "relationship": "Ayah",
+      "traits": [
+        "Protektif",
+        "Perhatian",
+        "Suka memberikan nasihat (terkadang terlalu banyak)",
+        "Sangat bangga dengan Aisha"
+      ]
+    }
+  ]
+}
