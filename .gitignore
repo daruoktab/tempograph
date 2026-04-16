@@ -15,6 +15,9 @@ ty_remaining.txt
 # Environment
 .env
 
+# Local Conda spec (use committed environment.example.yml as template)
+environment.yml
+
 # Token usage logs (runtime generated); keep shipped example for reference
 output/**/token_usage.jsonl
 !/output/example_dataset/token_usage.jsonl

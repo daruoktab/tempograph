@@ -1,9 +1,13 @@
 #!/usr/bin/env python3
 """Smoke test: SurrealDB sign-in, schema bootstrap, and a trivial read/write.
 
-Run from repo root (with .env or env vars set):
+Run from repo root (with .env or env vars set). Prefer starting Surreal via:
 
-    conda activate porto-skripsi
+    python scripts/run_with_local_surreal.py -- python scripts/test_surreal_connection.py
+
+Or if SurrealDB is already running:
+
+    conda activate tempograph   # or your env name
     python scripts/test_surreal_connection.py
 
 SURREAL_URL should be like ws://127.0.0.1:8000 (no /rpc; the SDK appends it).

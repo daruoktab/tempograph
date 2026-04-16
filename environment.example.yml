@@ -1,0 +1,18 @@
+# Contoh environment Conda — commit ke repo.
+#
+# Pakai salah satu:
+#   conda env create -f environment.example.yml
+#   conda activate tempograph
+#
+# Untuk override lokal (nama env / paket tambahan) tanpa ikut ke Git:
+#   salin ke environment.yml (file itu di-.gitignore)
+#
+name: tempograph
+channels:
+  - conda-forge
+dependencies:
+  - python=3.12
+  - pip
+  - numpy
+  - scipy
+  - scikit-learn

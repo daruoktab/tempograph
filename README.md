@@ -87,16 +87,20 @@ your-repo/
 git clone https://github.com/<username>/<repo>.git
 cd <repo>
 
-# 1) Buat environment Conda (nama: porto-skripsi), lalu aktifkan
-conda env create -f environment.yml
-conda activate porto-skripsi
+# 1) Environment Conda (contoh di repo: nama env ``tempograph``)
+conda env create -f environment.example.yml
+conda activate tempograph
+# Sudah punya env lama ``porto-skripsi``? Boleh tetap dipakai; ``environment.yml`` lokal di-gitignore.
 
 # 2) Pasang / upgrade dependensi Python dengan uv (setelah env aktif)
 uv pip install -U -r requirements.txt
 
 # Setup environment variables
 cp .env.example .env
-# Edit .env with your API keys and SurrealDB (SURREAL_*)
+# Edit .env: GEMINI_API_KEY, SURREAL_* (URL/user/pass/namespace/database)
+
+# 3) SurrealDB lokal + smoke test (tanpa mengetik surreal start manual; cwd = repo root)
+python scripts/run_with_local_surreal.py -- python scripts/test_surreal_connection.py
 ```
 
 ### Generate Dataset
