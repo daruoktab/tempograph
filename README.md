@@ -1,30 +1,8 @@
-# [Pending Name]
+# Tempograph
 
 > **Agentic RAG System with Temporal Knowledge Graph for Indonesian Chatbot**
-> 
+>
 > Sistem RAG Agentic dengan Temporal Knowledge Graph untuk chatbot berbahasa Indonesia yang mampu mengingat dan melacak konteks percakapan jangka panjang secara kronologis.
-
----
-
-## 📛 Kandidat Nama Repo
-
-### Opsi Utama
-| Nama | Makna |
-|------|-------|
-| **chronicall** | Chronicle + Recall - mengabadikan ingatan (cocok untuk dataset generation & recall) |
-| **memotrace** | Memory + Trace - menelusuri jejak memori (dataset = trace, RAG = memory) |
-| **recalink** | Recall + Link - mengingat & menghubungkan |
-| **chronoweave** | Chrono + Weave - menenun lintas waktu (weave = dataset generation, chrono = temporal RAG) |
-| **tempograph** | Tempo + Graph - graf temporal |
-
-### Opsi Dual-Purpose (Dataset Gen + RAG)
-| Nama | Makna |
-|------|-------|
-| **memosynth** | Memory + Synthesis - mensintesis memori (dataset generation) + recall (RAG) |
-| **recallforge** | Recall + Forge - menempa & mengingat kembali |
-| **chronosynth** | Chrono + Synthesis - sintesis temporal (generate) + reasoning |
-| **tempomind** | Tempo + Mind - pikiran temporal |
-| **memograph** | Memory + Graph - graf memori percakapan |
 
 ---
 
@@ -79,7 +57,7 @@ Sistem RAG dengan arsitektur agentic yang mengintegrasikan:
 ## 📁 Project Structure
 
 ```
-pending/
+your-repo/
 ├── src/
 │   ├── config/           # Configuration management
 │   ├── dataset/          # Dataset generation module
@@ -103,9 +81,9 @@ pending/
 ### Installation
 
 ```bash
-# Clone repository
-git clone https://github.com/username/pending.git
-cd pending
+# Clone repository (ganti URL sesuai remote kamu)
+git clone https://github.com/<username>/<repo>.git
+cd <repo>
 
 # 1) Buat environment Conda (nama: porto-skripsi), lalu aktifkan
 conda env create -f environment.yml
