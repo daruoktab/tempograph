@@ -102,8 +102,8 @@ class SurrealDBConfig:
     )
     username: str = field(default_factory=lambda: os.getenv("SURREAL_USER", "root"))
     password: str = field(default_factory=lambda: os.getenv("SURREAL_PASS", "root"))
-    namespace: str = field(default_factory=lambda: os.getenv("SURREAL_NS", "skripsi"))
-    database: str = field(default_factory=lambda: os.getenv("SURREAL_DB", "pending"))
+    namespace: str = field(default_factory=lambda: os.getenv("SURREAL_NS", "tempograph"))
+    database: str = field(default_factory=lambda: os.getenv("SURREAL_DB", "main"))
 
 
 @dataclass

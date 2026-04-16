@@ -129,8 +129,8 @@ GEMINI_API_KEY=your-gemini-api-key
 SURREAL_URL=ws://127.0.0.1:8000
 SURREAL_USER=root
 SURREAL_PASS=your-password
-SURREAL_NS=skripsi
-SURREAL_DB=pending
+SURREAL_NS=tempograph
+SURREAL_DB=main
 ```
 
 ### Model Configuration
