@@ -1,352 +1,202 @@
-# src/graph_client.py
+# src/rag/graph_client.py
 """
-Neo4j Graph Client Wrapper
-Abstraksi untuk interaksi dengan Neo4j Temporal Knowledge Graph via Graphiti
+Temporal knowledge graph client backed by SurrealDB.
 
-Mendukung:
-- Multiple embedding models (Gemini, HuggingFace)
-- Multiple LLM providers (Gemini, OpenRouter, HuggingFace)
-- Experiment-based data separation via group_id
+Replaces Graphiti + Neo4j: episodes and extracted facts with vector search.
 """
+
+from __future__ import annotations
 
 import asyncio
+import json
 import logging
+import re
+import uuid
 from datetime import datetime
-from typing import List, Optional, Dict, Any, Union
-from dataclasses import dataclass
+from typing import Any, Dict, List, Optional
 
-from graphiti_core import Graphiti
-from graphiti_core.nodes import EpisodeType
-from graphiti_core.llm_client.gemini_client import GeminiClient
-from graphiti_core.llm_client.config import LLMConfig
-from graphiti_core.embedder.gemini import (
-    GeminiEmbedder as GraphitiGeminiEmbedder,
-    GeminiEmbedderConfig,
-)
-from graphiti_core.cross_encoder.client import CrossEncoderClient
-from graphiti_core.driver.neo4j_driver import Neo4jDriver
-import numpy as np
+from surrealdb import RecordID
 
-from ..config.settings import get_config, Neo4jConfig, GeminiConfig
 from ..config.experiment_setups import ExperimentSetup
-from ..embedders import create_embedder, EmbedderType, BaseEmbedder
-from ..llm import create_llm_provider, LLMProviderType, BaseLLMProvider
+from ..config.settings import GeminiConfig, SurrealDBConfig, get_config
+from ..embedders import BaseEmbedder, EmbedderType, create_embedder
+from ..embedders.factory import EmbedderConfig
+from .surreal.connection import apply_schema, connect_surreal
 
 logger = logging.getLogger(__name__)
 
 
-class EmbeddingReranker(CrossEncoderClient):
-    """
-    Reranker menggunakan embedding similarity.
-    Fallback jika cross-encoder model tidak tersedia.
-    Mendukung berbagai embedder types.
-    """
-
-    def __init__(self, embedder: Any):  # Accept any embedder type
-        self.embedder = embedder
-        self._is_graphiti_embedder = hasattr(embedder, "create_embedding")
-
-    async def rank(self, query: str, passages: List[str]) -> List[tuple[str, float]]:
-        if not passages:
-            return []
-
-        # Embed query and passages based on embedder type
-        if self._is_graphiti_embedder:
-            # Graphiti's GeminiEmbedder uses create_embedding
-            query_result = await self.embedder.create_embedding(query)
-            query_embedding = (
-                query_result.embeddings[0]
-                if hasattr(query_result, "embeddings")
-                else query_result
-            )
-            passage_embeddings = []
-            for p in passages:
-                p_result = await self.embedder.create_embedding(p)
-                passage_embeddings.append(
-                    p_result.embeddings[0]
-                    if hasattr(p_result, "embeddings")
-                    else p_result
-                )
-        elif hasattr(self.embedder, "embed"):
-            # Our custom embedder
-            query_embedding = await self.embedder.embed(query)
-            passage_embeddings = await self.embedder.embed_batch(passages)
-        else:
-            # GraphitiEmbedderWrapper
-            query_embedding = (await self.embedder.embed([query]))[0]
-            passage_embeddings = await self.embedder.embed(passages)
-
-        # Normalize vectors
-        def normalize(v):
-            norm = np.linalg.norm(v)
-            return v / norm if norm > 0 else v
-
-        q_norm = normalize(np.array(query_embedding))
-
-        # Calculate cosine similarity
-        results = []
-        for i, p_emb in enumerate(passage_embeddings):
-            p_norm = normalize(np.array(p_emb))
-            score = float(np.dot(q_norm, p_norm))
-            results.append((passages[i], score))
-
-        # Sort by score descending
-        results.sort(key=lambda x: x[1], reverse=True)
-        return results
+def _flatten_query(res: Any) -> List[Dict[str, Any]]:
+    if res is None:
+        return []
+    if isinstance(res, list):
+        out: List[Dict[str, Any]] = []
+        for block in res:
+            if isinstance(block, dict) and "result" in block:
+                r = block["result"]
+                if isinstance(r, list):
+                    out.extend([x for x in r if isinstance(x, dict)])
+                elif isinstance(r, dict):
+                    out.append(r)
+            elif isinstance(block, dict):
+                out.append(block)
+        return out
+    return []
 
 
-@dataclass
+def _strip_json_fence(text: str) -> str:
+    t = re.sub(r"^```json\s*", "", text.strip(), flags=re.IGNORECASE | re.MULTILINE)
+    t = re.sub(r"^```\s*", "", t, flags=re.MULTILINE)
+    t = re.sub(r"\s*```$", "", t, flags=re.MULTILINE)
+    return t.strip()
+
+
 class SearchResult:
     """Standardized search result"""
 
-    fact: str
-    score: float
-    entity_name: Optional[str] = None
-    created_at: Optional[datetime] = None
-    valid_at: Optional[datetime] = None
-    source_description: Optional[str] = None
-    metadata: Optional[Dict[str, Any]] = None
-
-
-class GraphitiEmbedderWrapper:
-    """
-    Wrapper to make our custom embedders compatible with Graphiti's expected interface.
-    Graphiti expects: await embedder.embed(List[str]) -> List[List[float]]
-    """
-
-    def __init__(self, custom_embedder: Any):  # Accept any embedder
-        self.custom_embedder = custom_embedder
-        # Get dimension if available
-        self.embedding_dim = getattr(custom_embedder, "embedding_dim", 768)
-
-    async def embed(self, texts: List[str]) -> List[List[float]]:
-        """Embed a list of texts - Graphiti compatible interface."""
-        if hasattr(self.custom_embedder, "embed_batch"):
-            return await self.custom_embedder.embed_batch(texts)
-        elif hasattr(self.custom_embedder, "embed"):
-            # Fall back to embedding one at a time
-            results = []
-            for text in texts:
-                result = await self.custom_embedder.embed(text)
-                results.append(result)
-            return results
-        else:
-            raise ValueError("Custom embedder has no embed or embed_batch method")
+    def __init__(
+        self,
+        fact: str,
+        score: float,
+        entity_name: Optional[str] = None,
+        created_at: Optional[datetime] = None,
+        valid_at: Optional[datetime] = None,
+        source_description: Optional[str] = None,
+        metadata: Optional[Dict[str, Any]] = None,
+    ):
+        self.fact = fact
+        self.score = score
+        self.entity_name = entity_name
+        self.created_at = created_at
+        self.valid_at = valid_at
+        self.source_description = source_description
+        self.metadata = metadata or {}
 
 
 class TemporalGraphClient:
     """
-    Client untuk interaksi dengan Neo4j Temporal Knowledge Graph.
-    Wrapper di atas Graphiti dengan fitur tambahan untuk temporal queries.
+    SurrealDB-backed temporal graph for Agentic RAG.
 
-    Mendukung experiment-based data separation:
-    - Setiap kombinasi embedding + LLM memiliki group_id unik
-    - Data dipisahkan di Neo4j berdasarkan group_id
+    - add_episode: stores episode + LLM-extracted facts with embeddings
+    - search: cosine similarity on extracted_fact.embedding
     """
 
     def __init__(
         self,
-        neo4j_config: Optional[Neo4jConfig] = None,
+        surreal_config: Optional[SurrealDBConfig] = None,
         gemini_config: Optional[GeminiConfig] = None,
         group_id: Optional[str] = None,
         setup: Optional[ExperimentSetup] = None,
     ):
-        """
-        Initialize TemporalGraphClient.
-
-        Args:
-            neo4j_config: Neo4j connection config
-            gemini_config: Gemini API config (used as fallback if setup not provided)
-            group_id: Manual group_id override
-            setup: Experiment configuration (embedding + LLM model selection)
-        """
-        config = get_config()
-        self.neo4j_config = neo4j_config or config.neo4j
-        self.gemini_config = gemini_config or config.gemini
+        cfg = get_config()
+        self.surreal_config = surreal_config or cfg.surreal
+        self.gemini_config = gemini_config or cfg.gemini
         self.setup = setup
-
-        # Generate group_id based on experiment or fallback
-        self.group_id: str
         if group_id:
             self.group_id = group_id
-        elif setup:
-            self.group_id = (
-                setup.storage.group_id
-                or f"temporal_rag_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
-            )
+        elif setup and setup.storage.group_id:
+            self.group_id = setup.storage.group_id
         else:
             self.group_id = f"temporal_rag_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
 
-        self._client: Optional[Graphiti] = None
-        self._embedder: Optional[Union[GraphitiGeminiEmbedder, BaseEmbedder]] = None
-        self._llm_provider: Optional[BaseLLMProvider] = None
-        self._driver: Optional[Neo4jDriver] = None
-        self._experiment_manager: Optional[Any] = (
-            None  # ExperimentManager not yet implemented
-        )
+        # surrealdb.AsyncSurreal is a factory in stubs; use Any for the live connection object.
+        self._db: Any = None
+        self._embedder: Optional[BaseEmbedder] = None
 
     @classmethod
     def from_setup(
-        cls, setup: ExperimentSetup, neo4j_config: Optional[Neo4jConfig] = None
+        cls,
+        setup: ExperimentSetup,
+        surreal_config: Optional[SurrealDBConfig] = None,
     ) -> "TemporalGraphClient":
-        """
-        Create client from an experiment setup.
+        return cls(surreal_config=surreal_config, setup=setup)
 
-        Args:
-            setup: The experiment setup
-            neo4j_config: Optional Neo4j config override
+    async def initialize(self) -> None:
+        self._db = await connect_surreal(self.surreal_config)
+        await apply_schema(self._db)
 
-        Returns:
-            Configured TemporalGraphClient
-        """
-        return cls(neo4j_config=neo4j_config, setup=setup)
+        if self.setup is None:
+            logger.info("TemporalGraphClient minimal init (group_id=%s)", self.group_id)
+            return
 
-    async def initialize(self):
-        """Initialize all connections and clients"""
-        logger.info(f"Initializing TemporalGraphClient with group_id: {self.group_id}")
-
-        if self.setup:
-            logger.info(f"Using setup: {self.setup.name}")
-            logger.info(f"  Embedding: {self.setup.embedder.name}")
-            if self.setup.llm_extraction:
-                logger.info(f"  LLM Extraction: {self.setup.llm_extraction.name}")
-
-        # Initialize embedder based on experiment setup or default
-        if self.setup and self.setup.embedder.provider == "huggingface":
+        if self.setup.embedder.provider == "huggingface":
             self._embedder = create_embedder(
                 embedder_type=EmbedderType.HUGGINGFACE,
                 model_name=self.setup.embedder.name,
             )
-            await self._embedder.initialize()
-        elif self.setup and self.setup.embedder.provider == "gemini":
-            # Use Graphiti's Gemini embedder directly
-            self._embedder = GraphitiGeminiEmbedder(
-                config=GeminiEmbedderConfig(
-                    api_key=self.gemini_config.api_key,
-                    embedding_model=self.setup.embedder.name,
-                )
-            )
         else:
-            # Fallback to Graphiti's Gemini embedder
-            self._embedder = GraphitiGeminiEmbedder(
-                config=GeminiEmbedderConfig(
-                    api_key=self.gemini_config.api_key,
-                    embedding_model=self.gemini_config.embedding_model,
+            self._embedder = create_embedder(
+                config=EmbedderConfig(
+                    embedder_type=EmbedderType.GEMINI,
+                    model_name=self.setup.embedder.name,
+                    description="",
+                ),
+                gemini_api_key=self.gemini_config.api_key,
+            )
+        await self._embedder.initialize()
+        logger.info("TemporalGraphClient ready group_id=%s", self.group_id)
+
+    async def close(self) -> None:
+        if self._db:
+            await self._db.close()
+            self._db = None
+        logger.info("SurrealDB connection closed")
+
+    @property
+    def client(self) -> Any:
+        """Legacy attribute used by some tests; returns self for search routing."""
+        return self
+
+    async def search(
+        self,
+        query: Optional[str] = None,
+        num_results: int = 10,
+        group_ids: Optional[List[str]] = None,
+        **kwargs: Any,
+    ) -> List[SearchResult]:
+        """Semantic search; accepts Graphiti-style keyword args (query=, group_ids=)."""
+        query = query or kwargs.pop("query", None)
+        num_results = int(kwargs.pop("num_results", num_results))
+        group_ids = group_ids or kwargs.pop("group_ids", None)
+        if kwargs:
+            logger.debug("search: ignored extra kwargs %s", list(kwargs.keys()))
+        if not query:
+            raise ValueError("query is required")
+        if self._db is None:
+            raise RuntimeError("Client not initialized")
+        gids = group_ids or [self.group_id]
+        gid = gids[0]
+        if self._embedder is None:
+            raise RuntimeError("Embedder required for search")
+        emb = await self._embedder.embed([query])
+        if not emb.embeddings:
+            raise RuntimeError("Embedding API returned no vectors")
+        qv = list(float(x) for x in emb.embeddings[0])
+        sql = (
+            "SELECT fact_text, entity_names, valid_at, created_at, source_description, "
+            "vector::similarity::cosine(embedding, $qv) AS score "
+            "FROM extracted_fact WHERE group_id = $gid "
+            "ORDER BY score DESC LIMIT $lim"
+        )
+        res = await self._db.query(sql, {"qv": qv, "gid": gid, "lim": num_results})
+        rows = _flatten_query(res)
+        out: List[SearchResult] = []
+        for r in rows:
+            names = r.get("entity_names") or []
+            en = names[0] if isinstance(names, list) and names else None
+            va = r.get("valid_at")
+            ca = r.get("created_at")
+            out.append(
+                SearchResult(
+                    fact=str(r.get("fact_text", "")),
+                    score=float(r.get("score", 0.0)),
+                    entity_name=str(en) if en else None,
+                    created_at=ca if isinstance(ca, datetime) else None,
+                    valid_at=va if isinstance(va, datetime) else None,
+                    source_description=r.get("source_description"),
                 )
             )
-
-        # Initialize LLM client
-        # Note: Graphiti currently only supports GeminiClient internally
-        # We use our custom LLM provider for other use cases
-        if (
-            self.setup
-            and self.setup.llm_extraction
-            and self.setup.llm_extraction.provider != "gemini"
-        ):
-            self._llm_provider = create_llm_provider(
-                provider_type=LLMProviderType(
-                    self.setup.llm_extraction.provider.upper()
-                ),
-                model_name=self.setup.llm_extraction.name,
-            )
-
-        # Graphiti still needs GeminiClient for graph operations
-        # Prefer SETUP config, fallback to gemini_config only if necessary
-        extraction_model = (
-            self.setup.llm_extraction.name
-            if (self.setup and self.setup.llm_extraction)
-            else self.gemini_config.model_hard
-        )
-        small_model = (
-            self.setup.llm_small.name
-            if (self.setup and self.setup.llm_small)
-            else self.gemini_config.model_medium
-        )
-
-        llm_client = GeminiClient(
-            config=LLMConfig(api_key=self.gemini_config.api_key, model=extraction_model)
-        )
-        llm_client.small_model = small_model
-        logger.debug(
-            f"GraphClient initialized with Main: {extraction_model}, Small: {small_model}"
-        )
-
-        # Initialize Neo4j driver
-        self._driver = Neo4jDriver(
-            uri=self.neo4j_config.uri,
-            user=self.neo4j_config.user,
-            password=self.neo4j_config.password,
-            database=self.neo4j_config.database,
-        )
-
-        # Create embedder wrapper for Graphiti if using custom embedder
-        graphiti_embedder = self._create_graphiti_compatible_embedder()
-
-        # Initialize Graphiti client
-        self._client = Graphiti(
-            uri="",  # Ignored when graph_driver is provided
-            user="",
-            password="",
-            graph_driver=self._driver,
-            llm_client=llm_client,
-            embedder=graphiti_embedder,
-            cross_encoder=EmbeddingReranker(graphiti_embedder),
-        )
-
-        # Build indices (idempotent operation)
-        logger.info("Building indices and constraints...")
-        await self._driver.build_indices_and_constraints()
-        logger.info("Initialization complete")
-
-    def _create_graphiti_compatible_embedder(self):
-        """
-        Create an embedder compatible with Graphiti's interface.
-        If using custom embedder, wrap it to match Graphiti's expected interface.
-        """
-        if self._embedder is None:
-            raise RuntimeError("Embedder not initialized")
-
-        if isinstance(self._embedder, GraphitiGeminiEmbedder):
-            return self._embedder
-
-        # Wrap our custom embedder in Graphiti-compatible interface
-        return GraphitiEmbedderWrapper(self._embedder)
-
-    async def close(self):
-        """Close all connections"""
-        if self._driver:
-            await self._driver.close()
-            logger.info("Connections closed")
-
-    @property
-    def client(self) -> Graphiti:
-        """Get underlying Graphiti client"""
-        if self._client is None:
-            raise RuntimeError("Client not initialized. Call initialize() first.")
-        return self._client
-
-    @property
-    def embedder(self) -> Union[GraphitiGeminiEmbedder, BaseEmbedder]:
-        """Get embedder for external use"""
-        if self._embedder is None:
-            raise RuntimeError("Embedder not initialized. Call initialize() first.")
-        return self._embedder
-
-    @property
-    def llm_provider(self) -> Optional[BaseLLMProvider]:
-        """Get LLM provider for external use (may be None if using default Gemini)"""
-        return self._llm_provider
-
-    @property
-    def experiment_name(self) -> str:
-        """Get experiment name"""
-        if self.setup:
-            return self.setup.name
-        return f"default_{self.group_id}"
-
-    # ==========================================================================
-    # INGESTION METHODS
-    # ==========================================================================
+        return out
 
     async def add_episode(
         self,
@@ -354,99 +204,139 @@ class TemporalGraphClient:
         name: str,
         source_description: str,
         reference_time: Optional[datetime] = None,
-        source_type: EpisodeType = EpisodeType.text,
+        source_type: Any = None,
+        group_id: Optional[str] = None,
+        episode_body: Optional[str] = None,
     ) -> str:
-        """
-        Ingest sebuah episode (turn percakapan) ke graph.
+        """Accepts both (content, ...) and Graphiti-style episode_body keyword."""
+        if self._db is None:
+            raise RuntimeError("Client not initialized")
+        body = episode_body if episode_body is not None else content
+        gid = group_id or self.group_id
+        ref = reference_time or datetime.now()
 
-        Args:
-            content: Teks dari turn percakapan
-            name: Nama episode (e.g., "Session 1 Turn 0")
-            source_description: Deskripsi sumber (e.g., "Speaker: user")
-            reference_time: Waktu terjadinya percakapan
-            source_type: Tipe episode
-
-        Returns:
-            Episode UUID
-        """
-        if reference_time is None:
-            reference_time = datetime.now()
-
-        result = await self.client.add_episode(
-            name=name,
-            group_id=self.group_id,
-            episode_body=content,
-            source=source_type,
-            source_description=source_description,
-            reference_time=reference_time,
+        ep_id = str(uuid.uuid4())
+        ep_rid = RecordID("episode", ep_id)
+        await self._db.upsert(
+            ep_rid,
+            {
+                "group_id": gid,
+                "name": name,
+                "body": body,
+                "source_description": source_description,
+                "reference_time": ref,
+            },
         )
 
-        logger.debug(f"Added episode: {name}")
-        return result.uuid if hasattr(result, "uuid") else str(result)  # type: ignore[invalid-return-type]
+        facts = await self._extract_facts(body, ref)
+        if self._embedder is None:
+            logger.warning("No embedder; skipping fact vectors")
+            return ep_id
 
-    async def add_fact(
-        self,
-        fact: str,
-        source_entity: str,
-        target_entity: str,
-        relation_name: str,
-        valid_at: Optional[datetime] = None,
-    ):
-        """
-        Tambahkan fakta terstruktur ke graph.
+        for item in facts:
+            ft = item.get("fact") or item.get("fakta") or ""
+            if not str(ft).strip():
+                continue
+            ents = item.get("entities") or item.get("entitas") or []
+            if not isinstance(ents, list):
+                ents = []
+            va_raw = item.get("valid_at")
+            va = _parse_dt(va_raw) if va_raw else ref
+            emb_res = await self._embedder.embed([str(ft)])
+            if not emb_res.embeddings:
+                continue
+            fv = list(float(x) for x in emb_res.embeddings[0])
+            frid = RecordID("extracted_fact", str(uuid.uuid4()))
+            await self._db.upsert(
+                frid,
+                {
+                    "group_id": gid,
+                    "episode_name": name,
+                    "fact_text": str(ft),
+                    "embedding": fv,
+                    "entity_names": [str(e) for e in ents],
+                    "valid_at": va,
+                    "source_description": source_description,
+                },
+            )
+            for ename in ents:
+                safe_e = re.sub(r"[^a-zA-Z0-9_]", "_", f"{gid}_{ename}")[:180]
+                er = RecordID("entity", safe_e)
+                await self._db.upsert(er, {"group_id": gid, "name": str(ename)})
+        return ep_id
 
-        Args:
-            fact: Statement fakta lengkap
-            source_entity: Nama entity sumber
-            target_entity: Nama entity target
-            relation_name: Nama relasi (e.g., "bekerja_di", "teman_dengan")
-            valid_at: Kapan fakta ini valid
-        """
-        # TODO: Implement direct fact insertion via Cypher
-        # For now, we rely on Graphiti's automatic extraction
-        pass
+    async def _extract_facts(self, body: str, reference_time: datetime) -> List[Dict[str, Any]]:
+        """Single-pass JSON fact extraction (Indonesian)."""
+        prompt = f"""Anda mengekstrak fakta atomik dari percakapan berikut (Bahasa Indonesia).
+Waktu referensi (ISO): {reference_time.isoformat()}
 
-    # ==========================================================================
-    # RETRIEVAL METHODS
-    # ==========================================================================
+Keluarkan HANYA JSON array valid tanpa markdown, bentuk:
+[{{"fact": "...", "entities": ["..."], "valid_at": "ISO8601 atau null"}}]
 
-    async def search(
-        self, query: str, num_results: int = 10, group_ids: Optional[List[str]] = None
-    ) -> List[SearchResult]:
-        """
-        Semantic search di knowledge graph.
+Aturan:
+- Setiap elemen array satu fakta mandiri.
+- entities berisi nama entitas yang disebutkan untuk fakta tersebut.
+- valid_at gunakan null jika tidak jelas.
 
-        Args:
-            query: Query string
-            num_results: Jumlah hasil yang diinginkan
-            group_ids: Filter by group IDs (default: current group)
+Teks percakapan:
+---
+{body[:120_000]}
+---
+"""
+        if self.setup and self.setup.llm_extraction and self.setup.llm_extraction.provider == "novita":
+            from openai import AsyncOpenAI
 
-        Returns:
-            List of SearchResult
-        """
-        if group_ids is None:
-            group_ids = [self.group_id]
+            cfg = get_config().novita
+            if not cfg.is_configured():
+                raise ValueError("NOVITAAI_API_KEY required for Gemma extraction")
+            client = AsyncOpenAI(api_key=cfg.api_key, base_url=cfg.base_url)
+            resp = await client.chat.completions.create(
+                model=self.setup.llm_extraction.name,
+                messages=[{"role": "user", "content": prompt}],
+                temperature=0.2,
+                max_tokens=8192,
+            )
+            text = (resp.choices[0].message.content or "").strip()
+        else:
+            from google import genai
+            from google.genai import types as genai_types
 
-        results = await self.client.search(
-            group_ids=group_ids, query=query, num_results=num_results
-        )
+            client = genai.Client(api_key=self.gemini_config.api_key)
+            model_name = (
+                self.setup.llm_extraction.name
+                if self.setup and self.setup.llm_extraction
+                else self.gemini_config.model_medium
+            )
+            loop = asyncio.get_running_loop()
 
-        return (
-            [
-                SearchResult(
-                    fact=r.fact,
-                    score=getattr(r, "score", 0.0),
-                    entity_name=getattr(r, "entity_name", None),
-                    created_at=getattr(r, "created_at", None),
-                    valid_at=getattr(r, "valid_at", None),
-                    source_description=getattr(r, "source_description", None),
-                    metadata={},
+            def _call():
+                return client.models.generate_content(
+                    model=model_name,
+                    contents=prompt,
+                    config=genai_types.GenerateContentConfig(
+                        temperature=0.2, max_output_tokens=8192
+                    ),
                 )
-                for r in results
-            ]
-            if results
-            else []
-        )
+
+            resp = await loop.run_in_executor(None, _call)
+            text = (resp.text or "").strip()
+
+        cleaned = _strip_json_fence(text)
+        try:
+            data = json.loads(cleaned)
+        except json.JSONDecodeError:
+            logger.warning("Fact JSON parse failed; storing raw episode only")
+            return [{"fact": body[:2000], "entities": [], "valid_at": None}]
+        if isinstance(data, dict):
+            for k in ("facts", "items", "data"):
+                if k in data and isinstance(data[k], list):
+                    data = data[k]
+                    break
+            else:
+                data = [data]
+        if not isinstance(data, list):
+            return [{"fact": body[:2000], "entities": [], "valid_at": None}]
+        return [x for x in data if isinstance(x, dict)]
 
     async def search_with_temporal_filter(
         self,
@@ -455,23 +345,8 @@ class TemporalGraphClient:
         after: Optional[datetime] = None,
         num_results: int = 10,
     ) -> List[SearchResult]:
-        """
-        Semantic search dengan filter temporal.
-
-        Args:
-            query: Query string
-            before: Filter fakta yang terjadi sebelum tanggal ini
-            after: Filter fakta yang terjadi setelah tanggal ini
-            num_results: Jumlah hasil
-
-        Returns:
-            Filtered search results
-        """
-        # Get all results first
         results = await self.search(query, num_results=num_results * 2)
-
-        # Apply temporal filter
-        filtered = []
+        filtered: List[SearchResult] = []
         for r in results:
             if r.valid_at:
                 if before and r.valid_at > before:
@@ -479,126 +354,87 @@ class TemporalGraphClient:
                 if after and r.valid_at < after:
                     continue
             filtered.append(r)
-
         return filtered[:num_results]
 
-    async def get_entity_facts(
-        self, entity_name: str, limit: int = 20
-    ) -> List[SearchResult]:
-        """
-        Ambil semua fakta yang terkait dengan entity tertentu.
-
-        Args:
-            entity_name: Nama entity
-            limit: Maksimum hasil
-
-        Returns:
-            List of facts about the entity
-        """
-        try:
-            # Note: Neo4jDriver.execute_query only takes query string
-            gid = self.group_id.replace("'", "\\'")
-            name = entity_name.replace("'", "\\'")
-
-            assert self._driver is not None
-            query_str = (
-                f"MATCH (e:Entity {{name: '{name}', group_id: '{gid}'}})-[r:RELATES_TO]-(other) "
-                f"RETURN r.fact as fact, r.created_at as created_at, r.valid_at as valid_at "
-                f"LIMIT {limit}"
-            )
-            results = await self._driver.execute_query(query_str)  # type: ignore[invalid-argument-type]
-
-            return [
-                SearchResult(
-                    fact=r["fact"],  # type: ignore[invalid-argument-type,not-subscriptable]
-                    score=1.0,
-                    entity_name=entity_name,
-                    created_at=r.get("created_at"),  # type: ignore[unresolved-attribute]
-                    valid_at=r.get("valid_at"),  # type: ignore[unresolved-attribute]
-                )
-                for r in results
-            ]
-        except Exception as e:
-            logger.warning(f"Error getting entity facts: {e}")
+    async def get_entity_facts(self, entity_name: str, limit: int = 20) -> List[SearchResult]:
+        if self._db is None:
             return []
-
-    # ==========================================================================
-    # UTILITY METHODS
-    # ==========================================================================
+        sql = (
+            "SELECT fact_text, valid_at, created_at FROM extracted_fact "
+            "WHERE group_id = $gid AND array::contains(entity_names, $name) LIMIT $lim"
+        )
+        try:
+            res = await self._db.query(
+                sql, {"gid": self.group_id, "name": entity_name, "lim": limit}
+            )
+        except Exception as e:
+            logger.warning("get_entity_facts query failed: %s", e)
+            return []
+        rows = _flatten_query(res)
+        return [
+            SearchResult(
+                fact=str(r.get("fact_text", "")),
+                score=1.0,
+                entity_name=entity_name,
+                created_at=r.get("created_at") if isinstance(r.get("created_at"), datetime) else None,
+                valid_at=r.get("valid_at") if isinstance(r.get("valid_at"), datetime) else None,
+            )
+            for r in rows
+        ]
 
     async def get_stats(self) -> Dict[str, int]:
-        """Get statistics about the graph"""
-        try:
-            # Note: Neo4jDriver.execute_query only takes query string
-            # Parameters are embedded in the query for simplicity
-            gid = self.group_id.replace("'", "\\'")
-
-            assert self._driver is not None
-            entity_count = await self._driver.execute_query(
-                f"MATCH (e:Entity {{group_id: '{gid}'}}) RETURN count(e) as count"  # type: ignore[invalid-argument-type]
-            )
-
-            edge_count = await self._driver.execute_query(
-                f"MATCH ()-[r:RELATES_TO {{group_id: '{gid}'}}]->() RETURN count(r) as count"  # type: ignore[invalid-argument-type]
-            )
-
-            episode_count = await self._driver.execute_query(
-                f"MATCH (e:Episodic {{group_id: '{gid}'}}) RETURN count(e) as count"  # type: ignore[invalid-argument-type]
-            )
-
-            return {
-                "entities": self._extract_count(entity_count),
-                "edges": self._extract_count(edge_count),
-                "episodes": self._extract_count(episode_count),
-            }
-        except Exception as e:
-            logger.error(f"Error getting stats: {e}")
+        if self._db is None:
             return {"entities": 0, "edges": 0, "episodes": 0}
+        db = self._db
+        gid = self.group_id
 
-    def _extract_count(self, result) -> int:
-        """Extract count from various result formats"""
-        try:
-            if result is None:
-                return 0
-            if isinstance(result, int):
-                return result
-            if isinstance(result, list) and len(result) > 0:
-                first = result[0]
-                if isinstance(first, dict):
-                    return first.get("count", 0)
-                if hasattr(first, "count"):
-                    return first.count
-            if hasattr(result, "single"):
-                record = result.single()
-                return record["count"] if record else 0
-            return 0
-        except Exception:
+        async def _cnt(table: str) -> int:
+            q = f"SELECT count() AS c FROM {table} WHERE group_id = $gid GROUP ALL"
+            try:
+                res = await db.query(q, {"gid": gid})
+                rows = _flatten_query(res)
+                if rows and rows[0].get("c") is not None:
+                    return int(rows[0]["c"])
+            except Exception as e:
+                logger.debug("count %s: %s", table, e)
             return 0
 
-    async def clear_group(self):
-        """Clear all data for current group_id"""
-        logger.warning(f"Clearing all data for group: {self.group_id}")
-        gid = self.group_id.replace("'", "\\'")
+        ent = await _cnt("entity")
+        ep = await _cnt("episode")
+        facts = await _cnt("extracted_fact")
+        return {"entities": ent, "edges": facts, "episodes": ep, "facts": facts}
 
-        assert self._driver is not None
-        await self._driver.execute_query(
-            f"MATCH (n {{group_id: '{gid}'}}) DETACH DELETE n"  # type: ignore[invalid-argument-type]
-        )
+    async def clear_group(self) -> None:
+        if self._db is None:
+            await self.initialize()
+        assert self._db is not None
+        gid = self.group_id
+        for table in ("extracted_fact", "episode", "entity"):
+            await self._db.query(f"DELETE FROM {table} WHERE group_id = $gid", {"gid": gid})
+        logger.warning("Cleared SurrealDB data for group_id=%s", gid)
 
 
-# Convenience function for quick testing
-async def test_connection():
-    """Test Neo4j connection"""
+def _parse_dt(val: Any) -> Optional[datetime]:
+    if val is None:
+        return None
+    if isinstance(val, datetime):
+        return val
+    try:
+        s = str(val).replace("Z", "+00:00")
+        return datetime.fromisoformat(s)
+    except Exception:
+        return None
+
+
+async def test_connection() -> bool:
     client = TemporalGraphClient()
     try:
         await client.initialize()
         stats = await client.get_stats()
-        print(f"✅ Connection successful!")
-        print(f"   Group ID: {client.group_id}")
-        print(f"   Stats: {stats}")
+        print("Connection OK", client.group_id, stats)
         return True
     except Exception as e:
-        print(f"❌ Connection failed: {e}")
+        print("Connection failed", e)
         return False
     finally:
         await client.close()

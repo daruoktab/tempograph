@@ -2,7 +2,7 @@
 """
 Vanilla Retriever
 =================
-Simple pure vector similarity search menggunakan ChromaDB.
+Simple pure vector similarity search menggunakan SurrealDB.
 Digunakan sebagai baseline comparison untuk Agentic RAG.
 
 Perbedaan dengan Agentic:
@@ -16,7 +16,6 @@ Perbedaan dengan Agentic:
 
 import logging
 import asyncio
-from datetime import datetime
 from typing import List, Dict, Any, Optional
 from dataclasses import dataclass, field
 
@@ -43,7 +42,7 @@ class VanillaRetrievalResult:
 
 class VanillaRetriever:
     """
-    Simple pure vector retriever using ChromaDB.
+    Simple pure vector retriever using SurrealDB.
 
     Flow:
     1. Embed query
@@ -64,7 +63,7 @@ class VanillaRetriever:
         Initialize Vanilla Retriever.
 
         Args:
-            chroma_db: ChromaDB client
+            chroma_db: Vector store client (SurrealVanillaVectorDB; param name legacy)
             settings: Retrieval settings (top-k, threshold)
             setup: Experiment setup for model configuration
         """
@@ -95,17 +94,17 @@ class VanillaRetriever:
         if self.setup and self.setup.reranker_type == "llm":
             from .llm_reranker import LLMReranker
 
-            self._llm_reranker = LLMReranker(model_name=self.setup.reranker.name)  # type: ignore[possibly-missing-attribute]
+            rr = self.setup.reranker
+            assert rr is not None, "LLM reranking requires setup.reranker"
+            self._llm_reranker = LLMReranker(model_name=rr.name)
             await self._llm_reranker.initialize()
-            logger.info(
-                f"Vanilla Retriever initialized with LLM reranker: {self.setup.reranker.name}"  # type: ignore[possibly-missing-attribute]
-            )
+            logger.info(f"Vanilla Retriever initialized with LLM reranker: {rr.name}")
         else:
             logger.info("Vanilla Retriever initialized with embedding-based reranker")
 
     async def retrieve(self, query: str) -> VanillaRetrievalResult:
         """
-        Simple single-shot retrieval from ChromaDB.
+        Simple single-shot retrieval from SurrealDB.
 
         Args:
             query: Query string
@@ -174,7 +173,7 @@ class VanillaRetriever:
             query=query,
             metadata={
                 "retriever_type": "vanilla",
-                "storage_type": "chromadb",
+                "storage_type": "surrealdb",
                 "collection": self.db.collection_name,
                 "embedding_top_k": self.settings.embedding_top_k,
                 "rerank_top_k": self.settings.rerank_top_k,
@@ -287,7 +286,7 @@ async def test_vanilla_retriever():
 
         # Check if collection has data
         doc_count = retriever.db.count()
-        print(f"\n✅ Retriever initialized")
+        print("\n✅ Retriever initialized")
         print(f"   Collection: {retriever.db.collection_name}")
         print(f"   Documents: {doc_count}")
 
@@ -303,7 +302,7 @@ async def test_vanilla_retriever():
         print(f"   Results found: {len(result.results)}")
         print(f"   Metadata: {result.metadata}")
 
-        print(f"\n   Top 3 results:")
+        print("\n   Top 3 results:")
         for i, r in enumerate(result.results[:3]):
             print(f"   {i + 1}. [{r.score:.3f}] {r.text[:60]}...")
 

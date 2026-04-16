@@ -7,14 +7,40 @@ import re
 import sys
 import time
 from datetime import date, datetime, timedelta
+from typing import Any, cast
 
 sys.path.insert(0, ".")
-from src.utils import run_gemini, set_gemini_key, set_token_log_path, log_token_usage
+from src.utils import (
+    run_gemini,
+    set_gemini_key,
+    set_token_log_path,
+    log_token_usage,
+    get_gemini_client,
+)
 
-# Import for structured outputs and safety settings
-from google.generativeai.generative_models import GenerativeModel
-from google.generativeai import caching
-from google.generativeai.types import HarmCategory, HarmBlockThreshold
+# Gemini (google-genai SDK)
+from google.genai import types as genai_types
+
+
+def _gemini_safety_none():
+    return [
+        genai_types.SafetySetting(
+            category=genai_types.HarmCategory.HARM_CATEGORY_HATE_SPEECH,
+            threshold=genai_types.HarmBlockThreshold.BLOCK_NONE,
+        ),
+        genai_types.SafetySetting(
+            category=genai_types.HarmCategory.HARM_CATEGORY_HARASSMENT,
+            threshold=genai_types.HarmBlockThreshold.BLOCK_NONE,
+        ),
+        genai_types.SafetySetting(
+            category=genai_types.HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT,
+            threshold=genai_types.HarmBlockThreshold.BLOCK_NONE,
+        ),
+        genai_types.SafetySetting(
+            category=genai_types.HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT,
+            threshold=genai_types.HarmBlockThreshold.BLOCK_NONE,
+        ),
+    ]
 
 # --- Configuration ---
 logging.basicConfig(
@@ -549,24 +575,20 @@ def generate_events(user_profile, secondary_personas, start_date, num_days, num_
         )
 
         try:
-            # Use structured outputs with safety settings
-            safety_settings = {
-                HarmCategory.HARM_CATEGORY_HATE_SPEECH: HarmBlockThreshold.BLOCK_NONE,
-                HarmCategory.HARM_CATEGORY_HARASSMENT: HarmBlockThreshold.BLOCK_NONE,
-                HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT: HarmBlockThreshold.BLOCK_NONE,
-                HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT: HarmBlockThreshold.BLOCK_NONE,
-            }
-
-            model = GenerativeModel("gemini-2.5-flash")
-            response = model.generate_content(
-                prompt,
-                generation_config={
-                    "temperature": 0.8,
-                    "max_output_tokens": 8192,
-                    "response_mime_type": "application/json",
-                    "response_schema": event_schema,
-                },
-                safety_settings=safety_settings,
+            gclient = get_gemini_client()
+            response = gclient.models.generate_content(
+                model="gemini-2.5-flash",
+                contents=prompt,
+                config=cast(
+                    Any,
+                    {
+                        "temperature": 0.8,
+                        "max_output_tokens": 8192,
+                        "response_mime_type": "application/json",
+                        "response_schema": event_schema,
+                        "safety_settings": _gemini_safety_none(),
+                    },
+                ),
             )
 
             if not response or not response.text:
@@ -826,23 +848,20 @@ JSON format (return ONLY JSON array):
         )
 
         try:
-            safety_settings = {
-                HarmCategory.HARM_CATEGORY_HATE_SPEECH: HarmBlockThreshold.BLOCK_NONE,
-                HarmCategory.HARM_CATEGORY_HARASSMENT: HarmBlockThreshold.BLOCK_NONE,
-                HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT: HarmBlockThreshold.BLOCK_NONE,
-                HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT: HarmBlockThreshold.BLOCK_NONE,
-            }
-
-            model = GenerativeModel("gemini-2.5-flash")
-            response = model.generate_content(
-                prompt,
-                generation_config={
-                    "response_mime_type": "application/json",
-                    "response_schema": event_schema,
-                    "temperature": 0.8,
-                    "max_output_tokens": 8192,
-                },
-                safety_settings=safety_settings,
+            gclient = get_gemini_client()
+            response = gclient.models.generate_content(
+                model="gemini-2.5-flash",
+                contents=prompt,
+                config=cast(
+                    Any,
+                    {
+                        "response_mime_type": "application/json",
+                        "response_schema": event_schema,
+                        "temperature": 0.8,
+                        "max_output_tokens": 8192,
+                        "safety_settings": _gemini_safety_none(),
+                    },
+                ),
             )
 
             # --- LOG TOKEN USAGE ---
@@ -851,19 +870,21 @@ JSON format (return ONLY JSON array):
             # -----------------------
 
             # Check if response was blocked
-            if not response.candidates or not response.candidates[0].content.parts:
-                finish_reason = (
-                    response.candidates[0].finish_reason
-                    if response.candidates
-                    else "UNKNOWN"
-                )
+            cand0 = response.candidates[0] if response.candidates else None
+            has_parts = bool(
+                cand0
+                and cand0.content
+                and cand0.content.parts
+            )
+            if not response.candidates or not has_parts:
+                finish_reason = cand0.finish_reason if cand0 else "UNKNOWN"
                 logging.warning(
                     f"Response blocked or empty (finish_reason={finish_reason}). Retrying with adjusted prompt..."
                 )
                 # Try again with next attempt
                 continue
 
-            new_events = json.loads(response.text)
+            new_events = json.loads(response.text or "[]")
 
             # Validate new events
             valid_events = []
@@ -1333,19 +1354,18 @@ HANYA return JSON, tidak ada text lain.
 """
 
     try:
-        # EASY difficulty: Information extraction per turn
-        safety_settings = {
-            HarmCategory.HARM_CATEGORY_HATE_SPEECH: HarmBlockThreshold.BLOCK_NONE,
-            HarmCategory.HARM_CATEGORY_HARASSMENT: HarmBlockThreshold.BLOCK_NONE,
-            HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT: HarmBlockThreshold.BLOCK_NONE,
-            HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT: HarmBlockThreshold.BLOCK_NONE,
-        }
-
-        model = GenerativeModel("gemini-2.5-flash-lite")
-        response = model.generate_content(
-            prompt,
-            generation_config={"temperature": 0.3, "max_output_tokens": 4096},
-            safety_settings=safety_settings,
+        gclient = get_gemini_client()
+        response = gclient.models.generate_content(
+            model="gemini-2.5-flash-lite",
+            contents=prompt,
+            config=cast(
+                Any,
+                {
+                    "temperature": 0.3,
+                    "max_output_tokens": 4096,
+                    "safety_settings": _gemini_safety_none(),
+                },
+            ),
         )
 
         if not response or not response.text:
@@ -1602,6 +1622,16 @@ def generate_ground_truth_annotations(
     return main_output
 
 
+def _normalize_conversation_sessions(ch: dict[str, Any]) -> list[dict[str, Any]]:
+    """Ensure ``sessions`` is a list of dicts after ``json.load`` or empty initialization."""
+    raw = ch.get("sessions")
+    if not isinstance(raw, list):
+        ch["sessions"] = []
+    else:
+        ch["sessions"] = [x for x in raw if isinstance(x, dict)]
+    return cast(list[dict[str, Any]], ch["sessions"])
+
+
 def main():
     args = parse_args()
 
@@ -1611,7 +1641,7 @@ def main():
     # Set token log path to be inside the output directory
     set_token_log_path(args.out_dir)
 
-    conversation_history = {}
+    conversation_history: dict[str, Any] = {}
     events = []
     start_session_id = 1
     start_date = datetime.strptime(args.start_date, "%Y-%m-%d").date()
@@ -1901,18 +1931,22 @@ def main():
         )
 
         try:
-            # Create cache with 60 minute TTL
-            cached_content = caching.CachedContent.create(
-                model="models/gemini-2.5-pro",
-                display_name="locomo_static_context",
-                system_instruction=static_prompt_content,
-                ttl=timedelta(minutes=60),
+            gclient = get_gemini_client()
+            cached_content = gclient.caches.create(
+                model="gemini-2.5-pro",
+                config={
+                    "display_name": "locomo_static_context",
+                    "system_instruction": static_prompt_content,
+                    "ttl": "3600s",
+                },
             )
             logging.info(f"✅ Cache created: {cached_content.name} (TTL: 60 mins)")
         except Exception as e:
             logging.error(f"Failed to create cache: {e}")
             logging.warning("Falling back to standard generation without caching.")
             cached_content = None
+
+    sessions_acc = _normalize_conversation_sessions(conversation_history)
 
     # --- Generation Loop for New Sessions ---
     for i, session_date in enumerate(new_session_dates):
@@ -1925,8 +1959,8 @@ def main():
         current_datetime_str = current_datetime.strftime("%d %B %Y, %H:%M")
 
         last_session_date = (
-            date.fromisoformat(conversation_history["sessions"][-1]["date"])  # type: ignore[invalid-argument-type]
-            if conversation_history["sessions"]
+            date.fromisoformat(str(sessions_acc[-1]["date"]))
+            if sessions_acc
             else None
         )
         relevant_events = get_relevant_events(events, session_date, last_session_date)
@@ -1954,7 +1988,7 @@ def main():
             "summary": session_summary,
             "relevant_events": relevant_events,
         }
-        conversation_history["sessions"].append(session_data)  # type: ignore[possibly-missing-attribute,invalid-argument-type]
+        sessions_acc.append(session_data)
 
         if cumulative_summary:
             cumulative_summary += (
@@ -1978,19 +2012,19 @@ def main():
     logging.info("Saved complete dataset to %s", output_file)
 
     # Calculate and log event density metrics
-    calculate_event_density(events, conversation_history["sessions"])
+    calculate_event_density(events, sessions_acc)
 
-    total_turns = sum(len(s["turns"]) for s in conversation_history["sessions"])  # type: ignore[invalid-argument-type,not-iterable]
+    total_turns = sum(len(s["turns"]) for s in sessions_acc)
     separator = "=" * 60
     print(f"\n{separator}")
     print("DATASET GENERATION COMPLETED")
     print(separator)
     print(f"User: {user_profile['name']}")
-    print(f"Total sessions in file: {len(conversation_history['sessions'])}")
+    print(f"Total sessions in file: {len(sessions_acc)}")
     print(f"New sessions generated: {args.num_sessions}")
     print(f"Total turns in file: {total_turns}")
     print(
-        f"Date range: {conversation_history['sessions'][0]['date']} to {conversation_history['sessions'][-1]['date']}"  # type: ignore[invalid-argument-type]
+        f"Date range: {sessions_acc[0]['date']} to {sessions_acc[-1]['date']}"
     )
     print(f"Total events: {len(events)}")
     print(f"Output saved to: {output_file}")

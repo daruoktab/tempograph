@@ -5,17 +5,17 @@ Experiment Setups untuk Evaluasi RAG System
 
 4 Setup dengan 4 DATABASE TERPISAH:
 
-VANILLA RAG (ChromaDB - Pure Vector):
-- Setup 1V: vanilla_gemini (ChromaDB collection)
-- Setup 2V: vanilla_gemma (ChromaDB collection)
+VANILLA RAG (SurrealDB - Pure Vector):
+- Setup 1V: vanilla_gemini (collection field)
+- Setup 2V: vanilla_gemma (collection field)
 
-AGENTIC RAG (Neo4j - Graph + Vector):
-- Setup 1A: agentic_gemini (Neo4j group_id)
-- Setup 2A: agentic_gemma (Neo4j group_id)
+AGENTIC RAG (SurrealDB - Graph + Vector):
+- Setup 1A: agentic_gemini (group_id)
+- Setup 2A: agentic_gemma (group_id)
 
 KEY DIFFERENCES:
-- Vanilla: Raw sessions → embed → ChromaDB → vector search
-- Agentic: Raw sessions → LLM extract facts → embed → Neo4j → graph + vector search
+- Vanilla: Raw sessions → embed → SurrealDB → vector search
+- Agentic: Raw sessions → LLM extract facts → embed → SurrealDB → graph + vector search
 
 INGESTION UNIT: Per-Session (bukan per-turn)
 - Real-world: dalam 1 sesi, semua turns masih di context window
@@ -42,8 +42,8 @@ class SetupType(str, Enum):
 class RAGType(str, Enum):
     """Type of RAG system"""
 
-    VANILLA = "vanilla"  # Pure vector search (ChromaDB)
-    AGENTIC = "agentic"  # Graph + vector (Neo4j)
+    VANILLA = "vanilla"  # Pure vector search (SurrealDB)
+    AGENTIC = "agentic"  # Graph + vector (SurrealDB)
 
 
 class ModelStack(str, Enum):
@@ -56,8 +56,7 @@ class ModelStack(str, Enum):
 class StorageType(str, Enum):
     """Storage backend type"""
 
-    CHROMADB = "chromadb"  # For Vanilla RAG
-    NEO4J = "neo4j"  # For Agentic RAG
+    SURREAL = "surreal"
 
 
 # =============================================================================
@@ -113,11 +112,9 @@ class StorageConfig:
     """Storage configuration"""
 
     storage_type: StorageType
-    # For ChromaDB
-    collection_name: Optional[str] = None
-    persist_directory: str = CHROMA_PERSIST_DIR
-    # For Neo4j
-    group_id: Optional[str] = None
+    collection_name: Optional[str] = None  # Vanilla: logical collection
+    persist_directory: str = CHROMA_PERSIST_DIR  # Legacy; Surreal ignores
+    group_id: Optional[str] = None  # Agentic: partition key
 
 
 @dataclass
@@ -296,7 +293,7 @@ SETUP_1V_VANILLA_GEMINI = ExperimentSetup(
     model_stack=ModelStack.GEMINI,
     description="Vanilla RAG with Gemini embedding - pure vector search, no graph",
     storage=StorageConfig(
-        storage_type=StorageType.CHROMADB,
+        storage_type=StorageType.SURREAL,
         collection_name=CHROMA_COLLECTIONS[SetupType.VANILLA_GEMINI],
         persist_directory=CHROMA_PERSIST_DIR,
     ),
@@ -320,7 +317,7 @@ SETUP_2V_VANILLA_GEMMA = ExperimentSetup(
     model_stack=ModelStack.GEMMA,
     description="Vanilla RAG with Gemma embedding - pure vector search, no graph",
     storage=StorageConfig(
-        storage_type=StorageType.CHROMADB,
+        storage_type=StorageType.SURREAL,
         collection_name=CHROMA_COLLECTIONS[SetupType.VANILLA_GEMMA],
         persist_directory=CHROMA_PERSIST_DIR,
     ),
@@ -344,7 +341,7 @@ SETUP_2A_AGENTIC_GEMMA = ExperimentSetup(
     model_stack=ModelStack.GEMMA,
     description="Agentic RAG with Gemma 3 27B IT via Novita AI - graph + vector, iterative retrieval",
     storage=StorageConfig(
-        storage_type=StorageType.NEO4J,
+        storage_type=StorageType.SURREAL,
         group_id=NEO4J_GROUP_IDS[SetupType.AGENTIC_GEMMA],
     ),
     embedder=GEMMA_EMBEDDER,
@@ -368,7 +365,7 @@ SETUP_1A_AGENTIC_GEMINI = ExperimentSetup(
     model_stack=ModelStack.GEMINI,
     description="Agentic RAG with Gemini 2.5 Flash - high-detail fact extraction",
     storage=StorageConfig(
-        storage_type=StorageType.NEO4J,
+        storage_type=StorageType.SURREAL,
         group_id=NEO4J_GROUP_IDS[SetupType.AGENTIC_GEMINI],
     ),
     embedder=GEMINI_EMBEDDER,
@@ -392,7 +389,7 @@ SETUP_1H_HYBRID_GEMINI = ExperimentSetup(
     description="Hybrid RAG: Agentic Graph + Vanilla Vector combined",
     # Primary Storage (Graph) - shares with SETUP_1A
     storage=StorageConfig(
-        storage_type=StorageType.NEO4J,
+        storage_type=StorageType.SURREAL,
         group_id=NEO4J_GROUP_IDS[SetupType.AGENTIC_GEMINI],
     ),
     embedder=GEMINI_EMBEDDER,
@@ -416,7 +413,7 @@ SETUP_2H_HYBRID_GEMMA = ExperimentSetup(
     description="Hybrid RAG: Agentic Graph (Gemma via Novita) + Vanilla Vector combined",
     # Primary Storage (Graph) - shares with SETUP_2A
     storage=StorageConfig(
-        storage_type=StorageType.NEO4J,
+        storage_type=StorageType.SURREAL,
         group_id=NEO4J_GROUP_IDS[SetupType.AGENTIC_GEMMA],
     ),
     embedder=GEMMA_EMBEDDER,  # HuggingFace local
@@ -545,7 +542,7 @@ def print_database_info() -> None:
 │                              DATABASE CONFIGURATION                                         │
 ├─────────────────────────────────────────────────────────────────────────────────────────────┤
 │                                                                                             │
-│  CHROMADB (Vanilla RAG)                                                                    │
+│  SurrealDB — vanilla_chunk (Vanilla RAG)                                                   │
 │  ══════════════════════                                                                    │
 │  Location: ./data/chroma/                                                                  │
 │                                                                                             │
@@ -558,9 +555,9 @@ def print_database_info() -> None:
 │  │  • Metadata: session_id, turn_count │  │  • Metadata: session_id, turn_count │          │
 │  └─────────────────────────────────────┘  └─────────────────────────────────────┘          │
 │                                                                                             │
-│  NEO4J (Agentic RAG)                                                                       │
+│  SurrealDB — episode / extracted_fact (Agentic RAG)                                      │
 │  ═══════════════════                                                                       │
-│  Connection: bolt://localhost:7687                                                          │
+│  Connection: SURREAL_URL (default ws://127.0.0.1:8000)                                     │
 │                                                                                             │
 │  ┌─────────────────────────────────────┐  ┌─────────────────────────────────────┐          │
 │  │  Group ID: agentic_gemini           │  │  Group ID: agentic_gemma            │          │

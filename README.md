@@ -64,13 +64,13 @@ Sistem RAG dengan arsitektur agentic yang mengintegrasikan:
     ┌─────────────┐ ┌─────────────┐ ┌─────────────┐
     │   Vector    │ │  Temporal   │ │   Entity    │
     │   Search    │ │   Filter    │ │    Lookup   │
-    │  (ChromaDB) │ │   (Neo4j)   │ │   (Graph)   │
+    │ (SurrealDB) │ │ (SurrealDB) │ │ (SurrealDB) │
     └─────────────┘ └─────────────┘ └─────────────┘
             │               │               │
             └───────────────┼───────────────┘
                             ▼
 ┌─────────────────────────────────────────────────────────────┐
-│              Temporal Knowledge Graph (Neo4j)               │
+│           Temporal Knowledge Graph (SurrealDB)              │
 │  Nodes: Entity, Episode, Fact                               │
 │  Edges: RELATES_TO, CAUSED_BY, VALID_FROM, VALID_TO        │
 └─────────────────────────────────────────────────────────────┘
@@ -107,12 +107,16 @@ pending/
 git clone https://github.com/username/pending.git
 cd pending
 
-# Install dependencies
-pip install -r requirements.txt
+# 1) Buat environment Conda (nama: porto-skripsi), lalu aktifkan
+conda env create -f environment.yml
+conda activate porto-skripsi
+
+# 2) Pasang / upgrade dependensi Python dengan uv (setelah env aktif)
+uv pip install -U -r requirements.txt
 
 # Setup environment variables
 cp .env.example .env
-# Edit .env with your API keys
+# Edit .env with your API keys and SurrealDB (SURREAL_*)
 ```
 
 ### Generate Dataset
@@ -142,9 +146,11 @@ python scripts/evaluate.py --setup agentic --queries 100
 ```bash
 # .env
 GEMINI_API_KEY=your-gemini-api-key
-NEO4J_URI=bolt://localhost:7687
-NEO4J_USER=neo4j
-NEO4J_PASSWORD=your-password
+SURREAL_URL=ws://127.0.0.1:8000
+SURREAL_USER=root
+SURREAL_PASS=your-password
+SURREAL_NS=skripsi
+SURREAL_DB=pending
 ```
 
 ### Model Configuration
@@ -165,7 +171,7 @@ The system is evaluated using:
 ## 📚 References
 
 - Adapted from [LOCOMO Framework](https://github.com/ServiceNow/LOCOMO)
-- Uses [Graphiti](https://github.com/getzep/graphiti) for TKG management
+- Persists temporal graph + vectors in **SurrealDB** (replacing Graphiti/Neo4j/Chroma in this branch)
 - Powered by Google Gemini 2.5 models
 
 ## 📄 License

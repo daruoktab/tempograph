@@ -7,7 +7,7 @@ Supports structured output via JSON schema.
 """
 
 import asyncio
-from typing import List, Optional, Dict, Any
+from typing import List, Optional, Dict, Any, cast
 import logging
 
 from .base import BaseLLMProvider, LLMProviderType, LLMResponse, Message
@@ -67,31 +67,29 @@ class NovitaProvider(BaseLLMProvider):
         """Generate using Novita AI (OpenAI-compatible) API"""
         if self._client is None:
             raise RuntimeError("Provider not initialized")
+        client = self._client
 
         # Convert messages to OpenAI format
-        openai_messages = []
+        openai_messages: List[Dict[str, Any]] = []
         for msg in messages:
             openai_messages.append({"role": msg.role, "content": msg.content})
 
-        # Build request params
-        request_params = {
-            "model": self.model,
-            "messages": openai_messages,
-            "temperature": temperature or self.temperature,
-            "max_tokens": max_tokens or self.max_tokens,
-        }
+        t = temperature if temperature is not None else self.temperature
+        mt = max_tokens if max_tokens is not None else self.max_tokens
 
-        # Add response format for structured output if provided
-        if response_format:
-            request_params["response_format"] = response_format
+        def _sync_create() -> Any:
+            kwargs: Dict[str, Any] = {
+                "model": self.model,
+                "messages": openai_messages,
+                "temperature": t,
+                "max_tokens": mt,
+            }
+            if response_format is not None:
+                kwargs["response_format"] = response_format
+            return cast(Any, client).chat.completions.create(**kwargs)
 
-        # Generate
         loop = asyncio.get_event_loop()
-        assert self._client is not None
-        response = await loop.run_in_executor(
-            None,
-            lambda: self._client.chat.completions.create(**request_params),  # type: ignore[no-matching-overload]
-        )
+        response = await loop.run_in_executor(None, _sync_create)
 
         # Extract usage
         prompt_tokens = response.usage.prompt_tokens if response.usage else 0
@@ -103,8 +101,9 @@ class NovitaProvider(BaseLLMProvider):
             prompt_tokens * pricing["input"] + completion_tokens * pricing["output"]
         ) / 1_000_000
 
+        raw_content = response.choices[0].message.content
         return LLMResponse(
-            content=response.choices[0].message.content,
+            content=raw_content if raw_content is not None else "",
             model=self.model,
             provider=self.provider_type,
             prompt_tokens=prompt_tokens,
@@ -120,16 +119,3 @@ class NovitaProvider(BaseLLMProvider):
         """Cleanup"""
         self._client = None
 
-    def get_graphiti_client(self):
-        """
-        Return a Graphiti-compatible LLM client for Novita AI.
-        Uses OpenAIGenericClient since Novita AI is OpenAI-compatible.
-        """
-        from graphiti_core.llm_client.openai_generic_client import OpenAIGenericClient
-        from graphiti_core.llm_client.config import LLMConfig
-
-        return OpenAIGenericClient(
-            config=LLMConfig(
-                api_key=self.api_key, model=self.model, base_url=self.base_url
-            )
-        )

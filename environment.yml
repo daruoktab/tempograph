@@ -1,0 +1,13 @@
+# Urutan yang disarankan:
+#   1. conda env create -f environment.yml
+#   2. conda activate porto-skripsi
+#   3. uv pip install -U -r requirements.txt
+name: porto-skripsi
+channels:
+  - conda-forge
+dependencies:
+  - python=3.12
+  - pip
+  - numpy
+  - scipy
+  - scikit-learn

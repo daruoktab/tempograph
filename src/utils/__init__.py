@@ -8,6 +8,7 @@ from .gemini_utils import (
     set_gemini_key,
     set_token_log_path,
     log_token_usage,
+    get_gemini_client,
 )
 
 from .rate_limiter import (
@@ -28,6 +29,7 @@ __all__ = [
     "set_gemini_key",
     "set_token_log_path",
     "log_token_usage",
+    "get_gemini_client",
     "RateLimiter",
     "get_rate_limiter",
     "reset_rate_limiter",

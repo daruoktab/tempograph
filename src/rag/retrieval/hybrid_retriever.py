@@ -1,13 +1,18 @@
-import asyncio
 import logging
-from typing import List, Dict, Any, Optional
+from typing import List, Dict, Any, Protocol
 from dataclasses import dataclass
 
 from ...config.experiment_setups import ExperimentSetup
-from ..graph_client import TemporalGraphClient, SearchResult
-from .vanilla_retriever import VanillaRetriever, VanillaRetrievalResult
+from ..graph_client import SearchResult
+from .vanilla_retriever import VanillaRetriever
 
 logger = logging.getLogger(__name__)
+
+
+class GraphSearchClient(Protocol):
+    """Anything ``HybridRetriever`` calls for graph-side search (DB client or agent wrapper)."""
+
+    async def search(self, query: str, num_results: int = 10) -> List[SearchResult]: ...
 
 
 @dataclass
@@ -28,7 +33,7 @@ class HybridRetriever:
 
     def __init__(
         self,
-        graph_client: TemporalGraphClient,
+        graph_client: GraphSearchClient,
         vanilla_retriever: VanillaRetriever,
         setup: ExperimentSetup,
     ):
@@ -56,6 +61,7 @@ class HybridRetriever:
         VANILLA_SUPPLEMENT = 5  # Fixed: always add 5 vanilla chunks for detail
 
         try:
+            vanilla_count = 0
             # 1. Retrieve from Graph (Agent-led, returns 5-15 based on complexity)
             try:
                 # Agent wrapper returns all facts it deemed necessary (5-15)
