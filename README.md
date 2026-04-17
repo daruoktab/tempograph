@@ -1,10 +1,12 @@
 # Tempograph
 
 <p align="center">
-  <img src="./logo.png" alt="Tempograph logo" width="220" />
+  <img src="./assets/logo-16-by-9.png" alt="Tempograph" width="920" />
 </p>
 
 **Agentic RAG with a temporal fact graph for Indonesian long-context chatbots**
+
+**Branding:** banner README memakai `assets/logo-16-by-9.png`. Ikon persegi **`assets/logo.png`** dipakai untuk tampilan seperti ikon repo pada GitHub (misalnya foto profil **organisasi** jika repo berada di bawah org, lewat *Your organization* → *Settings* → *Profile*), atau untuk *Social preview* / favicon sesuai kebutuhanmu.
 
 Sistem RAG agentic di atas **SurrealDB**: graf temporal (episode → fakta → entitas), pencarian vektor pada fakta dan pada passage sesi, serta jalur **vanilla**, **agentic**, dan **hybrid**. Dataset longitudinal berbahasa Indonesia dapat dihasilkan dengan pipeline terpisah lalu di-ingest ke basis yang sama.
 
@@ -298,6 +300,7 @@ Query evaluasi default membaca `output/example_dataset/evaluation_queries_100.js
 ## Struktur repositori
 
 ```
+├── assets/                  # logo.png (ikon persegi), logo-16-by-9.png (banner README)
 ├── src/
 │   ├── config/              # settings, experiment_setups, runtime_setup (env RAG), dataset_generation_env
 │   ├── dataset/             # generator.py
