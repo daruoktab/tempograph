@@ -8,6 +8,7 @@ Evaluate Agentic RAG setups (SurrealDB fact graph + retrieval agent) using evalu
 Uses the same initialization pattern as ``ingest_agentic.py`` for compatibility.
 
 Usage:
+    python scripts/evaluate_agentic.py --setup env --limit 5   # LLM_* / EMBED_* / RAG_* + RAG_MODE
     python scripts/evaluate_agentic.py --setup gemma --limit 5 --no-llm-judge  # Quick test
     python scripts/evaluate_agentic.py --setup gemma                           # Full evaluation
 """
@@ -40,6 +41,7 @@ logging.getLogger("transformers").setLevel(logging.ERROR)
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from tqdm import tqdm  # noqa: E402
+from src.config.experiment_setups import ExperimentSetup  # noqa: E402
 logging.basicConfig(
     level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s"
 )
@@ -124,7 +126,7 @@ class AgenticEvaluator:
                 logger.warning(f"Failed to load cached agentic results: {e}")
 
         self._tc = None
-        self._setup = None
+        self._setup: ExperimentSetup | None = None
         self._group_id = None
         self._queries = None
         self._neo4j_driver = None  # legacy; Surreal uses _tc
@@ -196,33 +198,46 @@ class AgenticEvaluator:
 
         config = get_config()
 
-        # Get setup
-        if self.setup_name == "gemini":
+        self._resolved_from_env = False
+        self._env_hybrid_vanilla_setup = None
+        if self.setup_name == "env":
+            from src.config.runtime_setup import load_eval_env
+
+            ctx = load_eval_env()
+            self._setup = ctx.primary_setup
+            self._env_hybrid_vanilla_setup = ctx.vanilla_setup
+            self.setup_name = ctx.branch_key
+            self._resolved_from_env = True
+
+        # Get setup (presets) unless already built from .env
+        if not self._resolved_from_env and self.setup_name == "gemini":
             # High-detail Agentic Gemini setup
             self._setup = SETUP_1A_AGENTIC_GEMINI
-        elif self.setup_name == "gemma":
+        elif not self._resolved_from_env and self.setup_name == "gemma":
             from src.config.experiment_setups import SETUP_2A_AGENTIC_GEMMA
 
             self._setup = SETUP_2A_AGENTIC_GEMMA
-        elif self.setup_name == "gemini_hybrid":
+        elif not self._resolved_from_env and self.setup_name == "gemini_hybrid":
             from src.config.experiment_setups import SETUP_1H_HYBRID_GEMINI
 
             self._setup = SETUP_1H_HYBRID_GEMINI
-        elif self.setup_name == "gemma_hybrid":
+        elif not self._resolved_from_env and self.setup_name == "gemma_hybrid":
             from src.config.experiment_setups import SETUP_2H_HYBRID_GEMMA
 
             self._setup = SETUP_2H_HYBRID_GEMMA
-        elif self.setup_name == "vanilla_gemini":
+        elif not self._resolved_from_env and self.setup_name == "vanilla_gemini":
             from src.config.experiment_setups import SETUP_1V_VANILLA_GEMINI
 
             self._setup = SETUP_1V_VANILLA_GEMINI
-        elif self.setup_name == "vanilla_gemma":
+        elif not self._resolved_from_env and self.setup_name == "vanilla_gemma":
             from src.config.experiment_setups import SETUP_2V_VANILLA_GEMMA
 
             self._setup = SETUP_2V_VANILLA_GEMMA
-        else:
+        elif not self._resolved_from_env:
             raise ValueError(f"Unknown setup: {self.setup_name}")
 
+        if self._setup is None:
+            raise RuntimeError("Experiment setup was not resolved")
         self._group_id = self._setup.storage.group_id
 
         # Load evaluation queries
@@ -253,7 +268,10 @@ class AgenticEvaluator:
 
         # NovitaLLMClient for RetrievalAgent sufficiency check (Gemma only)
         self._novita_llm_client = None
-        if self.setup_name in ("gemma", "gemma_hybrid"):
+        _use_novita_suff = self._setup.llm_extraction and (
+            self._setup.llm_extraction.provider == "novita"
+        )
+        if _use_novita_suff or self.setup_name in ("gemma", "gemma_hybrid"):
             from openai import AsyncOpenAI
 
             class NovitaLLMClient:
@@ -310,12 +328,18 @@ class AgenticEvaluator:
 
                     return {"content": response.choices[0].message.content}
 
+            _nov_model = (
+                self._setup.llm_extraction.name
+                if self._setup.llm_extraction
+                and self._setup.llm_extraction.provider == "novita"
+                else "google/gemma-3-27b-it"
+            )
             self._novita_llm_client = NovitaLLMClient(
                 api_key=config.novita.api_key,
                 base_url=config.novita.base_url,
-                model="google/gemma-3-27b-it",
+                model=_nov_model,
             )
-            print("  Sufficiency LLM: google/gemma-3-27b-it (Novita direct)")
+            print(f"  Sufficiency LLM (Novita): {_nov_model}")
 
         model_name = (
             self._setup.llm_extraction.name
@@ -393,14 +417,14 @@ class AgenticEvaluator:
             retrieval_config = RetrievalConfig(
                 max_iterations=5, num_results=5, similarity_threshold=0.3
             )
-            # Use NovitaLLMClient for Gemma, TrackingGeminiClient for Gemini
+            # Use NovitaLLMClient when extraction LLM is Novita, else Gemini GenAI
             sufficiency_client = (
-                self._novita_llm_client if self.setup_name == "gemma" else llm_client
+                self._novita_llm_client if self._novita_llm_client else llm_client
             )
             self._retrieval_agent = RetrievalAgent(
                 adapter, retrieval_config, llm_client=sufficiency_client
             )
-            mode = "Novita" if self.setup_name == "gemma" else "Gemini"
+            mode = "Novita" if self._novita_llm_client else "Gemini"
             print(f"✅ RetrievalAgent initialized ({mode} LLM sufficiency, 5-15 facts)")
 
         print("✅ Initialized")
@@ -409,22 +433,24 @@ class AgenticEvaluator:
             from src.rag.retrieval.hybrid_retriever import HybridRetriever
             from src.rag.retrieval.vanilla_retriever import create_vanilla_retriever
 
-            # Determine setups
-            if "gemini" in self.setup_name:
-                from src.config.experiment_setups import (
-                    SETUP_1H_HYBRID_GEMINI as HYBRID_SETUP,
-                )
-                from src.config.experiment_setups import (
-                    SETUP_1V_VANILLA_GEMINI as VANILLA_SETUP,
-                )
+            # Determine setups (``--setup env`` + RAG_MODE=hybrid → vanilla dari .env)
+            _env_v = getattr(self, "_env_hybrid_vanilla_setup", None)
+            hybrid_setup: ExperimentSetup
+            if _env_v is not None:
+                VANILLA_SETUP = _env_v
+                hybrid_setup = self._setup
+            elif "gemini" in self.setup_name:
+                from src.config.experiment_setups import SETUP_1H_HYBRID_GEMINI
+                from src.config.experiment_setups import SETUP_1V_VANILLA_GEMINI
+
+                hybrid_setup = SETUP_1H_HYBRID_GEMINI
+                VANILLA_SETUP = SETUP_1V_VANILLA_GEMINI
             else:
-                # Gemma Hybrid
-                from src.config.experiment_setups import (
-                    SETUP_2H_HYBRID_GEMMA as HYBRID_SETUP,
-                )
-                from src.config.experiment_setups import (
-                    SETUP_2V_VANILLA_GEMMA as VANILLA_SETUP,
-                )
+                from src.config.experiment_setups import SETUP_2H_HYBRID_GEMMA
+                from src.config.experiment_setups import SETUP_2V_VANILLA_GEMMA
+
+                hybrid_setup = SETUP_2H_HYBRID_GEMMA
+                VANILLA_SETUP = SETUP_2V_VANILLA_GEMMA
 
             # 1. Create RetrievalAgent-based Graph Client for multi-hop reasoning
             from src.rag.retrieval.agent import RetrievalAgent
@@ -470,9 +496,8 @@ class AgenticEvaluator:
             retrieval_config = RetrievalConfig(
                 max_iterations=5, num_results=5, similarity_threshold=0.3
             )
-            # Use NovitaLLMClient for Gemma Hybrid, TrackingGeminiClient for Gemini Hybrid
             sufficiency_client = (
-                self._novita_llm_client if "gemma" in self.setup_name else llm_client
+                self._novita_llm_client if self._novita_llm_client else llm_client
             )
             agent = RetrievalAgent(
                 adapter, retrieval_config, llm_client=sufficiency_client
@@ -492,7 +517,7 @@ class AgenticEvaluator:
                     return result.facts[:num_results]
 
             self._graph_wrapper = AgentGraphWrapper(agent)
-            mode = "Novita" if "gemma" in self.setup_name else "Gemini"
+            mode = "Novita" if self._novita_llm_client else "Gemini"
             print(
                 f"✅ RetrievalAgent-based Graph Wrapper initialized ({mode} LLM sufficiency, 5-15 facts)"
             )
@@ -504,7 +529,7 @@ class AgenticEvaluator:
             self._hybrid_retriever = HybridRetriever(
                 graph_client=self._graph_wrapper,
                 vanilla_retriever=vanilla_retriever,
-                setup=HYBRID_SETUP,
+                setup=hybrid_setup,
             )
             print(f"✅ Hybrid Retriever initialized ({self.setup_name})")
 
@@ -789,6 +814,7 @@ async def main():
     parser.add_argument(
         "--setup",
         choices=[
+            "env",
             "vanilla_gemini",
             "vanilla_gemma",
             "gemini",

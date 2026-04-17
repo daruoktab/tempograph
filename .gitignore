@@ -26,6 +26,11 @@ environment.yml
 output/**/token_usage.jsonl
 !/output/example_dataset/token_usage.jsonl
 
+# Local run outputs (do not commit)
+data/checkpoints/
+output/evaluation_results/
+output/ingestion_cost.jsonl
+
 # JetBrains IDE settings
 .idea/
 data/chroma_test/

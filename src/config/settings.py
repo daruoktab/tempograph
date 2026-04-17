@@ -125,7 +125,12 @@ class GeminiConfig:
 
     def __post_init__(self):
         if not self.api_key:
-            raise ValueError("GEMINI_API_KEY environment variable is required")
+            # Novita-only + HuggingFace-embed runs may omit Gemini; APIs fail at call-time if used.
+            import logging
+
+            logging.getLogger(__name__).warning(
+                "GEMINI_API_KEY is empty; Gemini chat/embed calls will fail until set."
+            )
 
 
 @dataclass

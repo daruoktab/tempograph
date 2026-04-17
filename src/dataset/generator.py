@@ -17,6 +17,7 @@ from src.utils import (
     log_token_usage,
     get_gemini_client,
 )
+from src.config.dataset_generation_env import get_dataset_gemini_models
 
 # Gemini (google-genai SDK)
 from google.genai import types as genai_types
@@ -424,7 +425,7 @@ def generate_random_persona():
             PERSONA_GENERATION_PROMPT,
             max_output_tokens=8192,
             temperature=0.9,
-            model_name="gemini-2.5-flash",
+            model_name=get_dataset_gemini_models().structured,
         )
 
         if not response:
@@ -578,8 +579,9 @@ def generate_events(user_profile, secondary_personas, start_date, num_days, num_
 
         try:
             gclient = get_gemini_client()
+            _m_struct = get_dataset_gemini_models().structured
             response = gclient.models.generate_content(
-                model="gemini-2.5-flash",
+                model=_m_struct,
                 contents=prompt,
                 config=cast(
                     Any,
@@ -606,7 +608,7 @@ def generate_events(user_profile, secondary_personas, start_date, num_days, num_
             )
 
             # --- LOG TOKEN USAGE ---
-            log_token_usage(response.usage_metadata, "gemini-2.5-flash")
+            log_token_usage(response.usage_metadata, _m_struct)
             # -----------------------
 
             # With structured outputs, response is guaranteed to be valid JSON
@@ -851,8 +853,9 @@ JSON format (return ONLY JSON array):
 
         try:
             gclient = get_gemini_client()
+            _m_struct = get_dataset_gemini_models().structured
             response = gclient.models.generate_content(
-                model="gemini-2.5-flash",
+                model=_m_struct,
                 contents=prompt,
                 config=cast(
                     Any,
@@ -868,7 +871,7 @@ JSON format (return ONLY JSON array):
 
             # --- LOG TOKEN USAGE ---
             if response and response.usage_metadata:
-                log_token_usage(response.usage_metadata, "gemini-2.5-flash")
+                log_token_usage(response.usage_metadata, _m_struct)
             # -----------------------
 
             # Check if response was blocked
@@ -1209,7 +1212,7 @@ def generate_conversation_session(
             prompt,
             max_output_tokens=8192,
             temperature=0.9,
-            model_name="gemini-2.5-pro",
+            model_name=get_dataset_gemini_models().dialog,
             cached_content=cached_content,
         )
 
@@ -1277,7 +1280,7 @@ def generate_session_summary(user_name, session_turns):
             prompt,
             max_output_tokens=512,
             temperature=0.5,
-            model_name="gemini-2.5-flash-lite",
+            model_name=get_dataset_gemini_models().light,
         )
 
         if summary:
@@ -1298,7 +1301,7 @@ def generate_session_summary(user_name, session_turns):
                     simple_prompt,
                     max_output_tokens=256,
                     temperature=0.3,
-                    model_name="gemini-2.5-flash-lite",
+                    model_name=get_dataset_gemini_models().light,
                 )
                 if summary:
                     return summary.strip()
@@ -1357,8 +1360,9 @@ HANYA return JSON, tidak ada text lain.
 
     try:
         gclient = get_gemini_client()
+        _m_light = get_dataset_gemini_models().light
         response = gclient.models.generate_content(
-            model="gemini-2.5-flash-lite",
+            model=_m_light,
             contents=prompt,
             config=cast(
                 Any,
@@ -1430,12 +1434,11 @@ OUTPUT (JSON only, no explanation):
 }}"""
 
     try:
-        # Use fast model for conflict resolution (gemini-2.5-flash-lite)
         resolution_text = run_gemini(
             prompt,
             max_output_tokens=8192,
             temperature=0.2,  # Low temperature for consistent logic
-            model_name="gemini-2.5-flash-lite",
+            model_name=get_dataset_gemini_models().light,
         )
 
         if not resolution_text:
@@ -1639,6 +1642,14 @@ def main():
 
     set_gemini_key()
     os.makedirs(args.out_dir, exist_ok=True)
+
+    _dm = get_dataset_gemini_models()
+    logging.info(
+        "Dataset Gemini models (from env / defaults): structured=%s dialog=%s light=%s",
+        _dm.structured,
+        _dm.dialog,
+        _dm.light,
+    )
 
     # Set token log path to be inside the output directory
     set_token_log_path(args.out_dir)
@@ -1935,7 +1946,7 @@ def main():
         try:
             gclient = get_gemini_client()
             cached_content = gclient.caches.create(
-                model="gemini-2.5-pro",
+                model=get_dataset_gemini_models().dialog,
                 config={
                     "display_name": "locomo_static_context",
                     "system_instruction": static_prompt_content,

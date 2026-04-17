@@ -14,6 +14,7 @@ dengan embedder setup yang sama).
 Ingestion **PER-SESSION** (bukan per-turn). Opsi ``--no-passages`` hanya isi graph.
 
 Usage:
+    python scripts/ingest_agentic.py --setup env   # LLM_* / EMBED_* / RAG_* dari .env
     python scripts/ingest_agentic.py --setup gemini
     python scripts/ingest_agentic.py --setup gemini --clear --limit 10
     python scripts/ingest_agentic.py --setup gemini --resume --batch 5
@@ -423,13 +424,14 @@ class AgenticIngester:
     def __init__(self, setup_name: str):
         """
         Args:
-            setup_name: "gemini" or "gemma"
+            setup_name: "env", "gemini", or "gemma"
         """
         self.setup_name = setup_name
         self.rate_limiter = RateLimitHandler()
         self._graph: TemporalGraphClient | None = None
         self._setup: ExperimentSetup | None = None
         self._group_id: str | None = None
+        self._passage_collection_env: str | None = None
         self._passage_store: Any = None
         self._ingest_passages: bool = True
 
@@ -454,10 +456,20 @@ class AgenticIngester:
         _cost_tracker.setup_name = self.setup_name
 
         # Get setup
-        if self.setup_name == "gemini":
+        if self.setup_name == "env":
+            from src.config.runtime_setup import (
+                get_agentic_experiment_setup_from_env,
+                get_session_passage_collection,
+            )
+
+            self._setup = get_agentic_experiment_setup_from_env()
+            self._passage_collection_env = get_session_passage_collection()
+        elif self.setup_name == "gemini":
             self._setup = SETUP_1A_AGENTIC_GEMINI
+            self._passage_collection_env = None
         elif self.setup_name == "gemma":
             self._setup = SETUP_2A_AGENTIC_GEMMA
+            self._passage_collection_env = None
         else:
             raise ValueError(f"Unknown setup: {self.setup_name}")
 
@@ -476,7 +488,10 @@ class AgenticIngester:
 
         self._passage_store = None
         if self._ingest_passages:
-            if self.setup_name == "gemini":
+            pcoll: str
+            if self._passage_collection_env is not None:
+                pcoll = self._passage_collection_env
+            elif self.setup_name == "gemini":
                 pcoll = CHROMA_COLLECTIONS[SetupType.VANILLA_GEMINI]
             else:
                 pcoll = CHROMA_COLLECTIONS[SetupType.VANILLA_GEMMA]
@@ -976,9 +991,9 @@ async def main():
     parser = argparse.ArgumentParser(description="Ingest data for Agentic RAG")
     parser.add_argument(
         "--setup",
-        choices=["gemini", "gemma", "all"],
+        choices=["env", "gemini", "gemma", "all"],
         required=True,
-        help="Which setup to ingest",
+        help="env = dari .env (LLM_*, EMBED_*, RAG_*); gemini/gemma/all = preset lama",
     )
     parser.add_argument(
         "--resume", action="store_true", help="Resume from checkpoint if available"
@@ -1015,6 +1030,15 @@ async def main():
             NEO4J_GROUP_IDS,
             SetupType,
         )
+        from src.config.runtime_setup import (
+            get_rag_group_id,
+            get_session_passage_collection,
+        )
+
+        if args.setup == "env":
+            await clear_group(get_rag_group_id())
+            if not args.no_passages:
+                await clear_passage_collection(get_session_passage_collection())
 
         if args.setup in ["gemini", "all"]:
             await clear_group(NEO4J_GROUP_IDS[SetupType.AGENTIC_GEMINI])
@@ -1033,7 +1057,15 @@ async def main():
     ingest_passages = not args.no_passages
 
     # Ingest
-    if args.setup == "all":
+    if args.setup == "env":
+        await ingest_setup(
+            "env",
+            resume=args.resume,
+            batch_size=args.batch,
+            limit=args.limit,
+            ingest_passages=ingest_passages,
+        )
+    elif args.setup == "all":
         # Sequential untuk fairness
         logger.info("\n" + "=" * 60)
         logger.info("SEQUENTIAL INGESTION: GEMINI FIRST, THEN GEMMA")
