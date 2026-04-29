@@ -1,0 +1,55 @@
+web/sim/src/index.css
+  8208e5f40fc80a29 1-233
+web/sim/tsconfig.json
+  8208e5f40fc80a29 1-19
+web/sim/src/PillNode.tsx
+  8208e5f40fc80a29 1-53
+web/sim/README.md
+  8208e5f40fc80a29 1-31,33-46
+web/sim/package.json
+  8208e5f40fc80a29 1-25
+web/sim/index.html
+  8208e5f40fc80a29 1-20
+web/sim/src/main.tsx
+  8208e5f40fc80a29 1-10
+web/sim/src/mockRetrieval.ts
+  8208e5f40fc80a29 1-47
+.gitignore
+  8208e5f40fc80a29 38-41
+web/sim/src/dataset.ts
+  8208e5f40fc80a29 1-54
+scripts/export_sim_ui_dataset.py
+  8208e5f40fc80a29 1,7-71
+web/sim/src/buildGraph.ts
+  8208e5f40fc80a29 1-149
+web/sim/vite.config.ts
+  8208e5f40fc80a29 1-8
+README.md
+  8208e5f40fc80a29 296-299
+web/sim/src/vite-env.d.ts
+  8208e5f40fc80a29 1
+web/sim/src/FlowPanel.tsx
+  8208e5f40fc80a29 1-114
+web/sim/src/App.tsx
+  8208e5f40fc80a29 1-672
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.3.4",
+  "base_commit_sha": "2fcebb495b72d284289cbf0d8f323863f486b50a",
+  "prompts": {
+    "8208e5f40fc80a29": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "1d03dab7-394c-40ef-9e43-8bcbb7130d10",
+        "model": "gemini-3.1-pro"
+      },
+      "human_author": "daruoktab",
+      "messages": [],
+      "total_additions": 0,
+      "total_deletions": 0,
+      "accepted_lines": 1392,
+      "overriden_lines": 2
+    }
+  }
+}
