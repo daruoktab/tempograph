@@ -35,3 +35,7 @@ output/ingestion_cost.jsonl
 .idea/
 data/chroma_test/
 *.log
+
+# Frontend (Vite)
+web/sim/node_modules/
+web/sim/dist/

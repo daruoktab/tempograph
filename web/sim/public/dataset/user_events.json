@@ -1,0 +1,629 @@
+[
+  {
+    "id": "E1",
+    "date": "2024-01-02",
+    "description": "Memulai proyek kampanye media sosial besar untuk klien baru, menuntut kreativitas tinggi.",
+    "caused_by": []
+  },
+  {
+    "id": "E2",
+    "date": "2024-01-03",
+    "description": "Diskusi strategi awal yang intens dengan Dewi, rekan kerja dan partner di agensi, untuk kampanye E1.",
+    "caused_by": [
+      "E1"
+    ]
+  },
+  {
+    "id": "E3",
+    "date": "2024-01-04",
+    "description": "Ikut kelas yoga pagi untuk menyegarkan pikiran dan meredakan ketegangan dari pekerjaan.",
+    "caused_by": []
+  },
+  {
+    "id": "E4",
+    "date": "2024-01-05",
+    "description": "Menerima email tawaran kolaborasi dari brand kopi lokal untuk konten promosi.",
+    "caused_by": []
+  },
+  {
+    "id": "E5",
+    "date": "2024-01-06",
+    "description": "Mengunjungi kafe baru di Bandung, mencoba kopi unik dan mengabadikan interiornya dengan kamera.",
+    "caused_by": []
+  },
+  {
+    "id": "E6",
+    "date": "2024-01-07",
+    "description": "Menghabiskan waktu membaca buku pengembangan diri tentang manajemen prioritas.",
+    "caused_by": []
+  },
+  {
+    "id": "E7",
+    "date": "2024-01-08",
+    "description": "Rapat pertama dengan brand kopi terkait tawaran kolaborasi, membahas konsep dan ekspektasi.",
+    "caused_by": [
+      "E4"
+    ]
+  },
+  {
+    "id": "E8",
+    "date": "2024-01-09",
+    "description": "Brainstorming ide konten yang inovatif untuk kolaborasi brand kopi bersama Dewi.",
+    "caused_by": [
+      "E7"
+    ]
+  },
+  {
+    "id": "E9",
+    "date": "2024-01-10",
+    "description": "Mengalami creative block saat menyusun konsep visual untuk kampanye klien E1.",
+    "caused_by": [
+      "E1"
+    ]
+  },
+  {
+    "id": "E10",
+    "date": "2024-01-11",
+    "description": "Telepon dengan Rizky, sahabat lama, berbagi cerita tentang kesulitan pekerjaan dan creative block.",
+    "caused_by": [
+      "E9"
+    ]
+  },
+  {
+    "id": "E11",
+    "date": "2024-01-12",
+    "description": "Mengambil foto landscape di Dago atas, mencari inspirasi dan mengisi energi positif.",
+    "caused_by": []
+  },
+  {
+    "id": "E12",
+    "date": "2024-01-13",
+    "description": "Mendapat inspirasi baru untuk konsep kampanye E1 setelah melihat pameran seni lokal dadakan.",
+    "caused_by": [
+      "E11"
+    ]
+  },
+  {
+    "id": "E13",
+    "date": "2024-01-14",
+    "description": "Berhasil menyelesaikan draft konsep kampanye klien E1 dengan ide segar dan detail yang rapi.",
+    "caused_by": [
+      "E9",
+      "E12"
+    ]
+  },
+  {
+    "id": "E14",
+    "date": "2024-01-15",
+    "description": "Presentasi konsep kampanye klien E1, mendapat feedback positif dan persetujuan.",
+    "caused_by": [
+      "E13"
+    ]
+  },
+  {
+    "id": "E15",
+    "date": "2024-01-16",
+    "description": "Diskusi dengan Dewi tentang potensi merekrut staf baru untuk agensi guna menangani beban kerja.",
+    "caused_by": []
+  },
+  {
+    "id": "E16",
+    "date": "2024-01-17",
+    "description": "Mengunjungi orang tua, Bapak Suryo Santoso, makan malam bersama dan berbagi cerita.",
+    "caused_by": []
+  },
+  {
+    "id": "E17",
+    "date": "2024-01-18",
+    "description": "Menerima notifikasi tagihan bulanan agensi yang lebih tinggi dari perkiraan.",
+    "caused_by": []
+  },
+  {
+    "id": "E18",
+    "date": "2024-01-19",
+    "description": "Mulai overthinking tentang keuangan agensi dan target tabungan apartemen impian.",
+    "caused_by": [
+      "E17"
+    ]
+  },
+  {
+    "id": "E19",
+    "date": "2024-01-20",
+    "description": "Menghadiri workshop fotografi human interest untuk mengasah skill dan mencari inspirasi baru.",
+    "caused_by": []
+  },
+  {
+    "id": "E20",
+    "date": "2024-01-21",
+    "description": "Mendapat ide untuk proyek konten personal bertema 'human interest' dari workshop E19.",
+    "caused_by": [
+      "E19"
+    ]
+  },
+  {
+    "id": "E21",
+    "date": "2024-01-22",
+    "description": "Menerima proposal kerjasama dari klien potensial baru di bidang fashion.",
+    "caused_by": []
+  },
+  {
+    "id": "E22",
+    "date": "2024-01-23",
+    "description": "Rapat dengan klien potensial E21, membahas scope pekerjaan dan kebutuhan mereka.",
+    "caused_by": [
+      "E21"
+    ]
+  },
+  {
+    "id": "E23",
+    "date": "2024-01-24",
+    "description": "Menulis artikel blog di website agensi tentang 'Tips Menghadapi Creative Block'.",
+    "caused_by": []
+  },
+  {
+    "id": "E24",
+    "date": "2024-01-25",
+    "description": "Merasa lelah dan burnout karena beban kerja yang menumpuk dari beberapa proyek.",
+    "caused_by": [
+      "E1",
+      "E13",
+      "E22"
+    ]
+  },
+  {
+    "id": "E25",
+    "date": "2024-01-26",
+    "description": "Ditemani Rizky mencari tempat relaksasi baru, ngopi bareng dan bercerita ringan.",
+    "caused_by": [
+      "E24"
+    ]
+  },
+  {
+    "id": "E26",
+    "date": "2024-01-27",
+    "description": "Mengajukan penawaran harga dan proposal detail untuk klien potensial E21.",
+    "caused_by": [
+      "E22"
+    ]
+  },
+  {
+    "id": "E27",
+    "date": "2024-01-28",
+    "description": "Mengikuti kelas pilates untuk mengembalikan energi dan fokus setelah merasa burnout.",
+    "caused_by": []
+  },
+  {
+    "id": "E28",
+    "date": "2024-01-29",
+    "description": "Menerima kabar baik bahwa penawaran E26 diterima, agensi mendapat klien baru yang besar.",
+    "caused_by": [
+      "E26"
+    ]
+  },
+  {
+    "id": "E29",
+    "date": "2024-01-30",
+    "description": "Merayakan keberhasilan mendapatkan klien baru dengan Dewi, merasakan kebanggaan bersama.",
+    "caused_by": [
+      "E28"
+    ]
+  },
+  {
+    "id": "E30",
+    "date": "2024-01-31",
+    "description": "Meninjau ulang target tabungan apartemen, merasa lebih optimis dengan pemasukan baru.",
+    "caused_by": [
+      "E28"
+    ]
+  },
+  {
+    "id": "E31",
+    "date": "2024-02-01",
+    "description": "Memulai project dengan klien baru E28, melakukan kick-off meeting dan perencanaan konten.",
+    "caused_by": [
+      "E28"
+    ]
+  },
+  {
+    "id": "E32",
+    "date": "2024-02-02",
+    "description": "Mendapat undangan menjadi pembicara di seminar tentang social media marketing untuk UMKM.",
+    "caused_by": []
+  },
+  {
+    "id": "E33",
+    "date": "2024-02-03",
+    "description": "Menghadiri acara launching produk dari brand kopi kolaborasi E7, melihat hasil karyanya dipublikasikan.",
+    "caused_by": [
+      "E7"
+    ]
+  },
+  {
+    "id": "E34",
+    "date": "2024-02-04",
+    "description": "Merasa bangga dan puas melihat hasil karyanya dipamerkan di acara launching E33.",
+    "caused_by": [
+      "E33"
+    ]
+  },
+  {
+    "id": "E35",
+    "date": "2024-02-05",
+    "description": "Mulai menyusun materi presentasi yang menarik dan informatif untuk seminar E32.",
+    "caused_by": [
+      "E32"
+    ]
+  },
+  {
+    "id": "E36",
+    "date": "2024-02-07",
+    "description": "Diskusi intensif dengan Dewi mengenai rencana pengembangan skill tim agensi di masa depan.",
+    "caused_by": []
+  },
+  {
+    "id": "E37",
+    "date": "2024-02-10",
+    "description": "Merasa gugup menjelang seminar E32, overthinking tentang performa dan ekspektasi audiens.",
+    "caused_by": [
+      "E32"
+    ]
+  },
+  {
+    "id": "E38",
+    "date": "2024-02-15",
+    "description": "Berhasil menyampaikan materi seminar E32 dengan lancar, mendapat apresiasi dan banyak pertanyaan dari peserta.",
+    "caused_by": [
+      "E37"
+    ]
+  },
+  {
+    "id": "E39",
+    "date": "2024-02-20",
+    "description": "Mendapat tawaran freelance fotografi dari salah satu peserta seminar yang terkesan dengan presentasinya.",
+    "caused_by": [
+      "E38"
+    ]
+  },
+  {
+    "id": "E40",
+    "date": "2024-02-28",
+    "description": "Menutup bulan dengan rapat evaluasi kinerja agensi dan perencanaan strategi bulan berikutnya, merasa optimis.",
+    "caused_by": []
+  },
+  {
+    "id": "E41",
+    "date": "2024-03-01",
+    "description": "Menindaklanjuti tawaran proyek fotografi freelance dari peserta seminar E38, menjadwalkan pertemuan awal.",
+    "caused_by": [
+      "E39"
+    ]
+  },
+  {
+    "id": "E42",
+    "date": "2024-03-04",
+    "description": "Mengimplementasikan strategi konten baru untuk klien agensi berdasarkan hasil rapat evaluasi E40.",
+    "caused_by": [
+      "E40"
+    ]
+  },
+  {
+    "id": "E43",
+    "date": "2024-03-05",
+    "description": "Bertemu Dewi untuk memfinalisasi rencana pengembangan skill tim agensi, menetapkan target dan materi pelatihan.",
+    "caused_by": [
+      "E36",
+      "E40"
+    ]
+  },
+  {
+    "id": "E44",
+    "date": "2024-03-08",
+    "description": "Memulai proyek fotografi freelance pertama, merasa tertantang untuk memberikan hasil terbaik.",
+    "caused_by": [
+      "E41"
+    ]
+  },
+  {
+    "id": "E45",
+    "date": "2024-03-10",
+    "description": "Menghadiri pameran desain interior minimalis lokal, mencari inspirasi untuk penataan ulang sudut kerja.",
+    "caused_by": [
+      "E40",
+      "E38"
+    ]
+  },
+  {
+    "id": "E46",
+    "date": "2024-03-12",
+    "description": "Sesi brainstorming intensif dengan tim untuk kampanye digital baru klien utama, mengintegrasikan tren media sosial terkini.",
+    "caused_by": [
+      "E42",
+      "E43"
+    ]
+  },
+  {
+    "id": "E47",
+    "date": "2024-03-14",
+    "description": "Menyelesaikan sesi pemotretan untuk proyek freelance pertama, merasa puas dengan hasil yang didapat.",
+    "caused_by": [
+      "E44"
+    ]
+  },
+  {
+    "id": "E48",
+    "date": "2024-03-16",
+    "description": "Kopi darat dengan teman lama, berbagi cerita tentang perkembangan agensi dan proyek freelance.",
+    "caused_by": [
+      "E47"
+    ]
+  },
+  {
+    "id": "E49",
+    "date": "2024-03-18",
+    "description": "Presentasi proposal kampanye digital baru kepada klien, mendapat respons sangat positif dan persetujuan segera.",
+    "caused_by": [
+      "E46"
+    ]
+  },
+  {
+    "id": "E50",
+    "date": "2024-03-20",
+    "description": "Merencanakan perjalanan singkat ke Yogyakarta untuk mengeksplorasi kebudayaan lokal dan mencari spot fotografi baru.",
+    "caused_by": [
+      "E47",
+      "E49"
+    ]
+  },
+  {
+    "id": "E51",
+    "date": "2024-03-22",
+    "description": "Memulai implementasi kampanye digital baru setelah mendapatkan persetujuan dari klien.",
+    "caused_by": [
+      "E49"
+    ]
+  },
+  {
+    "id": "E52",
+    "date": "2024-03-24",
+    "description": "Mencari referensi dan berbelanja furnitur minimalis online untuk memperbarui tampilan sudut kerja di rumah.",
+    "caused_by": [
+      "E45"
+    ]
+  },
+  {
+    "id": "E53",
+    "date": "2024-03-26",
+    "description": "Melakukan perjalanan singkat ke Yogyakarta, terkesima dengan arsitektur tradisional dan suasana kota yang kental budaya.",
+    "caused_by": [
+      "E50"
+    ]
+  },
+  {
+    "id": "E54",
+    "date": "2024-03-27",
+    "description": "Menghabiskan hari memotret keindahan candi dan kegiatan masyarakat lokal di Yogyakarta untuk portofolio pribadi.",
+    "caused_by": [
+      "E53"
+    ]
+  },
+  {
+    "id": "E55",
+    "date": "2024-03-29",
+    "description": "Menganalisis performa awal kampanye baru, mengidentifikasi beberapa area yang memerlukan optimasi lebih lanjut.",
+    "caused_by": [
+      "E51"
+    ]
+  },
+  {
+    "id": "E56",
+    "date": "2024-03-31",
+    "description": "Memulai penyusunan modul pelatihan internal untuk tim agensi, fokus pada skill yang relevan dengan tren terbaru.",
+    "caused_by": [
+      "E43",
+      "E55"
+    ]
+  },
+  {
+    "id": "E57",
+    "date": "2024-04-02",
+    "description": "Mendapat tawaran proyek fotografi freelance kedua dari sebuah brand lokal, terkesan dengan hasil proyek sebelumnya.",
+    "caused_by": [
+      "E47",
+      "E39"
+    ]
+  },
+  {
+    "id": "E58",
+    "date": "2024-04-04",
+    "description": "Menulis dan mempublikasikan blog post tentang pengalaman perjalanan ke Yogyakarta dan tips fotografi.",
+    "caused_by": [
+      "E54"
+    ]
+  },
+  {
+    "id": "E59",
+    "date": "2024-04-05",
+    "description": "Mengadakan sesi brainstorming internal dengan tim untuk merumuskan strategi optimasi kampanye yang sedang berjalan.",
+    "caused_by": [
+      "E55"
+    ]
+  },
+  {
+    "id": "E60",
+    "date": "2024-04-07",
+    "description": "Melakukan negosiasi detail kontrak dengan brand lokal untuk proyek fotografi kedua, mencapai kesepakatan yang saling menguntungkan.",
+    "caused_by": [
+      "E57"
+    ]
+  },
+  {
+    "id": "E61",
+    "date": "2024-04-08",
+    "description": "Mengunjungi toko buku independen, menemukan buku menarik tentang sejarah desain interior Indonesia.",
+    "caused_by": [
+      "E52",
+      "E45"
+    ]
+  },
+  {
+    "id": "E62",
+    "date": "2024-04-10",
+    "description": "Menerima feedback positif dari klien mengenai peningkatan performa kampanye setelah optimasi yang dilakukan tim.",
+    "caused_by": [
+      "E59"
+    ]
+  },
+  {
+    "id": "E63",
+    "date": "2024-04-12",
+    "description": "Mengikuti webinar tentang tren AI dalam digital marketing, merasa perlu untuk terus mengasah pengetahuan di bidang ini.",
+    "caused_by": [
+      "E56",
+      "E62"
+    ]
+  },
+  {
+    "id": "E64",
+    "date": "2024-04-14",
+    "description": "Memulai persiapan dan riset visual untuk proyek fotografi brand lokal, menyesuaikan dengan identitas brand.",
+    "caused_by": [
+      "E60"
+    ]
+  },
+  {
+    "id": "E65",
+    "date": "2024-04-15",
+    "description": "Makan siang dengan Dewi, membahas potensi ekspansi agensi dan ide-ide inovatif untuk pengembangan bisnis.",
+    "caused_by": [
+      "E62",
+      "E43"
+    ]
+  },
+  {
+    "id": "E66",
+    "date": "2024-04-16",
+    "description": "Menerima dan menata furnitur baru untuk sudut kerja, merasa lebih nyaman dan produktif dengan suasana baru.",
+    "caused_by": [
+      "E52"
+    ]
+  },
+  {
+    "id": "E67",
+    "date": "2024-04-17",
+    "description": "Merencanakan workshop internal untuk tim agensi mengenai aplikasi AI dalam strategi konten dan analisis data.",
+    "caused_by": [
+      "E63",
+      "E65"
+    ]
+  },
+  {
+    "id": "E68",
+    "date": "2024-04-18",
+    "description": "Menghabiskan waktu membaca buku tentang sejarah desain interior, mendapat pemahaman baru tentang estetika lokal.",
+    "caused_by": [
+      "E61"
+    ]
+  },
+  {
+    "id": "E69",
+    "date": "2024-04-19",
+    "description": "Melakukan sesi pemotretan untuk brand lokal, mengaplikasikan konsep visual yang sudah matang.",
+    "caused_by": [
+      "E64"
+    ]
+  },
+  {
+    "id": "E70",
+    "date": "2024-04-20",
+    "description": "Mengadakan sesi evaluasi bulanan tim agensi, mencatat pencapaian dan tantangan, serta merumuskan langkah berikutnya.",
+    "caused_by": [
+      "E62",
+      "E67"
+    ]
+  },
+  {
+    "id": "E71",
+    "date": "2024-04-21",
+    "description": "Mengunjungi pameran seni kontemporer, terinspirasi oleh penggunaan warna dan tekstur yang unik.",
+    "caused_by": [
+      "E68",
+      "E58"
+    ]
+  },
+  {
+    "id": "E72",
+    "date": "2024-04-22",
+    "description": "Melakukan post-produksi foto-foto untuk brand lokal, fokus pada grading warna dan detail untuk hasil maksimal.",
+    "caused_by": [
+      "E69"
+    ]
+  },
+  {
+    "id": "E73",
+    "date": "2024-04-23",
+    "description": "Menerima permintaan proposal dari calon klien baru yang tertarik dengan portofolio agensi dan kesuksesan kampanye terakhir.",
+    "caused_by": [
+      "E70",
+      "E65"
+    ]
+  },
+  {
+    "id": "E74",
+    "date": "2024-04-24",
+    "description": "Merenungkan arah karir dan tujuan jangka panjang setelah serangkaian pencapaian dalam pekerjaan dan proyek pribadi.",
+    "caused_by": [
+      "E70",
+      "E73"
+    ]
+  },
+  {
+    "id": "E75",
+    "date": "2024-04-25",
+    "description": "Menyusun proposal komprehensif untuk calon klien baru, menonjolkan keunikan agensi dan solusi kreatif.",
+    "caused_by": [
+      "E73"
+    ]
+  },
+  {
+    "id": "E76",
+    "date": "2024-04-25",
+    "description": "Mengajak Dewi makan malam, membahas insight dari pameran seni dan ide-ide baru untuk konten agensi.",
+    "caused_by": [
+      "E71",
+      "E65"
+    ]
+  },
+  {
+    "id": "E77",
+    "date": "2024-04-26",
+    "description": "Mengirimkan hasil akhir proyek fotografi brand lokal, mendapat pujian atas profesionalisme dan kualitas karya.",
+    "caused_by": [
+      "E72"
+    ]
+  },
+  {
+    "id": "E78",
+    "date": "2024-04-27",
+    "description": "Presentasi proposal kepada calon klien baru, merasa percaya diri dengan materi dan visi yang disampaikan.",
+    "caused_by": [
+      "E75"
+    ]
+  },
+  {
+    "id": "E79",
+    "date": "2024-04-27",
+    "description": "Memesan beberapa tanaman indoor minimalis untuk menambah sentuhan hijau dan kesegaran di sudut kerja baru.",
+    "caused_by": [
+      "E66",
+      "E71"
+    ]
+  },
+  {
+    "id": "E80",
+    "date": "2024-04-27",
+    "description": "Menerima kabar gembira bahwa proposal diterima, agensi berhasil mendapatkan klien besar baru.",
+    "caused_by": [
+      "E78"
+    ]
+  }
+]

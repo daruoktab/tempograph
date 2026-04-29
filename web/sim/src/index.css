@@ -1,0 +1,233 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
+:root {
+  color-scheme: light;
+  
+  /* Modern, airy light theme palette */
+  --bg-app: #f8fafc;         /* Very soft slate/blue-ish white for app background */
+  --bg-panel: #ffffff;       /* Pure white for panels/cards */
+  --bg-chat: #f1f5f9;        /* Slightly darker than panel for chat area background */
+  
+  --border-light: #f1f5f9;
+  --border-base: #e2e8f0;
+  --border-dark: #cbd5e1;
+
+  --text-main: #0f172a;      /* Deep slate for primary text */
+  --text-muted: #475569;     /* Medium slate for secondary text */
+  --text-lighter: #94a3b8;   /* Light slate for tertiary text/placeholders */
+
+  /* Primary Accent (Modern Blue) */
+  --primary: #3b82f6;
+  --primary-hover: #2563eb;
+  --primary-bg: #eff6ff;     /* Very light blue for active states */
+  --primary-ring: rgba(59, 130, 246, 0.3);
+
+  /* Chat Bubbles */
+  --msg-user-bg: #3b82f6;
+  --msg-user-text: #ffffff;
+  --msg-bot-bg: #ffffff;
+  --msg-bot-text: #1e293b;
+
+  /* Semantic */
+  --success: #10b981;
+  --success-bg: #d1fae5;
+  --warning: #f59e0b;
+  --error: #ef4444;
+
+  /* Shadows for depth */
+  --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+  --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.05), 0 2px 4px -2px rgb(0 0 0 / 0.05);
+  --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.05), 0 4px 6px -4px rgb(0 0 0 / 0.05);
+  --shadow-floating: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1);
+
+  /* Radii */
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --radius-full: 9999px;
+
+  font-family: "Inter", "DM Sans", system-ui, sans-serif;
+  background: var(--bg-app);
+  color: var(--text-main);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html, body, #root {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+
+code, .mono {
+  font-family: "JetBrains Mono", monospace;
+}
+
+button {
+  font-family: inherit;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+button:focus-visible, input:focus-visible {
+  outline: 2px solid var(--primary-ring);
+  outline-offset: 2px;
+}
+
+input {
+  font-family: inherit;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+input::placeholder {
+  color: var(--text-lighter);
+}
+
+/* Custom Range Slider */
+input[type="range"] {
+  -webkit-appearance: none;
+  appearance: none;
+  background: transparent;
+  cursor: pointer;
+  height: 6px;
+  border-radius: var(--radius-full);
+}
+
+input[type="range"]::-webkit-slider-runnable-track {
+  background: var(--border-base);
+  height: 6px;
+  border-radius: var(--radius-full);
+}
+
+input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  margin-top: -5px;
+  background-color: var(--primary);
+  height: 16px;
+  width: 16px;
+  border-radius: 50%;
+  box-shadow: var(--shadow-md);
+  transition: transform 0.1s;
+}
+
+input[type="range"]::-webkit-slider-thumb:hover {
+  transform: scale(1.15);
+}
+
+/* Smooth Scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--border-dark);
+  border-radius: var(--radius-full);
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--text-lighter);
+}
+
+/* Animations */
+@keyframes slideUpFade {
+  0% {
+    opacity: 0;
+    transform: translateY(12px) scale(0.98);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.animate-msg {
+  animation: slideUpFade 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes pulse-soft {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.7; }
+}
+
+/* Utility Classes */
+.hover-bg-btn {
+  transition: background-color 0.2s, color 0.2s;
+  cursor: pointer;
+}
+.hover-bg-btn:hover {
+  background-color: var(--border-base) !important;
+  color: var(--text-main) !important;
+}
+/* React Flow Overrides */
+.react-flow {
+  background-color: var(--bg-app) !important;
+}
+
+.react-flow__controls {
+  box-shadow: var(--shadow-md) !important;
+  border-radius: var(--radius-sm) !important;
+  overflow: hidden;
+}
+
+.react-flow__controls-button {
+  background: var(--bg-panel) !important;
+  border-bottom: 1px solid var(--border-light) !important;
+  fill: var(--text-muted) !important;
+  transition: all 0.2s !important;
+}
+
+.react-flow__controls-button:hover {
+  background: var(--bg-app) !important;
+  fill: var(--primary) !important;
+}
+
+.react-flow__edge-path {
+  transition: stroke 0.3s ease;
+}
+
+.react-flow__edge-textbg {
+  fill: var(--bg-panel) !important;
+  rx: 4px;
+  ry: 4px;
+}
+
+.react-flow__edge-text {
+  fill: var(--text-muted) !important;
+  font-weight: 500;
+  font-size: 10px !important;
+}
+
+.react-flow__attribution {
+  background: rgba(255, 255, 255, 0.6) !important;
+  backdrop-filter: blur(4px);
+  color: var(--text-lighter) !important;
+  border-top-left-radius: var(--radius-sm);
+  padding: 2px 6px !important;
+  font-size: 9px !important;
+}
+
+/* Hover style untuk resize handle */
+.resize-indicator {
+  opacity: 0;
+}
+aside:hover .resize-indicator {
+  opacity: 1;
+  background: var(--border-dark);
+}
+aside:hover .resize-indicator:hover {
+  background: var(--primary);
+}
+
+.react-flow__attribution a {
+  color: var(--text-muted) !important;
+}

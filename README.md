@@ -293,6 +293,10 @@ python scripts/run_with_local_surreal.py --no-start -- \
 
 Query evaluasi default membaca `output/example_dataset/evaluation_queries_100.json`; hasil ditulis ke `output/evaluation_results/`.
 
+### 4. UI simulasi dataset (portfolio)
+
+Simulasi **10 sesi** + graf interaktif (tanpa Surreal): lihat `web/sim/README.md` — `python scripts/export_sim_ui_dataset.py` lalu `cd web/sim && npm run dev`.
+
 ---
 
 ## Struktur repositori
