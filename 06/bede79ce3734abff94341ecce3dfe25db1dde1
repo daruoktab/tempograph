@@ -1,0 +1,43 @@
+src/config/settings.py
+  8208e5f40fc80a29 243-244,248-260,264-267
+docs/retrieval-performance-research.md
+  8208e5f40fc80a29 1-175
+scripts/test_agentic_hybrid_top3_questions.py
+  8208e5f40fc80a29 38,141,143,154-155,163-169
+src/rag/retrieval/agent.py
+  8208e5f40fc80a29 10-11,92-116,224,235-236,239-240,247-252,415-416,419-420,424,437-441,443-444,476,498,511,517,539,553
+src/rag/surreal/ranking.py
+  8208e5f40fc80a29 1-114
+docs/graphiti-logic-porting-synthesis.md
+  8208e5f40fc80a29 1-193
+src/rag/retrieval/hybrid_retriever.py
+  8208e5f40fc80a29 1-2,65-70,72-73,75-86,90-94,109-114,140-141,147-148,150-162,165,167-168
+src/rag/retrieval/trace.py
+  8208e5f40fc80a29 1-48
+src/rag/surreal/fact_graph.py
+  8208e5f40fc80a29 10,25-31,36-53,194-199,201-209,211-214,216,231-233,266-267,275-276,285-296,298-301,304,312,392-570,583-594,605-606,611-615,619-630,632-633,635-644,649-673,675-684,686,784-811,890-896,918,931,945-948,957,962-986
+scripts/evaluate_agentic.py
+  8208e5f40fc80a29 384,387-390,396,400-401,412-418,426-430,479,481-484,494-495,506-512,520-524
+src/rag/retrieval/vanilla_retriever.py
+  8208e5f40fc80a29 117-121,123-128,131-133,135-140
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.3.4",
+  "base_commit_sha": "06bede79ce3734abff94341ecce3dfe25db1dde1",
+  "prompts": {
+    "8208e5f40fc80a29": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "1d03dab7-394c-40ef-9e43-8bcbb7130d10",
+        "model": "gemini-3.1-pro"
+      },
+      "human_author": "daruoktab",
+      "messages": [],
+      "total_additions": 3413,
+      "total_deletions": 852,
+      "accepted_lines": 2642,
+      "overriden_lines": 3
+    }
+  }
+}
