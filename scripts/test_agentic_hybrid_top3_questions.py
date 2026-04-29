@@ -35,6 +35,7 @@ import logging
 import os
 import sys
 from pathlib import Path
+from typing import Any
 
 _REPO = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(_REPO))
@@ -137,9 +138,9 @@ def _make_graph_adapter(tc, group_id: str):
             self.fact_graph = fact_graph
             self.group_id = gid
 
-        async def search(self, query: str, num_results: int = 10):
+        async def search(self, query: str, num_results: int = 10, **kwargs: Any):
             results = await self.fact_graph.search(
-                query=query, group_ids=[self.group_id], num_results=num_results
+                query=query, group_ids=[self.group_id], num_results=num_results, **kwargs
             )
             if not results:
                 return []
@@ -150,6 +151,8 @@ def _make_graph_adapter(tc, group_id: str):
                     entity_name=getattr(r, "entity_name", None),
                     created_at=getattr(r, "created_at", None),
                     valid_at=getattr(r, "valid_at", None),
+                    source_description=getattr(r, "source_description", None),
+                    metadata=getattr(r, "metadata", None) or {},
                 )
                 for r in results
             ]
@@ -157,7 +160,13 @@ def _make_graph_adapter(tc, group_id: str):
         async def search_with_temporal_filter(
             self, query: str, before=None, after=None, num_results: int = 10
         ):
-            return await self.search(query, num_results)
+            return await self.fact_graph.search(
+                query=query,
+                group_ids=[self.group_id],
+                num_results=num_results,
+                valid_before=before,
+                valid_after=after,
+            )
 
         async def get_entity_facts(self, entity_name: str):
             return await self.search(entity_name, num_results=5)

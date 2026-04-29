@@ -1,3 +1,5 @@
+import asyncio
+import json
 import logging
 from typing import List, Dict, Any, Protocol
 from dataclasses import dataclass
@@ -60,30 +62,40 @@ class HybridRetriever:
         """
         VANILLA_SUPPLEMENT = 5  # Fixed: always add 5 vanilla chunks for detail
 
+        async def _graph_branch() -> List[SearchResult]:
+            return await self.graph.search(query, num_results=15)
+
+        async def _vanilla_branch():
+            return await self.vanilla.retrieve(query)
+
         try:
+            results_graph: List[SearchResult] = []
+            result_vanilla = None
             vanilla_count = 0
-            # 1. Retrieve from Graph (Agent-led, returns 5-15 based on complexity)
-            try:
-                # Agent wrapper returns all facts it deemed necessary (5-15)
-                results_graph = await self.graph.search(
-                    query, num_results=15
-                )  # Max request
+
+            graph_task = asyncio.create_task(_graph_branch())
+            vanilla_task = asyncio.create_task(_vanilla_branch())
+            graph_out, vanilla_out = await asyncio.gather(
+                graph_task, vanilla_task, return_exceptions=True
+            )
+
+            if isinstance(graph_out, Exception):
+                logger.error(f"Graph search failed: {graph_out}")
+                results_graph = []
+            else:
+                results_graph = graph_out
                 graph_count = len(results_graph) if results_graph else 0
                 logger.info(f"Graph (Agent-led): got {graph_count} facts")
-            except Exception as e:
-                logger.error(f"Graph search failed: {e}")
-                results_graph = []
 
-            # 2. Retrieve from Vanilla (Fixed 5 chunks for detail supplement)
-            try:
-                result_vanilla = await self.vanilla.retrieve(query)
+            if isinstance(vanilla_out, Exception):
+                logger.error(f"Vanilla search failed: {vanilla_out}")
+                result_vanilla = None
+            else:
+                result_vanilla = vanilla_out
                 vanilla_count = len(result_vanilla.results) if result_vanilla else 0
                 logger.info(
                     f"Vanilla: got={vanilla_count}, will use={min(vanilla_count, VANILLA_SUPPLEMENT)}"
                 )
-            except Exception as e:
-                logger.error(f"Vanilla search failed: {e}")
-                result_vanilla = None
 
             combined_results = []
 
@@ -94,7 +106,12 @@ class HybridRetriever:
                         content=f"[FACT] {r.fact}",
                         source_type="graph",
                         score=r.score,
-                        metadata={"entity": r.entity_name, "valid_at": r.valid_at},
+                        metadata={
+                            "entity": r.entity_name,
+                            "valid_at": r.valid_at,
+                            "source_description": r.source_description,
+                            "entity_names": (r.metadata or {}).get("entity_names"),
+                        },
                     )
                 )
 
@@ -120,21 +137,34 @@ class HybridRetriever:
             return []
 
     def format_context(self, results: List[HybridSearchResult]) -> str:
-        """Format merged results into a single context string"""
-        lines = ["=== RETRIEVED CONTEXT ==="]
+        """Structured context for LLM (facts JSON + raw session passages)."""
+        lines: List[str] = ["=== RETRIEVED CONTEXT ==="]
 
-        # Group by source for clarity
         graph_facts = [r for r in results if r.source_type == "graph"]
         vanilla_docs = [r for r in results if r.source_type == "vanilla"]
 
         if graph_facts:
-            lines.append("\n--- STRUCTURAL FACTS (FROM KNOWLEDGE GRAPH) ---")
+            lines.append("\n<FACTS>")
+            fact_rows = []
             for r in graph_facts:
-                lines.append(f"- {r.content.replace('[FACT] ', '')}")
+                text = r.content.replace("[FACT] ", "", 1)
+                md = r.metadata or {}
+                fact_rows.append(
+                    {
+                        "fact": text,
+                        "valid_at": md.get("valid_at"),
+                        "source_description": md.get("source_description"),
+                        "entity": md.get("entity"),
+                        "entity_names": md.get("entity_names"),
+                    }
+                )
+            lines.append(json.dumps(fact_rows, default=str, ensure_ascii=False, indent=2))
+            lines.append("</FACTS>")
 
         if vanilla_docs:
-            lines.append("\n--- SPECIFIC DETAILS (FROM RAW SESSIONS) ---")
+            lines.append("\n<EPISODE_PASSAGES>")
             for r in vanilla_docs:
-                lines.append(f"{r.content.replace('[DETAIL] ', '')}")
+                lines.append(r.content.replace("[DETAIL] ", "", 1))
+            lines.append("</EPISODE_PASSAGES>")
 
         return "\n".join(lines)

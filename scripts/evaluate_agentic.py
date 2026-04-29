@@ -381,21 +381,24 @@ class AgenticEvaluator:
                     self.fact_graph = fact_graph
                     self.group_id = group_id
 
-                async def search(self, query: str, num_results: int = 10):
+                async def search(self, query: str, num_results: int = 10, **kwargs: Any):
                     """Delegate to ``TemporalGraphClient.search``."""
                     results = await self.fact_graph.search(
-                        query=query, group_ids=[self.group_id], num_results=num_results
+                        query=query,
+                        group_ids=[self.group_id],
+                        num_results=num_results,
+                        **kwargs,
                     )
                     return (
                         [
                             SearchResult(
                                 fact=r.fact,
-                                score=getattr(
-                                    r, "score", 0.8
-                                ),  # Default high score if missing
+                                score=getattr(r, "score", 0.8),
                                 entity_name=getattr(r, "entity_name", None),
                                 created_at=getattr(r, "created_at", None),
                                 valid_at=getattr(r, "valid_at", None),
+                                source_description=getattr(r, "source_description", None),
+                                metadata=getattr(r, "metadata", None) or {},
                             )
                             for r in results
                         ]
@@ -406,8 +409,13 @@ class AgenticEvaluator:
                 async def search_with_temporal_filter(
                     self, query: str, before=None, after=None, num_results: int = 10
                 ):
-                    """Temporal search (fallback to regular search for now)"""
-                    return await self.search(query, num_results)
+                    return await self.fact_graph.search(
+                        query=query,
+                        group_ids=[self.group_id],
+                        num_results=num_results,
+                        valid_before=before,
+                        valid_after=after,
+                    )
 
                 async def get_entity_facts(self, entity_name: str):
                     """Get facts related to an entity by searching for it"""
@@ -415,7 +423,11 @@ class AgenticEvaluator:
 
             adapter = SurrealFactGraphAdapter(self._tc, self._group_id)
             retrieval_config = RetrievalConfig(
-                max_iterations=5, num_results=5, similarity_threshold=0.3
+                max_iterations=5,
+                num_results=5,
+                similarity_threshold=0.3,
+                min_agent_facts=5,
+                max_agent_facts=15,
             )
             # Use NovitaLLMClient when extraction LLM is Novita, else Gemini GenAI
             sufficiency_client = (
@@ -464,9 +476,12 @@ class AgenticEvaluator:
                     self.fact_graph = fact_graph
                     self.group_id = group_id
 
-                async def search(self, query: str, num_results: int = 10):
+                async def search(self, query: str, num_results: int = 10, **kwargs: Any):
                     results = await self.fact_graph.search(
-                        query=query, group_ids=[self.group_id], num_results=num_results
+                        query=query,
+                        group_ids=[self.group_id],
+                        num_results=num_results,
+                        **kwargs,
                     )
                     return (
                         [
@@ -476,6 +491,8 @@ class AgenticEvaluator:
                                 entity_name=getattr(r, "entity_name", None),
                                 created_at=getattr(r, "created_at", None),
                                 valid_at=getattr(r, "valid_at", None),
+                                source_description=getattr(r, "source_description", None),
+                                metadata=getattr(r, "metadata", None) or {},
                             )
                             for r in results
                         ]
@@ -486,7 +503,13 @@ class AgenticEvaluator:
                 async def search_with_temporal_filter(
                     self, query: str, before=None, after=None, num_results: int = 10
                 ):
-                    return await self.search(query, num_results)
+                    return await self.fact_graph.search(
+                        query=query,
+                        group_ids=[self.group_id],
+                        num_results=num_results,
+                        valid_before=before,
+                        valid_after=after,
+                    )
 
                 async def get_entity_facts(self, entity_name: str):
                     return await self.search(entity_name, num_results=5)
@@ -494,7 +517,11 @@ class AgenticEvaluator:
             # Create agent with adapter and LLM for sufficiency check
             adapter = _SurrealFactGraphAdapterHybrid(self._tc, self._group_id)
             retrieval_config = RetrievalConfig(
-                max_iterations=5, num_results=5, similarity_threshold=0.3
+                max_iterations=5,
+                num_results=5,
+                similarity_threshold=0.3,
+                min_agent_facts=5,
+                max_agent_facts=15,
             )
             sufficiency_client = (
                 self._novita_llm_client if self._novita_llm_client else llm_client

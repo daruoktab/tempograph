@@ -240,12 +240,31 @@ class RetrievalConfig:
 
     # Agentic-only settings (ignored in Vanilla)
     max_iterations: int = 3  # Max iterations for agentic loop
+    min_agent_facts: int = 5  # Minimum facts before LLM sufficiency (was RetrievalAgent.MIN_FACTS)
+    max_agent_facts: int = 15  # Hard cap on facts collected (was MAX_FACTS)
     enable_reranking: bool = True  # Whether to rerank results
     enable_temporal_filter: bool = True  # Whether to apply temporal filtering
+
+    # Fact-graph retrieval (TemporalGraphClient.search)
+    fact_fetch_multiplier: float = 3.0  # fetch_lim ≈ max(num_results * mult, num_results + fact_fetch_min_extra)
+    fact_fetch_min_extra: int = 10
+    use_rrf: bool = True  # Fuse vector + entity-graph (+ optional keyword) with RRF
+    use_keyword_rrf: bool = True  # Third RRF list from token overlap on fact_text
+    rrf_rank_const: int = 60  # RRF denominator offset (lower = more weight to top ranks)
+    use_mmr: bool = False  # Diversify final picks using stored fact embeddings
+    mmr_lambda: float = 0.5
+    mmr_pool_size: int = 40  # Max candidates considered for MMR after RRF/heuristic merge
+
+    # JSONL path for per-phase timings (also reads env RETRIEVAL_TRACE_JSONL if unset)
+    retrieval_trace_jsonl: Optional[str] = None
 
     def __post_init__(self):
         # Ensure num_results matches rerank_top_k
         self.num_results = self.rerank_top_k
+        if self.retrieval_trace_jsonl is None:
+            import os
+
+            self.retrieval_trace_jsonl = os.getenv("RETRIEVAL_TRACE_JSONL")
 
 
 @dataclass

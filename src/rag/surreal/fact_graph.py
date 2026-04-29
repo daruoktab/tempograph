@@ -7,6 +7,7 @@ and graph edges (``has_fact``, ``fact_involves``) for agentic / hybrid retrieval
 from __future__ import annotations
 
 import asyncio
+import hashlib
 import json
 import logging
 import re
@@ -21,8 +22,33 @@ from ...config.settings import GeminiConfig, SurrealDBConfig, get_config
 from ...embedders import BaseEmbedder, EmbedderType, create_embedder
 from ...embedders.factory import EmbedderConfig
 from .connection import apply_schema, connect_surreal
+from .ranking import (
+    estimate_chars_per_token,
+    maximal_marginal_relevance,
+    reciprocal_rank_fusion,
+    should_chunk_by_density,
+)
+from ..retrieval.trace import append_retrieval_trace, retrieval_span
 
 logger = logging.getLogger(__name__)
+
+
+def _entity_char_entropy(s: str) -> float:
+    """Shannon entropy over characters (lowercase, no spaces) — filters trivial entity strings."""
+    import math
+
+    t = re.sub(r"\s+", "", s.lower())
+    if len(t) < 2:
+        return 0.0
+    counts: Dict[str, int] = {}
+    for c in t:
+        counts[c] = counts.get(c, 0) + 1
+    total = len(t)
+    h = 0.0
+    for cnt in counts.values():
+        p = cnt / total
+        h -= p * math.log2(p)
+    return h
 
 
 def _utc_now() -> datetime:
@@ -165,15 +191,29 @@ class TemporalGraphClient:
         return self
 
     async def _vector_search_rows(
-        self, qv: List[float], gid: str, limit: int
+        self,
+        qv: List[float],
+        gid: str,
+        limit: int,
+        valid_before: Optional[datetime] = None,
+        valid_after: Optional[datetime] = None,
     ) -> List[Dict[str, Any]]:
+        conds = ["group_id = $gid"]
+        params: Dict[str, Any] = {"qv": qv, "gid": gid, "lim": limit}
+        if valid_before is not None:
+            conds.append("(valid_at IS NONE OR valid_at <= $vb)")
+            params["vb"] = valid_before
+        if valid_after is not None:
+            conds.append("(valid_at IS NONE OR valid_at >= $va)")
+            params["va"] = valid_after
+        where_sql = " AND ".join(conds)
         sql = (
-            "SELECT fact_text, entity_names, valid_at, created_at, source_description, "
-            "vector::similarity::cosine(embedding, $qv) AS score "
-            "FROM extracted_fact WHERE group_id = $gid "
-            "ORDER BY score DESC LIMIT $lim"
+            f"SELECT id, fact_text, entity_names, valid_at, created_at, source_description, "
+            f"vector::similarity::cosine(embedding, $qv) AS score "
+            f"FROM extracted_fact WHERE {where_sql} "
+            f"ORDER BY score DESC LIMIT $lim"
         )
-        res = await self._db.query(sql, {"qv": qv, "gid": gid, "lim": limit})
+        res = await self._db.query(sql, params)
         return _flatten_query(res)
 
     @staticmethod
@@ -188,6 +228,9 @@ class TemporalGraphClient:
             meta = {**extra, **(r.get("_retrieval_meta") or {})}
             if isinstance(names, list) and names:
                 meta = {**meta, "entity_names": [str(x) for x in names]}
+            rid = r.get("id")
+            if rid is not None:
+                meta = {**meta, "fact_record_id": str(rid)}
             out.append(
                 SearchResult(
                     fact=str(r.get("fact_text", "")),
@@ -220,7 +263,8 @@ class TemporalGraphClient:
         except Exception as e:
             logger.debug("resolve_entities_in_query failed: %s", e)
             return []
-        return _flatten_query(res)
+        rows = _flatten_query(res)
+        return self._filter_entity_rows(rows, query)
 
     async def search_facts_for_entity_ids(
         self,
@@ -228,6 +272,8 @@ class TemporalGraphClient:
         qv: List[float],
         group_id: Optional[str] = None,
         limit: int = 30,
+        valid_before: Optional[datetime] = None,
+        valid_after: Optional[datetime] = None,
     ) -> List[SearchResult]:
         """
         Facts linked to the given entity record ids via ``fact_involves`` (fact → entity),
@@ -236,15 +282,26 @@ class TemporalGraphClient:
         if self._db is None or not entity_ids:
             return []
         gid = group_id or self.group_id
+        conds = [
+            "group_id = $gid",
+            "id IN (SELECT in FROM fact_involves WHERE out IN $eids)",
+        ]
+        params: Dict[str, Any] = {"qv": qv, "gid": gid, "eids": entity_ids, "lim": limit}
+        if valid_before is not None:
+            conds.append("(valid_at IS NONE OR valid_at <= $vb)")
+            params["vb"] = valid_before
+        if valid_after is not None:
+            conds.append("(valid_at IS NONE OR valid_at >= $va)")
+            params["va"] = valid_after
+        where_sql = " AND ".join(conds)
         sql = (
-            "SELECT fact_text, entity_names, valid_at, created_at, source_description, "
-            "vector::similarity::cosine(embedding, $qv) AS score "
-            "FROM extracted_fact WHERE group_id = $gid AND id IN ("
-            "SELECT in FROM fact_involves WHERE out IN $eids) "
-            "ORDER BY score DESC LIMIT $lim"
+            f"SELECT id, fact_text, entity_names, valid_at, created_at, source_description, "
+            f"vector::similarity::cosine(embedding, $qv) AS score "
+            f"FROM extracted_fact WHERE {where_sql} "
+            f"ORDER BY score DESC LIMIT $lim"
         )
         try:
-            res = await self._db.query(sql, {"qv": qv, "gid": gid, "eids": entity_ids, "lim": limit})
+            res = await self._db.query(sql, params)
         except Exception as e:
             logger.warning("search_facts_for_entity_ids failed: %s", e)
             return []
@@ -252,7 +309,7 @@ class TemporalGraphClient:
         return self._rows_to_search_results(rows, {"source": "entity_graph"})
 
     @staticmethod
-    def _merge_vector_and_graph_results(
+    def _merge_vector_and_graph_results_heuristic(
         vector_hits: List[SearchResult],
         graph_hits: List[SearchResult],
         resolved_entity_names: List[str],
@@ -332,6 +389,185 @@ class TemporalGraphClient:
         ranked = sorted(merged.values(), key=lambda x: x.score, reverse=True)
         return ranked[:num_results]
 
+    @staticmethod
+    def _result_fact_id(sr: SearchResult) -> str:
+        meta = sr.metadata or {}
+        fid = meta.get("fact_record_id")
+        if fid:
+            return str(fid)
+        return hashlib.sha256(sr.fact.encode("utf-8")).hexdigest()[:24]
+
+    @staticmethod
+    def _filter_entity_rows(rows: List[Dict[str, Any]], query: str) -> List[Dict[str, Any]]:
+        if not rows:
+            return []
+        out: List[Dict[str, Any]] = []
+        for r in rows:
+            name = str(r.get("name", "")).strip()
+            if len(name) < 2:
+                continue
+            ent = _entity_char_entropy(name)
+            if len(name) < 6 and ent < 1.0:
+                continue
+            out.append(r)
+        return out if out else rows[:25]
+
+    async def _keyword_ranked_fact_ids(
+        self,
+        query: str,
+        gid: str,
+        limit: int,
+        valid_before: Optional[datetime] = None,
+        valid_after: Optional[datetime] = None,
+    ) -> List[str]:
+        if self._db is None:
+            return []
+        toks = list({t.lower() for t in re.split(r"\W+", query) if len(t) > 3})[:5]
+        if not toks:
+            return []
+        scored: Dict[str, int] = {}
+        for tok in toks:
+            conds = [
+                "group_id = $gid",
+                "string::contains(string::lowercase(fact_text), $tok)",
+            ]
+            params: Dict[str, Any] = {"gid": gid, "tok": tok, "lim": max(limit, 20)}
+            if valid_before is not None:
+                conds.append("(valid_at IS NONE OR valid_at <= $vb)")
+                params["vb"] = valid_before
+            if valid_after is not None:
+                conds.append("(valid_at IS NONE OR valid_at >= $va)")
+                params["va"] = valid_after
+            where_sql = " AND ".join(conds)
+            sql = f"SELECT id FROM extracted_fact WHERE {where_sql} LIMIT $lim"
+            try:
+                res = await self._db.query(sql, params)
+            except Exception as e:
+                logger.debug("_keyword_ranked_fact_ids: %s", e)
+                continue
+            for row in _flatten_query(res):
+                rid = row.get("id")
+                if rid is None:
+                    continue
+                k = str(rid)
+                scored[k] = scored.get(k, 0) + 1
+        return [fid for fid, _ in sorted(scored.items(), key=lambda kv: kv[1], reverse=True)[:limit]]
+
+    async def _apply_mmr_to_ranked(
+        self,
+        ranked: List[SearchResult],
+        qv: List[float],
+        gid: str,
+        k: int,
+        pool: int,
+        lambda_mult: float,
+    ) -> List[SearchResult]:
+        if not ranked or k <= 0 or self._db is None:
+            return ranked[:k]
+        pool = min(pool, len(ranked))
+        ids: List[str] = []
+        id_to_sr: Dict[str, SearchResult] = {}
+        for r in ranked[:pool]:
+            fid = self._result_fact_id(r)
+            if fid not in id_to_sr or r.score > id_to_sr[fid].score:
+                id_to_sr[fid] = r
+            if fid not in ids:
+                ids.append(fid)
+        if len(ids) < 2:
+            return ranked[:k]
+        id_list = list(id_to_sr.keys())
+        try:
+            res = await self._db.query(
+                "SELECT id, embedding FROM extracted_fact WHERE group_id = $gid AND id IN $ids",
+                {"gid": gid, "ids": id_list},
+            )
+        except Exception as e:
+            logger.debug("_apply_mmr_to_ranked: %s", e)
+            return ranked[:k]
+        emb_map: Dict[str, List[float]] = {}
+        for row in _flatten_query(res):
+            rid = row.get("id")
+            emb = row.get("embedding")
+            if rid is not None and isinstance(emb, list) and emb:
+                emb_map[str(rid)] = [float(x) for x in emb]
+        if len(emb_map) < 2:
+            return ranked[:k]
+        mmr_ids = maximal_marginal_relevance(
+            qv, emb_map, k=min(k, len(emb_map)), lambda_mult=lambda_mult
+        )
+        out: List[SearchResult] = []
+        for mid in mmr_ids:
+            if mid in id_to_sr:
+                out.append(id_to_sr[mid])
+        return out if out else ranked[:k]
+
+    async def _fuse_search_results(
+        self,
+        *,
+        vector_results: List[SearchResult],
+        graph_results: List[SearchResult],
+        resolved_entity_names: List[str],
+        num_results: int,
+        use_rrf: bool,
+        use_keyword_rrf: bool,
+        rrf_rank_const: int,
+        use_mmr: bool,
+        mmr_lambda: float,
+        mmr_pool_size: int,
+        qv: List[float],
+        gid: str,
+        query: str,
+        valid_before: Optional[datetime],
+        valid_after: Optional[datetime],
+    ) -> List[SearchResult]:
+        if not use_rrf:
+            return TemporalGraphClient._merge_vector_and_graph_results_heuristic(
+                vector_results, graph_results, resolved_entity_names, num_results
+            )
+        rv = [self._result_fact_id(r) for r in vector_results if r.fact]
+        rg = [self._result_fact_id(r) for r in graph_results if r.fact]
+        rankings: List[List[str]] = [rv, rg]
+        if use_keyword_rrf:
+            kw = await self._keyword_ranked_fact_ids(
+                query, gid, max(30, num_results * 4), valid_before, valid_after
+            )
+            if kw:
+                rankings.append(kw)
+        fused = reciprocal_rank_fusion(rankings, rank_const=rrf_rank_const)
+        by_id: Dict[str, SearchResult] = {}
+        for r in vector_results + graph_results:
+            if not r.fact:
+                continue
+            fid = self._result_fact_id(r)
+            prev = by_id.get(fid)
+            if prev is None or r.score > prev.score:
+                by_id[fid] = r
+        ordered: List[SearchResult] = []
+        for fid, rrf_s in fused:
+            sr = by_id.get(fid)
+            if sr is None:
+                continue
+            meta = {**(sr.metadata or {}), "rrf_score": float(rrf_s), "cosine_score": float(sr.score)}
+            ordered.append(
+                SearchResult(
+                    fact=sr.fact,
+                    score=float(rrf_s),
+                    entity_name=sr.entity_name,
+                    created_at=sr.created_at,
+                    valid_at=sr.valid_at,
+                    source_description=sr.source_description,
+                    metadata=meta,
+                )
+            )
+            if len(ordered) >= max(mmr_pool_size, num_results * 4, 30):
+                break
+        if use_mmr and self._db is not None:
+            ordered = await self._apply_mmr_to_ranked(
+                ordered, qv, gid, num_results, mmr_pool_size, mmr_lambda
+            )
+            return ordered[:num_results]
+        return ordered[:num_results]
+
     async def search(
         self,
         query: Optional[str] = None,
@@ -344,6 +580,18 @@ class TemporalGraphClient:
         num_results = int(kwargs.pop("num_results", num_results))
         group_ids = group_ids or kwargs.pop("group_ids", None)
         use_entity_graph = bool(kwargs.pop("use_entity_graph", True))
+        rc = get_config().retrieval
+        trace_path = kwargs.pop("trace_path", None) or rc.retrieval_trace_jsonl
+        valid_before = kwargs.pop("valid_before", kwargs.pop("before", None))
+        valid_after = kwargs.pop("valid_after", kwargs.pop("after", None))
+        use_rrf = bool(kwargs.pop("use_rrf", rc.use_rrf))
+        use_keyword_rrf = bool(kwargs.pop("use_keyword_rrf", rc.use_keyword_rrf))
+        rrf_rank_const = int(kwargs.pop("rrf_rank_const", rc.rrf_rank_const))
+        use_mmr = bool(kwargs.pop("use_mmr", rc.use_mmr))
+        mmr_lambda = float(kwargs.pop("mmr_lambda", rc.mmr_lambda))
+        mmr_pool_size = int(kwargs.pop("mmr_pool_size", rc.mmr_pool_size))
+        fetch_mult = float(kwargs.pop("fact_fetch_multiplier", rc.fact_fetch_multiplier))
+        fetch_extra = int(kwargs.pop("fact_fetch_min_extra", rc.fact_fetch_min_extra))
         if kwargs:
             logger.debug("search: ignored extra kwargs %s", list(kwargs.keys()))
         if not query:
@@ -354,31 +602,88 @@ class TemporalGraphClient:
         gid = gids[0]
         if self._embedder is None:
             raise RuntimeError("Embedder required for search")
-        emb = await self._embedder.embed([query])
+        with retrieval_span("fact_graph.embed_query", path=trace_path, group_id=gid):
+            emb = await self._embedder.embed([query])
         if not emb.embeddings:
             raise RuntimeError("Embedding API returned no vectors")
         qv = list(float(x) for x in emb.embeddings[0])
 
-        fetch_lim = max(num_results * 3, num_results + 10)
-        v_rows = await self._vector_search_rows(qv, gid, fetch_lim)
+        fetch_lim = max(int(num_results * fetch_mult), num_results + fetch_extra)
+        with retrieval_span("fact_graph.vector_sql", path=trace_path, fetch_lim=fetch_lim):
+            v_rows = await self._vector_search_rows(
+                qv, gid, fetch_lim, valid_before=valid_before, valid_after=valid_after
+            )
         vector_results = self._rows_to_search_results(v_rows, {"source": "vector"})
 
         if not use_entity_graph:
-            return vector_results[:num_results]
+            out = vector_results[:num_results]
+            append_retrieval_trace(
+                {
+                    "phase": "fact_graph.search_done",
+                    "path": trace_path,
+                    "vector_hits": len(vector_results),
+                    "graph_hits": 0,
+                    "returned": len(out),
+                },
+                path=trace_path,
+            )
+            return out
 
-        ent_rows = await self.resolve_entities_in_query(query, gid)
+        with retrieval_span("fact_graph.resolve_entities", path=trace_path):
+            ent_rows = await self.resolve_entities_in_query(query, gid)
         if not ent_rows:
+            append_retrieval_trace(
+                {
+                    "phase": "fact_graph.search_done",
+                    "path": trace_path,
+                    "vector_hits": len(vector_results),
+                    "graph_hits": 0,
+                    "returned": min(len(vector_results), num_results),
+                },
+                path=trace_path,
+            )
             return vector_results[:num_results]
 
         eids = [r["id"] for r in ent_rows if r.get("id") is not None]
         resolved_names = [str(r["name"]) for r in ent_rows if r.get("name") is not None]
-        graph_results = await self.search_facts_for_entity_ids(
-            eids, qv, gid, limit=max(num_results * 2, 20)
+        with retrieval_span("fact_graph.entity_graph_sql", path=trace_path):
+            graph_results = await self.search_facts_for_entity_ids(
+                eids,
+                qv,
+                gid,
+                limit=max(num_results * 2, 20),
+                valid_before=valid_before,
+                valid_after=valid_after,
+            )
+        fused = await self._fuse_search_results(
+            vector_results=vector_results,
+            graph_results=graph_results,
+            resolved_entity_names=resolved_names,
+            num_results=num_results,
+            use_rrf=use_rrf,
+            use_keyword_rrf=use_keyword_rrf,
+            rrf_rank_const=rrf_rank_const,
+            use_mmr=use_mmr,
+            mmr_lambda=mmr_lambda,
+            mmr_pool_size=mmr_pool_size,
+            qv=qv,
+            gid=gid,
+            query=query,
+            valid_before=valid_before,
+            valid_after=valid_after,
         )
-
-        return self._merge_vector_and_graph_results(
-            vector_results, graph_results, resolved_names, num_results
+        append_retrieval_trace(
+            {
+                "phase": "fact_graph.search_done",
+                "path": trace_path,
+                "vector_hits": len(vector_results),
+                "graph_hits": len(graph_results),
+                "entity_anchors": len(eids),
+                "returned": len(fused),
+            },
+            path=trace_path,
         )
+        return fused
 
     async def add_episode(
         self,
@@ -476,7 +781,34 @@ class TemporalGraphClient:
         return ep_id
 
     async def _extract_facts(self, body: str, reference_time: datetime) -> List[Dict[str, Any]]:
-        """Single-pass JSON fact extraction (Indonesian)."""
+        """
+        LLM JSON fact extraction. Dense sessions are split into overlapping chunks only when
+        ``should_chunk_by_density`` indicates high entity-like density (Graphiti-style heuristic).
+        """
+        work = body[:120_000]
+        if should_chunk_by_density(work):
+            chunk_chars = 3000 * estimate_chars_per_token()
+            overlap = 200 * estimate_chars_per_token()
+            merged: List[Dict[str, Any]] = []
+            seen: set[str] = set()
+            start = 0
+            while start < len(work):
+                piece = work[start : start + chunk_chars]
+                if not piece.strip():
+                    break
+                batch = await self._extract_facts_once(piece, reference_time)
+                for item in batch:
+                    ft = str(item.get("fact") or item.get("fakta") or "").strip()
+                    if ft and ft not in seen:
+                        seen.add(ft)
+                        merged.append(item)
+                if start + chunk_chars >= len(work):
+                    break
+                start += chunk_chars - overlap
+            return merged if merged else await self._extract_facts_once(work, reference_time)
+        return await self._extract_facts_once(work, reference_time)
+
+    async def _extract_facts_once(self, body: str, reference_time: datetime) -> List[Dict[str, Any]]:
         prompt = f"""Anda mengekstrak fakta atomik dari percakapan berikut (Bahasa Indonesia).
 Waktu referensi (ISO): {reference_time.isoformat()}
 
@@ -555,16 +887,13 @@ Teks percakapan:
         after: Optional[datetime] = None,
         num_results: int = 10,
     ) -> List[SearchResult]:
-        results = await self.search(query, num_results=num_results * 2)
-        filtered: List[SearchResult] = []
-        for r in results:
-            if r.valid_at:
-                if before and r.valid_at > before:
-                    continue
-                if after and r.valid_at < after:
-                    continue
-            filtered.append(r)
-        return filtered[:num_results]
+        """Filter ``valid_at`` in SurrealQL (via ``search``) instead of post-filtering in Python."""
+        return await self.search(
+            query=query,
+            num_results=num_results,
+            valid_before=before,
+            valid_after=after,
+        )
 
     async def get_entity_facts(self, entity_name: str, limit: int = 20) -> List[SearchResult]:
         if self._db is None:
@@ -586,7 +915,7 @@ Teks percakapan:
             eid = erows[0]["id"]
             try:
                 res = await self._db.query(
-                    "SELECT fact_text, entity_names, valid_at, created_at, source_description "
+                    "SELECT id, fact_text, entity_names, valid_at, created_at, source_description "
                     "FROM extracted_fact WHERE group_id = $gid AND id IN ("
                     "SELECT in FROM fact_involves WHERE out = $eid) "
                     "ORDER BY created_at DESC LIMIT $lim",
@@ -599,7 +928,7 @@ Teks percakapan:
 
         if not rows:
             fb = (
-                "SELECT fact_text, entity_names, valid_at, created_at, source_description "
+                "SELECT id, fact_text, entity_names, valid_at, created_at, source_description "
                 "FROM extracted_fact WHERE group_id = $gid AND array::contains(entity_names, $name) "
                 "ORDER BY created_at DESC LIMIT $lim"
             )
@@ -613,6 +942,10 @@ Teks percakapan:
         for r in rows:
             names = r.get("entity_names") or []
             en = names[0] if isinstance(names, list) and names else entity_name
+            meta = {"source": "entity_expand"}
+            rid = r.get("id")
+            if rid is not None:
+                meta["fact_record_id"] = str(rid)
             out.append(
                 SearchResult(
                     fact=str(r.get("fact_text", "")),
@@ -621,10 +954,35 @@ Teks percakapan:
                     created_at=r.get("created_at") if isinstance(r.get("created_at"), datetime) else None,
                     valid_at=r.get("valid_at") if isinstance(r.get("valid_at"), datetime) else None,
                     source_description=r.get("source_description"),
-                    metadata={"source": "entity_expand"},
+                    metadata=meta,
                 )
             )
         return out
+
+    async def retrieve_episodes_window(
+        self,
+        reference_time: datetime,
+        last_n: int = 3,
+        group_id: Optional[str] = None,
+    ) -> List[Dict[str, Any]]:
+        """
+        Episodes with ``reference_time`` at or before the given instant, newest first (Graphiti-style window).
+        """
+        if self._db is None:
+            return []
+        gid = group_id or self.group_id
+        ref = _as_utc(reference_time)
+        sql = (
+            "SELECT id, name, body, source_description, reference_time, created_at FROM episode "
+            "WHERE group_id = $gid AND reference_time <= $ref "
+            "ORDER BY reference_time DESC LIMIT $lim"
+        )
+        try:
+            res = await self._db.query(sql, {"gid": gid, "ref": ref, "lim": last_n})
+        except Exception as e:
+            logger.warning("retrieve_episodes_window: %s", e)
+            return []
+        return _flatten_query(res)
 
     async def get_stats(self) -> Dict[str, int]:
         if self._db is None:

@@ -7,7 +7,8 @@ Agentic iterative retrieval untuk query kompleks dengan temporal reasoning.
 
 import logging
 import asyncio
-from datetime import datetime
+import re
+from datetime import datetime, timezone
 from typing import List, Dict, Any, Optional, Tuple
 from dataclasses import dataclass, field
 from enum import Enum
@@ -78,11 +79,6 @@ class RetrievalAgent:
         llm_client: Optional LLM client untuk sufficiency evaluation
     """
 
-    # Limits for fair comparison
-    MIN_FACTS = 5  # Minimum facts before asking LLM
-    MAX_FACTS = 15  # Maximum facts (hard cap)
-    MAX_ITERATIONS = 5  # Maximum iterations
-
     def __init__(
         self,
         graph_client,
@@ -92,6 +88,31 @@ class RetrievalAgent:
         self.client = graph_client
         self.config = config or get_config().retrieval
         self.llm_client = llm_client  # LLM for "brain" evaluation
+
+    def _detect_temporal_filter(
+        self, query: str, query_type: QueryType
+    ) -> Optional[Dict[str, datetime]]:
+        """Light ISO-date window when temporal cues or explicit dates appear."""
+        if not self.config.enable_temporal_filter:
+            return None
+        m = re.search(r"\b(\d{4}-\d{2}-\d{2})\b", query)
+        if not m:
+            return None
+        temporalish = query_type in (
+            QueryType.TEMPORAL,
+            QueryType.FACTUAL,
+            QueryType.CAUSAL,
+            QueryType.COMPARISON,
+        )
+        if not temporalish:
+            return None
+        try:
+            day = datetime.fromisoformat(m.group(1)).replace(tzinfo=timezone.utc)
+            start = day.replace(hour=0, minute=0, second=0, microsecond=0)
+            end = day.replace(hour=23, minute=59, second=59, microsecond=999999)
+            return {"after": start, "before": end}
+        except ValueError:
+            return None
 
     # ==========================================================================
     # QUERY CLASSIFICATION
@@ -200,6 +221,7 @@ class RetrievalAgent:
         if query_type in [QueryType.CAUSAL, QueryType.COMPARISON]:
             plan.requires_multi_hop = True
 
+        plan.temporal_filter = self._detect_temporal_filter(query, query_type)
         return plan
 
     # ==========================================================================
@@ -210,25 +232,24 @@ class RetrievalAgent:
         self, query: str, state: RetrievalState, plan: RetrievalPlan
     ) -> List[SearchResult]:
         """Execute a single search iteration"""
-
-        # Perform semantic search
-        if plan.temporal_filter:
-            results = await self.client.search_with_temporal_filter(
+        if self.config.enable_temporal_filter and plan.temporal_filter:
+            results = await self.client.search(
                 query=query,
-                before=plan.temporal_filter.get("before"),
-                after=plan.temporal_filter.get("after"),
                 num_results=self.config.num_results,
+                valid_before=plan.temporal_filter.get("before"),
+                valid_after=plan.temporal_filter.get("after"),
             )
         else:
             results = await self.client.search(
                 query=query, num_results=self.config.num_results
             )
 
-        # Filter by similarity threshold
-        if self.config.similarity_threshold > 0:
-            results = [
-                r for r in results if r.score >= self.config.similarity_threshold
-            ]
+        # RRF scores are not cosine; skip threshold when RRF metadata is present
+        if self.config.similarity_threshold > 0 and results:
+            if not any((r.metadata or {}).get("rrf_score") is not None for r in results):
+                results = [
+                    r for r in results if r.score >= self.config.similarity_threshold
+                ]
 
         return results
 
@@ -391,16 +412,16 @@ INFO_KURANG: [jika TIDAK, sebutkan informasi apa yang masih kurang]"""
         num_facts = len(state.retrieved_facts)
 
         # Hard limits
-        if num_facts >= self.MAX_FACTS:
-            logger.info(f"Hit MAX_FACTS limit ({self.MAX_FACTS})")
+        if num_facts >= self.config.max_agent_facts:
+            logger.info(f"Hit max_agent_facts limit ({self.config.max_agent_facts})")
             return True, 1.0, ""
 
-        if state.iteration >= self.MAX_ITERATIONS:
-            logger.info(f"Hit MAX_ITERATIONS limit ({self.MAX_ITERATIONS})")
+        if state.iteration >= self.config.max_iterations:
+            logger.info(f"Hit max_iterations limit ({self.config.max_iterations})")
             return True, 0.8, ""
 
         # Must have minimum facts before even checking
-        if num_facts < self.MIN_FACTS:
+        if num_facts < self.config.min_agent_facts:
             return False, 0.0, "Need more facts"
 
         # Use LLM if available, otherwise heuristic
@@ -413,10 +434,14 @@ INFO_KURANG: [jika TIDAK, sebutkan informasi apa yang masih kurang]"""
         else:
             # Fallback heuristic
             avg_score = sum(f.score for f in state.retrieved_facts) / num_facts
-            high_quality = sum(1 for f in state.retrieved_facts if f.score > 0.7)
+            use_rrf_scores = any(
+                (f.metadata or {}).get("rrf_score") is not None for f in state.retrieved_facts
+            )
+            thr = 0.12 if use_rrf_scores else 0.7
+            high_quality = sum(1 for f in state.retrieved_facts if f.score > thr)
 
-            is_sufficient = high_quality >= 5 or (num_facts >= 10 and avg_score > 0.6)
-            confidence = min(1.0, (high_quality / 5) * avg_score)
+            is_sufficient = high_quality >= 5 or (num_facts >= 10 and avg_score > (0.08 if use_rrf_scores else 0.6))
+            confidence = min(1.0, (high_quality / 5) * max(avg_score, 0.05))
 
             return is_sufficient, confidence, ""
 
@@ -448,7 +473,7 @@ INFO_KURANG: [jika TIDAK, sebutkan informasi apa yang masih kurang]"""
             if e and e not in state.entities_found:
                 state.entities_found.append(e)
 
-        while state.iteration < self.MAX_ITERATIONS:
+        while state.iteration < self.config.max_iterations:
             state.iteration += 1
             logger.debug(f"Iteration {state.iteration}")
 
@@ -470,7 +495,7 @@ INFO_KURANG: [jika TIDAK, sebutkan informasi apa yang masih kurang]"""
                 for r in results:
                     if (
                         r.fact not in existing_facts
-                        and len(state.retrieved_facts) < self.MAX_FACTS
+                        and len(state.retrieved_facts) < self.config.max_agent_facts
                     ):
                         state.retrieved_facts.append(r)
                         existing_facts.add(r.fact)
@@ -483,13 +508,13 @@ INFO_KURANG: [jika TIDAK, sebutkan informasi apa yang masih kurang]"""
             if (
                 (plan.requires_multi_hop or bool(plan.entities_to_find))
                 and (state.entities_found or plan.entities_to_find)
-                and len(state.retrieved_facts) < self.MAX_FACTS
+                and len(state.retrieved_facts) < self.config.max_agent_facts
             ):
                 expansion = await self.expand_search(state, plan)
                 for r in expansion:
                     if (
                         r.fact not in existing_facts
-                        and len(state.retrieved_facts) < self.MAX_FACTS
+                        and len(state.retrieved_facts) < self.config.max_agent_facts
                     ):
                         state.retrieved_facts.append(r)
 
@@ -511,7 +536,7 @@ INFO_KURANG: [jika TIDAK, sebutkan informasi apa yang masih kurang]"""
             )
 
         # Step 4: Build result (cap at MAX_FACTS)
-        final_facts = state.retrieved_facts[: self.MAX_FACTS]
+        final_facts = state.retrieved_facts[: self.config.max_agent_facts]
         context = "\n".join([f.fact for f in final_facts])
 
         return RetrievalResult(
@@ -525,6 +550,7 @@ INFO_KURANG: [jika TIDAK, sebutkan informasi apa yang masih kurang]"""
                 "plan": {
                     "search_queries": plan.search_queries,
                     "requires_multi_hop": plan.requires_multi_hop,
+                    "temporal_filter": plan.temporal_filter,
                 }
             },
         )

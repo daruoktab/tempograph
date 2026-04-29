@@ -114,19 +114,30 @@ class VanillaRetriever:
         """
         logger.debug(f"Vanilla retrieval for: {query[:50]}...")
 
+        from ...config.settings import get_config
+        from .trace import retrieval_span
+
+        trace = get_config().retrieval.retrieval_trace_jsonl
+
         # Step 1: Embed query
-        if self._embedder:
-            query_embedding = await self._embedder.embed_single(query)
-        else:
-            # Use passage store embedder (if configured)
-            query_embedding = None
+        with retrieval_span("vanilla.embed_query", path=trace, collection=self.db.collection_name):
+            if self._embedder:
+                query_embedding = await self._embedder.embed_single(query)
+            else:
+                # Use passage store embedder (if configured)
+                query_embedding = None
 
         # Step 2: Vector search (get candidates)
-        candidates = await self.db.search(
-            query=query,
+        with retrieval_span(
+            "vanilla.vector_sql",
+            path=trace,
             n_results=self.settings.embedding_top_k,
-            query_embedding=query_embedding,
-        )
+        ):
+            candidates = await self.db.search(
+                query=query,
+                n_results=self.settings.embedding_top_k,
+                query_embedding=query_embedding,
+            )
 
         logger.debug(f"Vector search returned {len(candidates)} candidates")
 
