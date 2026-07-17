@@ -39,3 +39,6 @@ data/chroma_test/
 # Frontend (Vite)
 web/sim/node_modules/
 web/sim/dist/
+
+# Local-only: graphify output directory
+graphify-out/
