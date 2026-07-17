@@ -37,7 +37,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 from tqdm import tqdm
 from src.config.experiment_setups import ExperimentSetup
 from src.evaluation.metrics import context_sufficiency_llm_judge, MetricResult
-from src.rag.retrieval.vanilla_retriever import VanillaRetriever
+from src.retrieval.vanilla_retriever import VanillaRetriever
 
 logging.basicConfig(
     level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s"
@@ -128,7 +128,7 @@ class VanillaEvaluator:
 
     async def initialize(self):
         """Initialize retriever"""
-        from src.rag.retrieval.vanilla_retriever import (
+        from src.retrieval.vanilla_retriever import (
             create_vanilla_retriever,
             VanillaRetriever,
         )
@@ -137,7 +137,7 @@ class VanillaEvaluator:
             SETUP_2V_VANILLA_GEMMA,
             RetrievalSettings,
         )
-        from src.rag.vectordb import get_surreal_vanilla_client
+        from src.vectordb import get_surreal_vanilla_client
         from src.embedders import create_embedder, EmbedderType
         from src.config.settings import get_config
 

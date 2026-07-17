@@ -14,9 +14,9 @@ from dataclasses import dataclass, field, asdict
 from pathlib import Path
 from tqdm import tqdm
 
-from ..rag.surreal.fact_graph import TemporalGraphClient
-from ..rag.ingestion import EpisodeIngester
-from ..rag.retrieval import RetrievalAgent
+from ..surreal.fact_graph import TemporalGraphClient
+from ..ingestion import EpisodeIngester
+from ..retrieval import RetrievalAgent
 from .metrics import calculate_all_metrics
 from ..config.settings import get_config, EvaluationConfig
 

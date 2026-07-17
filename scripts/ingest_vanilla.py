@@ -41,7 +41,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from src.config.experiment_setups import ExperimentSetup
 from src.embedders.base import BaseEmbedder
-from src.rag.vectordb import SurrealVanillaVectorDB
+from src.vectordb import SurrealVanillaVectorDB
 
 from tqdm import tqdm
 
@@ -162,7 +162,7 @@ class VanillaIngester:
             SETUP_1V_VANILLA_GEMINI,
             SETUP_2V_VANILLA_GEMMA,
         )
-        from src.rag.vectordb import get_surreal_vanilla_client
+        from src.vectordb import get_surreal_vanilla_client
         from src.embedders import create_embedder, EmbedderType
         from src.config.settings import get_config
 
@@ -386,7 +386,7 @@ class VanillaIngester:
         logger.info("Unit: PER-TURN (1 doc = 1 turn)")
         logger.info(f"{'=' * 60}\n")
 
-        from src.rag.vectordb import VanillaDocument
+        from src.vectordb import VanillaDocument
 
         # Count total turns for progress bar
         total_turns = sum(len(s["turns"]) for s in sessions)
@@ -522,7 +522,7 @@ async def main():
 
     # Clear if requested
     if args.clear:
-        from src.rag.vectordb import get_surreal_vanilla_client
+        from src.vectordb import get_surreal_vanilla_client
         from src.config.experiment_setups import CHROMA_PERSIST_DIR
 
         if args.setup in ["gemini", "all"]:
@@ -554,7 +554,7 @@ async def main():
     logger.info("FINAL DATABASE STATUS")
     logger.info("=" * 60)
 
-    from src.rag.vectordb import get_surreal_vanilla_client
+    from src.vectordb import get_surreal_vanilla_client
     from src.config.experiment_setups import CHROMA_PERSIST_DIR
 
     for name in ["vanilla_gemini", "vanilla_gemma"]:

@@ -31,7 +31,7 @@ flowchart LR
     JSON[(conversation_dataset.json)]
     ING[scripts/ingest_agentic.py]
     DB[(SurrealDB)]
-    RET[src/rag/retrieval]
+    RET[src/retrieval]
 
     GEN --> JSON --> ING --> DB
     RET <--> DB
@@ -83,7 +83,7 @@ flowchart LR
 
 ### Ingest dan retrieval (SurrealDB)
 
-**Ingest:** `scripts/ingest_agentic.py` — menulis episode, `extracted_fact`, `entity`, relasi **`has_fact`** / **`fact_involves`**, serta **`session_passage`** (vektor per sesi penuh untuk vanilla/hybrid). Skema dan indeks vektor: **`src/rag/surreal/schema.surql`**.
+**Ingest:** `scripts/ingest_agentic.py` — menulis episode, `extracted_fact`, `entity`, `community`, relasi **`has_fact`** / **`fact_involves`** / **`has_member`**, serta **`session_passage`** (vektor per sesi penuh untuk vanilla/hybrid). Skema dan indeks vektor: **`src/surreal/schema.surql`**.
 
 **Skrip evaluasi:** `scripts/evaluate_agentic.py`, `scripts/evaluate_vanilla.py`, `scripts/test_agentic_hybrid_top3_questions.py` (SurrealDB harus dapat dijangkau sesuai `.env`).
 
@@ -91,7 +91,7 @@ flowchart LR
 flowchart TB
     Q[Query]
 
-    subgraph rag [Retrieval]
+    subgraph retrieval [Retrieval]
         RA[RetrievalAgent]
         VR[VanillaRetriever]
         HY[HybridRetriever]
@@ -102,8 +102,10 @@ flowchart TB
         SP[session_passage]
         EP[episode]
         EN[entity]
+        CM[community]
         R1[has_fact]
         R2[fact_involves]
+        R3[has_member]
     end
 
     Q --> RA
@@ -115,6 +117,7 @@ flowchart TB
     VR --> SP
     EP --> R1 --> FT
     FT --> R2 --> EN
+    CM --> R3 --> EN
 ```
 
 ```mermaid
@@ -132,10 +135,16 @@ erDiagram
         string embedding
         string entity_names
         datetime valid_at
+        datetime invalid_at
     }
     entity {
         string group_id
         string name
+    }
+    community {
+        string group_id
+        string name
+        string summary
     }
     session_passage {
         string collection
@@ -146,7 +155,19 @@ erDiagram
     }
     episode ||--o{ extracted_fact : has_fact
     extracted_fact }o--o{ entity : fact_involves
+    community ||--o{ entity : has_member
 ```
+
+### Algoritma Graf Temporal Tingkat Lanjut
+
+Untuk mengoptimalkan akurasi pada percakapan *multi-turn chatbot*, sistem ini menerapkan tiga algoritma canggih dari arsitektur Graphiti:
+
+1. **Deduplikasi Entitas Dinamis (*Dynamic Entity Deduplication*)**:
+   Penyatuan otomatis entitas alias atau variasi nama (misal: "Aisha" dan "Aisha Santoso") menggunakan metrik jarak teks (`rapidfuzz` untuk token sort & partial ratio) secara lokal. Jika kemiripan berada di batas menengah ($60\% - 84\%$), sistem meminta LLM mengklarifikasi kesamaan entitas secara kontekstual. Entitas terdeduplikasi digabung ke node yang sama di SurrealDB dengan nama terpanjang/terspesifik sebagai nama kanonis.
+2. **Resolusi Kontradiksi & Invalidation Bi-temporal**:
+   Pendeteksian konflik informasi baru secara real-time. Sebelum fakta disimpan, sistem membandingkan embedding fakta pada entitas yang sama menggunakan kemiripan kosinus. Jika kemiripan $\ge 0.35$ (topik sama), LLM mengklasifikasikan relasinya (*duplicate*, *contradictory*, atau *compatible*). Kontradiksi diselesaikan dengan menonaktifkan fakta lama secara temporal menggunakan atribut `invalid_at = reference_time` guna mendukung kueri sejarah bi-temporal chatbot.
+3. **Deteksi Komunitas Graf (*Graph Community Detection*)**:
+   Klusterisasi relasi sosial/pekerjaan pengguna secara periodik menggunakan algoritma partisi **Louvain** dari **NetworkX**. Kelompok entitas yang terbentuk kemudian dirangkum konteksnya oleh LLM menjadi `community` node yang terhubung via edge `has_member`, guna mendukung penyediaan memori makro pada turn berikutnya.
 
 ---
 
@@ -306,15 +327,14 @@ Simulasi **10 sesi** + graf interaktif (tanpa Surreal): lihat `web/sim/README.md
 ├── src/
 │   ├── config/              # settings, experiment_setups, runtime_setup (env RAG), dataset_generation_env
 │   ├── dataset/             # generator.py
-│   ├── rag/
-│   │   ├── ingestion/
-│   │   ├── retrieval/       # agent, vanilla, hybrid
-│   │   ├── surreal/         # koneksi, schema, fact graph, vanilla store
-│   │   └── vectordb/
-│   ├── llm/
-│   ├── embedders/
-│   ├── evaluation/
-│   └── utils/               # Gemini helpers, cost tracker, dll.
+│   ├── ingestion/           # episode_ingester.py
+│   ├── retrieval/           # agent.py, vanilla_retriever.py, hybrid_retriever.py, llm_reranker.py, trace.py
+│   ├── surreal/             # connection.py, schema.surql, fact_graph.py, vanilla_store.py, ranking.py
+│   ├── vectordb/            # Client wrapper untuk vanilla vector DB
+│   ├── llm/                 # Provider LLM (gemini_provider.py, novita_provider.py)
+│   ├── embedders/           # Provider Embedder (gemini_embedder.py, hf_embedder.py)
+│   ├── evaluation/          # evaluator.py, metrics.py, query_schema.py
+│   └── utils/               # Gemini helpers, cost tracker, rate limiter, dll.
 ├── scripts/
 ├── data/
 ├── output/
@@ -340,6 +360,7 @@ Rincian perhitungan ada di `scripts/evaluate_agentic.py` dan modul `src/evaluati
 ## Referensi
 
 - Inspirasi struktur longitudinal: [LOCOMO](https://github.com/ServiceNow/LOCOMO).
+- Fondasi graf temporal & pemeliharaan data: [Graphiti](https://github.com/getzep/graphiti).
 - Penyimpanan temporal + vektor: **SurrealDB** (skema di repo).
 - Model bahasa: **Google Gemini** (dataset + mayoritas jalur RAG); **Novita** untuk jalur ekstraksi OpenAI-compatible.
 

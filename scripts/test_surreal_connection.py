@@ -31,7 +31,7 @@ from dotenv import load_dotenv  # noqa: E402
 load_dotenv(_ROOT / ".env")
 
 from src.config.settings import SurrealDBConfig  # noqa: E402
-from src.rag.surreal.connection import apply_schema, connect_surreal  # noqa: E402
+from src.surreal.connection import apply_schema, connect_surreal  # noqa: E402
 
 
 async def main(url: str | None) -> int:

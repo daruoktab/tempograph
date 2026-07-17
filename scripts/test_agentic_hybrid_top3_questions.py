@@ -103,7 +103,7 @@ def _gemini_sufficiency_llm_stub(model_name: str, api_key: str):
 
 
 async def _count_facts(tc) -> int:
-    from src.rag.surreal.fact_graph import _flatten_query  # noqa: PLC0415
+    from src.surreal.fact_graph import _flatten_query  # noqa: PLC0415
 
     if tc._db is None:
         return 0
@@ -119,7 +119,7 @@ async def _count_facts(tc) -> int:
 
 async def _count_all_facts(tc) -> int:
     """Total extracted_fact rows (semua group) — untuk debug."""
-    from src.rag.surreal.fact_graph import _flatten_query  # noqa: PLC0415
+    from src.surreal.fact_graph import _flatten_query  # noqa: PLC0415
 
     if tc._db is None:
         return 0
@@ -131,7 +131,7 @@ async def _count_all_facts(tc) -> int:
 
 
 def _make_graph_adapter(tc, group_id: str):
-    from src.rag.surreal.fact_graph import SearchResult
+    from src.surreal.fact_graph import SearchResult
 
     class SurrealFactGraphAdapter:
         def __init__(self, fact_graph, gid: str):
@@ -187,7 +187,7 @@ class _AgentGraphWrapper:
 
 async def _build_retrieval_agent(tc, group_id: str):
     from src.config.settings import RetrievalConfig, get_config
-    from src.rag.retrieval.agent import RetrievalAgent
+    from src.retrieval.agent import RetrievalAgent
 
     config = get_config()
     model_name = "gemini-2.5-flash"
@@ -269,9 +269,9 @@ async def main() -> int:
         SETUP_1H_HYBRID_GEMINI,
         SETUP_1V_VANILLA_GEMINI,
     )
-    from src.rag.surreal.fact_graph import TemporalGraphClient
-    from src.rag.retrieval.hybrid_retriever import HybridRetriever
-    from src.rag.retrieval.vanilla_retriever import create_vanilla_retriever
+    from src.surreal.fact_graph import TemporalGraphClient
+    from src.retrieval.hybrid_retriever import HybridRetriever
+    from src.retrieval.vanilla_retriever import create_vanilla_retriever
 
     # Pakai setup agentic untuk koneksi DB (group + embedder sama dengan hybrid graph)
     tc = TemporalGraphClient(setup=SETUP_1A_AGENTIC_GEMINI)

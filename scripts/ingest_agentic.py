@@ -121,7 +121,7 @@ for logger_name in [
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from src.config.experiment_setups import ExperimentSetup  # noqa: E402
-from src.rag.surreal.fact_graph import TemporalGraphClient  # noqa: E402
+from src.surreal.fact_graph import TemporalGraphClient  # noqa: E402
 from tqdm import tqdm  # noqa: E402
 
 logging.basicConfig(
@@ -448,7 +448,7 @@ class AgenticIngester:
             SETUP_2A_AGENTIC_GEMMA,
             SetupType,
         )
-        from src.rag.vectordb import get_surreal_vanilla_client
+        from src.vectordb import get_surreal_vanilla_client
 
         self._ingest_passages = ingest_passages
 
@@ -554,7 +554,7 @@ class AgenticIngester:
         """One dense embedding per session (``session_passage``); same text as graph episode."""
         if not self._ingest_passages or self._passage_store is None:
             return
-        from src.rag.vectordb import VanillaDocument
+        from src.vectordb import VanillaDocument
 
         await self._passage_store.add_documents(
             [
@@ -965,7 +965,7 @@ async def ingest_setup(
 
 async def clear_group(group_id: str):
     """Clear all SurrealDB records for a logical group_id."""
-    from src.rag.surreal.fact_graph import TemporalGraphClient
+    from src.surreal.fact_graph import TemporalGraphClient
 
     client = TemporalGraphClient(group_id=group_id)
     try:
@@ -978,7 +978,7 @@ async def clear_group(group_id: str):
 
 async def clear_passage_collection(collection: str) -> None:
     """Clear dense session vectors for one logical collection (e.g. vanilla_gemini)."""
-    from src.rag.vectordb import get_surreal_vanilla_client
+    from src.vectordb import get_surreal_vanilla_client
 
     db = get_surreal_vanilla_client(collection)
     await db.initialize(embedder=None)

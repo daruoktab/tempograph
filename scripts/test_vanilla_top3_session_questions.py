@@ -88,7 +88,7 @@ async def main() -> int:
     _print_dataset_header()
 
     from src.config.experiment_setups import SETUP_1V_VANILLA_GEMINI
-    from src.rag.retrieval.vanilla_retriever import create_vanilla_retriever
+    from src.retrieval.vanilla_retriever import create_vanilla_retriever
 
     retriever = await create_vanilla_retriever(SETUP_1V_VANILLA_GEMINI)
     n = retriever.db.count()

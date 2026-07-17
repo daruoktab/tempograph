@@ -32,7 +32,7 @@ def _load_dotenv() -> None:
 
 
 async def _run(group_id: str) -> int:
-    from src.rag.surreal.fact_graph import TemporalGraphClient
+    from src.surreal.fact_graph import TemporalGraphClient
 
     client = TemporalGraphClient(group_id=group_id)
     try:
@@ -46,8 +46,8 @@ async def _run(group_id: str) -> int:
 
 async def _purge_all_tables() -> int:
     """Truncate all RAG-related tables in the current NS/DB (any group_id / collection)."""
-    from src.rag.surreal.connection import connect_surreal
-    from src.rag.surreal.vanilla_store import SESSION_PASSAGE_TABLE
+    from src.surreal.connection import connect_surreal
+    from src.surreal.vanilla_store import SESSION_PASSAGE_TABLE
 
     db = await connect_surreal()
     try:

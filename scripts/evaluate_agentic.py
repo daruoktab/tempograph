@@ -255,7 +255,7 @@ class AgenticEvaluator:
 
         # Vanilla path: no fact graph client
         if self.setup_name in ("vanilla_gemini", "vanilla_gemma"):
-            from src.rag.retrieval.vanilla_retriever import create_vanilla_retriever
+            from src.retrieval.vanilla_retriever import create_vanilla_retriever
 
             self._vanilla_retriever = await create_vanilla_retriever(self._setup)
             print("✅ Vanilla Retriever Initialized")
@@ -363,15 +363,15 @@ class AgenticEvaluator:
         )()
         print(f"  Sufficiency LLM (direct GenAI): {model_name}")
 
-        from src.rag.surreal.fact_graph import TemporalGraphClient
+        from src.surreal.fact_graph import TemporalGraphClient
 
         self._tc = TemporalGraphClient(setup=self._setup)
         await self._tc.initialize()
 
         # Initialize RetrievalAgent for non-hybrid setups (true agentic loop)
         if self.setup_name in ("gemini", "gemma"):
-            from src.rag.retrieval.agent import RetrievalAgent
-            from src.rag.surreal.fact_graph import SearchResult
+            from src.retrieval.agent import RetrievalAgent
+            from src.surreal.fact_graph import SearchResult
             from src.config.settings import RetrievalConfig
 
             class SurrealFactGraphAdapter:
@@ -442,8 +442,8 @@ class AgenticEvaluator:
         print("✅ Initialized")
 
         if "hybrid" in self.setup_name:
-            from src.rag.retrieval.hybrid_retriever import HybridRetriever
-            from src.rag.retrieval.vanilla_retriever import create_vanilla_retriever
+            from src.retrieval.hybrid_retriever import HybridRetriever
+            from src.retrieval.vanilla_retriever import create_vanilla_retriever
 
             # Determine setups (``--setup env`` + RAG_MODE=hybrid → vanilla dari .env)
             _env_v = getattr(self, "_env_hybrid_vanilla_setup", None)
@@ -465,8 +465,8 @@ class AgenticEvaluator:
                 VANILLA_SETUP = SETUP_2V_VANILLA_GEMMA
 
             # 1. Create RetrievalAgent-based Graph Client for multi-hop reasoning
-            from src.rag.retrieval.agent import RetrievalAgent
-            from src.rag.surreal.fact_graph import SearchResult
+            from src.retrieval.agent import RetrievalAgent
+            from src.surreal.fact_graph import SearchResult
             from src.config.settings import RetrievalConfig
 
             class _SurrealFactGraphAdapterHybrid:
