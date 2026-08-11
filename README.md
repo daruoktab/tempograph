@@ -359,7 +359,7 @@ Rincian perhitungan ada di `scripts/evaluate_agentic.py` dan modul `src/evaluati
 
 ## Referensi
 
-- Inspirasi struktur longitudinal: [LOCOMO](https://github.com/ServiceNow/LOCOMO).
+- Inspirasi struktur longitudinal: [LOCOMO](https://github.com/snap-research/locomo).
 - Fondasi graf temporal & pemeliharaan data: [Graphiti](https://github.com/getzep/graphiti).
 - Penyimpanan temporal + vektor: **SurrealDB** (skema di repo).
 - Model bahasa: **Google Gemini** (dataset + mayoritas jalur RAG); **Novita** untuk jalur ekstraksi OpenAI-compatible.
