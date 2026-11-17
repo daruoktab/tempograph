@@ -1,0 +1,1991 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Tempograph — Agentic RAG &amp; Bi-Temporal Knowledge Graph on SurrealDB</title>
+  <meta name="description" content="Agentic RAG with a bi-temporal knowledge graph on SurrealDB and a causal synthetic Indonesian conversation generator. Interactive portfolio showcase.">
+  <meta property="og:title" content="Tempograph — Agentic RAG & Bi-Temporal Knowledge Graph">
+  <meta property="og:description" content="Chatbots that remember not only what changed, but when each fact held true. Interactive showcase.">
+  <meta property="og:type" content="website">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%230c1214'/%3E%3Ccircle cx='10' cy='11' r='4' fill='%2363c7d6'/%3E%3Ccircle cx='23' cy='21' r='4' fill='%2387d69b'/%3E%3Cpath d='M13 13 L20 19' stroke='%2363c7d6' stroke-width='2'/%3E%3C/svg%3E">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700&family=Geist+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      color-scheme: dark;
+      --background: #0c1214;
+      --surface-container-low: #111a1e;
+      --surface-container: #152024;
+      --surface-container-high: #1c2a30;
+      --on-surface: #edf3f5;
+      --on-surface-variant: #94a8b0;
+      --outline: #38515c;
+      --outline-variant: #213138;
+      --primary: #63c7d6;
+      --on-primary: #081214;
+      --primary-container: #163840;
+      --on-primary-container: #c7f0f7;
+      --secondary: #5d7882;
+      --tertiary: #87d69b;
+      --error: #f27474;
+      --warning: #e8b954;
+      --data-context: #415861;
+      --font-headline: 'Instrument Sans', sans-serif;
+      --font-body: 'Plus Jakarta Sans', sans-serif;
+      --font-label: 'Geist Mono', monospace;
+      --rounded: 0.5rem;
+      --rounded-lg: 0.75rem;
+      --rounded-full: 9999px;
+      --hairline: 1px solid var(--outline-variant);
+      --hairline-strong: 1px solid var(--outline);
+      --panel-gradient: linear-gradient(180deg, #162226 0%, #111a1e 100%);
+      --heading-tracking: -0.025em;
+      --label-tracking: 0.06em;
+      --sage-tint: color-mix(in srgb, var(--tertiary) 13%, transparent);
+      --cyan-tint: color-mix(in srgb, var(--primary) 13%, transparent);
+      --amber-tint: color-mix(in srgb, var(--warning) 14%, transparent);
+      --error-tint: color-mix(in srgb, var(--error) 14%, transparent);
+      --context-tint: color-mix(in srgb, var(--data-context) 22%, transparent);
+      --focus: var(--primary);
+      --display-size: clamp(2.5rem, 1.6rem + 3.6vw, 4.25rem);
+      --headline-size: clamp(1.75rem, 1.25rem + 1.8vw, 2.5rem);
+      --subhead-size: clamp(1.1875rem, 1.05rem + 0.5vw, 1.4375rem);
+      --body-size: clamp(1.0625rem, 1rem + 0.2vw, 1.125rem);
+      --label-size: clamp(0.75rem, 0.72rem + 0.12vw, 0.8125rem);
+      --space-xs: 0.25rem;
+      --space-sm: 0.5rem;
+      --space-md: 1rem;
+      --space-lg: 1.5rem;
+      --space-xl: 2.5rem;
+      --space-2xl: 4rem;
+      --space-3xl: 5.5rem;
+      --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+      --dur-micro: 120ms;
+      --dur-short: 220ms;
+      --dur-long: 420ms;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; }
+    html { scroll-behavior: smooth; scroll-padding-top: 84px; }
+    html, body {
+      overflow-x: clip;
+      margin: 0; padding: 0;
+      background-color: var(--background);
+      color: var(--on-surface);
+      font-family: var(--font-body);
+      font-size: var(--body-size);
+      line-height: 1.6;
+      -webkit-font-smoothing: antialiased;
+    }
+    :focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+    @media (prefers-reduced-motion: reduce) {
+      html { scroll-behavior: auto; }
+      *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
+    }
+
+    h1, h2, h3, h4 { font-family: var(--font-headline); font-weight: 600; letter-spacing: var(--heading-tracking); color: var(--on-surface); margin: 0; text-wrap: balance; }
+    h1 { font-size: var(--display-size); line-height: 1.06; }
+    h2 { font-size: var(--headline-size); line-height: 1.14; }
+    h3 { font-size: var(--subhead-size); line-height: 1.24; }
+    p { margin: 0; color: var(--on-surface); }
+    .prose { max-width: 65ch; color: var(--on-surface-variant); text-wrap: pretty; }
+    .prose strong { color: var(--on-surface); font-weight: 600; }
+    code, pre { font-family: var(--font-label); font-size: 0.875em; }
+    .inline-code {
+      font-family: var(--font-label); font-size: 0.85em;
+      background-color: var(--background); border: var(--hairline);
+      border-radius: var(--space-xs); padding: 0.1em 0.4em; color: var(--primary);
+      white-space: nowrap;
+    }
+    .data-label {
+      font-family: var(--font-label); font-size: var(--label-size); font-weight: 500;
+      letter-spacing: var(--label-tracking); text-transform: uppercase;
+      color: var(--on-surface-variant); display: block;
+    }
+
+    .panel { background: var(--panel-gradient); border: var(--hairline); border-radius: var(--rounded-lg); padding: var(--space-lg); }
+    .well { background: var(--background); border: var(--hairline); border-radius: var(--rounded); padding: var(--space-md); }
+
+    button, input, select, textarea { font-family: inherit; }
+    .btn {
+      display: inline-flex; align-items: center; justify-content: center; gap: var(--space-sm);
+      min-height: 44px; padding: var(--space-sm) var(--space-md);
+      border-radius: var(--rounded);
+      font-family: var(--font-label); font-size: var(--label-size); font-weight: 500; letter-spacing: 0.03em;
+      cursor: pointer; border: var(--hairline-strong);
+      background-color: transparent; color: var(--on-surface);
+      transition: background-color var(--dur-micro) var(--ease-out), color var(--dur-micro) var(--ease-out), box-shadow var(--dur-micro) var(--ease-out), border-color var(--dur-micro) var(--ease-out);
+      text-decoration: none;
+    }
+    .btn:hover:not(:disabled) { background-color: var(--surface-container-high); border-color: var(--outline); }
+    .btn:active:not(:disabled) { transform: translateY(1px); }
+    .btn:disabled { opacity: 0.48; cursor: not-allowed; }
+    .btn-primary { background-color: var(--primary); color: var(--on-primary); border-color: var(--primary); font-weight: 600; }
+    .btn-primary:hover:not(:disabled) { background-color: var(--on-primary-container); border-color: var(--on-primary-container); }
+    .btn.is-active { background-color: var(--primary-container); color: var(--on-primary-container); box-shadow: inset 0 0 0 1px var(--primary); }
+    .btn svg { flex: none; }
+
+    .status-chip {
+      display: inline-flex; align-items: center; gap: var(--space-xs);
+      border-radius: var(--rounded); padding: 0.2rem var(--space-sm);
+      font-family: var(--font-label); font-size: var(--label-size); font-weight: 500; line-height: 1.3;
+      white-space: nowrap;
+    }
+    .status-chip.sage { background: var(--sage-tint); color: var(--tertiary); border: 1px solid color-mix(in srgb, var(--tertiary) 35%, transparent); }
+    .status-chip.cyan { background: var(--cyan-tint); color: var(--primary); border: 1px solid color-mix(in srgb, var(--primary) 35%, transparent); }
+    .status-chip.amber { background: var(--amber-tint); color: var(--warning); border: 1px solid color-mix(in srgb, var(--warning) 35%, transparent); }
+    .status-chip.error { background: var(--error-tint); color: var(--error); border: 1px solid color-mix(in srgb, var(--error) 35%, transparent); }
+    .status-chip.neutral { background: var(--context-tint); color: var(--on-surface-variant); border: var(--hairline); }
+
+    /* ===== Sticky nav ===== */
+    .scroll-progress { position: fixed; top: 0; left: 0; height: 2px; width: 0%; background: var(--primary); z-index: 60; transition: width 80ms linear; }
+    .site-nav {
+      position: sticky; top: 0; z-index: 50;
+      background: color-mix(in srgb, var(--background) 92%, transparent);
+      backdrop-filter: blur(8px);
+      border-bottom: var(--hairline);
+    }
+    .site-nav-inner {
+      max-width: 1180px; margin: 0 auto;
+      display: flex; align-items: center; justify-content: space-between; gap: var(--space-md);
+      padding: var(--space-sm) var(--space-lg);
+      min-height: 60px;
+    }
+    .brand { display: inline-flex; align-items: center; gap: var(--space-sm); text-decoration: none; color: var(--on-surface); font-family: var(--font-headline); font-weight: 700; font-size: 1.0625rem; letter-spacing: var(--heading-tracking); }
+    .brand-mark { width: 26px; height: 26px; flex: none; }
+    .jump-links { display: flex; flex-wrap: wrap; gap: var(--space-xs); align-items: center; }
+    .jump-link {
+      display: inline-flex; align-items: center; min-height: 40px; padding: 0 var(--space-sm);
+      font-family: var(--font-label); font-size: var(--label-size);
+      color: var(--on-surface-variant); text-decoration: none; border-radius: var(--rounded);
+      transition: color var(--dur-micro) var(--ease-out), background-color var(--dur-micro) var(--ease-out);
+      white-space: nowrap;
+    }
+    .jump-link:hover { color: var(--primary); background-color: var(--surface-container-low); }
+    .jump-link.is-current { color: var(--primary); background-color: var(--primary-container); }
+    .nav-gh { min-height: 40px; }
+
+    .page-grid {
+      display: grid; gap: var(--space-2xl);
+      padding: var(--space-xl) var(--space-lg) var(--space-3xl);
+      max-width: 1180px; margin: 0 auto;
+    }
+    .page-grid * { min-width: 0; }
+
+    /* ===== Hero ===== */
+    .hero-header { display: grid; gap: var(--space-xl); padding-bottom: var(--space-xl); border-bottom: var(--hairline); }
+    .repo-ident { font-family: var(--font-label); font-size: var(--label-size); color: var(--on-surface-variant); letter-spacing: var(--label-tracking); }
+    .hero-intro { display: grid; gap: var(--space-md); max-width: 76ch; }
+    .hero-lede { font-size: var(--subhead-size); line-height: 1.48; color: var(--on-surface-variant); max-width: 62ch; }
+    .hero-actions { display: flex; flex-wrap: wrap; gap: var(--space-sm); margin-top: var(--space-xs); }
+
+    .metric-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(230px, 100%), 1fr)); gap: var(--space-md); }
+    .metric-tile { display: grid; gap: var(--space-xs); align-content: start; }
+    .metric-value { font-family: var(--font-headline); font-weight: 600; font-size: clamp(1.75rem, 1.4rem + 1vw, 2.25rem); font-variant-numeric: tabular-nums; letter-spacing: var(--heading-tracking); line-height: 1.1; color: var(--on-surface); }
+    .metric-delta { font-family: var(--font-label); font-size: var(--label-size); color: var(--tertiary); }
+    .metric-note { font-size: 0.9rem; color: var(--on-surface-variant); line-height: 1.45; }
+
+    /* E2E strip with explicit arrow columns — no absolute positioning, no collisions */
+    .e2e-strip { display: grid; grid-template-columns: 1fr auto 1fr auto 1fr auto 1fr; gap: var(--space-sm); align-items: stretch; }
+    .e2e-arrow { align-self: center; color: var(--data-context); display: grid; place-items: center; }
+    .e2e-node { display: grid; gap: var(--space-xs); padding: var(--space-md); background-color: var(--background); border: var(--hairline); border-radius: var(--rounded); transition: border-color var(--dur-short) var(--ease-out); }
+    .e2e-node:hover { border-color: var(--outline); }
+    .e2e-step-num { font-family: var(--font-label); font-size: var(--label-size); color: var(--primary); }
+    .e2e-node-title { font-family: var(--font-label); font-size: 0.875rem; font-weight: 600; color: var(--on-surface); display: block; white-space: nowrap; overflow-x: auto; max-width: 100%; scrollbar-width: none; }
+    .e2e-node-title::-webkit-scrollbar { display: none; }
+    .e2e-node-desc { font-size: 0.875rem; color: var(--on-surface-variant); line-height: 1.45; }
+
+    /* ===== Sections ===== */
+    .story-section { display: grid; gap: var(--space-lg); padding-top: var(--space-md); }
+    .section-head { display: grid; gap: var(--space-sm); max-width: 72ch; }
+    .section-kicker { font-family: var(--font-label); font-size: var(--label-size); letter-spacing: var(--label-tracking); text-transform: uppercase; color: var(--primary); }
+
+    /* Reveal is progressive enhancement: content visible by default.
+       JS adds .reveal-init only when it can guarantee the observer will run. */
+    .reveal-init { opacity: 0; transform: translateY(14px); transition: opacity var(--dur-long) var(--ease-out), transform var(--dur-long) var(--ease-out); }
+    .reveal-init.is-visible { opacity: 1; transform: translateY(0); }
+
+    /* ===== Section 1: bi-temporal explorer ===== */
+    .bitemporal-workbench { display: grid; grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.4fr); gap: var(--space-lg); align-items: start; }
+    .timeline-controls { display: grid; gap: var(--space-md); align-content: start; }
+    .episode-step-list { display: grid; gap: var(--space-sm); }
+    .episode-btn {
+      display: grid; gap: var(--space-xs); text-align: left; width: 100%;
+      min-height: 44px; padding: var(--space-md);
+      background-color: var(--background); border: var(--hairline); border-radius: var(--rounded);
+      cursor: pointer;
+      transition: background-color var(--dur-micro) var(--ease-out), box-shadow var(--dur-micro) var(--ease-out);
+    }
+    .episode-btn:hover { background-color: var(--surface-container-high); }
+    .episode-btn.is-active { background-color: var(--primary-container); box-shadow: inset 0 0 0 1px var(--primary); }
+    .episode-btn-meta { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: var(--space-xs) var(--space-sm); font-family: var(--font-label); font-size: var(--label-size); color: var(--primary); }
+    .episode-btn-meta .ep-date { white-space: nowrap; }
+    .episode-btn.is-active .episode-btn-meta { color: var(--on-primary-container); }
+    .episode-btn-title { font-family: var(--font-headline); font-weight: 600; font-size: 1rem; color: var(--on-surface); }
+    .episode-btn-quote { font-size: 0.875rem; color: var(--on-surface-variant); line-height: 1.45; }
+    .episode-btn.is-active .episode-btn-quote { color: var(--on-primary-container); }
+
+    .asof-bar { display: grid; gap: var(--space-sm); padding-top: var(--space-md); border-top: var(--hairline); }
+    .asof-btn-row { display: flex; flex-wrap: wrap; gap: var(--space-sm); }
+    .time-slider-row { display: grid; gap: var(--space-xs); }
+    .time-slider { width: 100%; accent-color: var(--primary); height: 28px; cursor: pointer; }
+    .time-slider:disabled { opacity: 0.4; cursor: not-allowed; }
+    .time-slider-labels { display: flex; justify-content: space-between; font-family: var(--font-label); font-size: 0.6875rem; color: var(--on-surface-variant); }
+
+    .graph-stage { display: grid; gap: var(--space-md); }
+    .svg-well { position: relative; background-color: var(--background); border: var(--hairline); border-radius: var(--rounded); padding: var(--space-sm); overflow: hidden; }
+    .graph-toolbar { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: var(--space-sm); padding: var(--space-xs) var(--space-xs) var(--space-sm); }
+    .graph-toolbar-hint { font-family: var(--font-label); font-size: 0.6875rem; color: var(--on-surface-variant); letter-spacing: 0.02em; }
+    .graph-zoom-btns { display: flex; gap: var(--space-xs); }
+    .zoom-btn { min-height: 32px; min-width: 32px; padding: 0 var(--space-sm); font-family: var(--font-label); font-size: 0.8125rem; }
+    .graph-svg { width: 100%; height: auto; aspect-ratio: 800 / 500; display: block; touch-action: none; cursor: grab; border-radius: calc(var(--rounded) - 2px); }
+    .graph-svg.is-panning { cursor: grabbing; }
+    .graph-svg text { user-select: none; pointer-events: none; }
+
+    .gnode { cursor: grab; }
+    .gnode:active { cursor: grabbing; }
+    .gnode .node-inner { transition: transform 320ms var(--ease-out), opacity 320ms var(--ease-out); transform-origin: center; transform-box: fill-box; }
+    .gnode.is-entering .node-inner { transform: scale(0.55); opacity: 0; }
+    .gnode rect.node-box { transition: stroke 300ms var(--ease-out), fill 300ms var(--ease-out), opacity 300ms var(--ease-out); }
+    .gnode.is-dimmed { opacity: 0.3; }
+    .gnode.is-selected rect.node-box { stroke-width: 2.5; filter: drop-shadow(0 0 6px color-mix(in srgb, var(--primary) 55%, transparent)); }
+    .gedge { transition: opacity 300ms var(--ease-out); }
+    .gedge.is-dimmed { opacity: 0.18; }
+    .gedge line, .gedge path { transition: stroke 300ms var(--ease-out); }
+    .edge-label { paint-order: stroke; stroke: var(--background); stroke-width: 5px; stroke-linejoin: round; }
+
+    .graph-tooltip {
+      position: absolute; z-index: 5; pointer-events: none;
+      max-width: 260px; padding: var(--space-sm) var(--space-md);
+      background: var(--surface-container-high); border: var(--hairline-strong); border-radius: var(--rounded);
+      font-size: 0.8125rem; line-height: 1.45; color: var(--on-surface);
+      box-shadow: 0 8px 24px rgba(0,0,0,0.45);
+      opacity: 0; transition: opacity 140ms var(--ease-out);
+    }
+    .graph-tooltip.is-shown { opacity: 1; }
+    .graph-tooltip .tt-kicker { font-family: var(--font-label); font-size: 0.6875rem; letter-spacing: var(--label-tracking); text-transform: uppercase; color: var(--primary); display: block; margin-bottom: 2px; }
+    .graph-tooltip .tt-meta { font-family: var(--font-label); font-size: 0.6875rem; color: var(--on-surface-variant); display: block; margin-top: 4px; }
+
+    .graph-legend { display: flex; flex-wrap: wrap; gap: var(--space-sm) var(--space-md); padding: var(--space-sm) var(--space-xs) 0; font-family: var(--font-label); font-size: var(--label-size); color: var(--on-surface-variant); }
+    .legend-item { display: inline-flex; align-items: center; gap: var(--space-xs); }
+    .legend-swatch { width: 10px; height: 10px; border-radius: 9999px; display: inline-block; flex: none; }
+
+    .fact-record-grid { display: grid; gap: var(--space-sm); }
+    .fact-row {
+      display: grid; gap: var(--space-xs); padding: var(--space-md);
+      background-color: var(--background); border: var(--hairline); border-radius: var(--rounded);
+      transition: opacity var(--dur-short) var(--ease-out), border-color var(--dur-short) var(--ease-out), background-color var(--dur-short) var(--ease-out);
+      cursor: pointer;
+    }
+    .fact-row:hover { border-color: var(--outline); }
+    .fact-row.is-selected { border-color: var(--primary); background-color: var(--primary-container); }
+    .fact-row.is-invalidated { opacity: 0.62; }
+    .fact-row-top { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: var(--space-xs) var(--space-sm); }
+    .fact-text { font-size: 0.9375rem; color: var(--on-surface); font-weight: 500; }
+    .fact-temporal-meta { display: flex; flex-wrap: wrap; gap: var(--space-xs) var(--space-md); font-family: var(--font-label); font-size: var(--label-size); color: var(--on-surface-variant); }
+
+    /* ===== Section 2: algorithms ===== */
+    .algo-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(290px, 100%), 1fr)); gap: var(--space-lg); }
+    .algo-card { display: grid; gap: var(--space-md); align-content: start; }
+    .algo-card .status-chip { justify-self: start; }
+    .algo-sandbox-wrap { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: var(--space-lg); align-items: start; }
+    .sandbox-head { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: start; gap: var(--space-sm); margin-bottom: var(--space-md); }
+    .input-stack { display: grid; gap: var(--space-md); }
+    .field-group { display: grid; gap: var(--space-xs); }
+    .field-label { font-family: var(--font-label); font-size: var(--label-size); text-transform: uppercase; letter-spacing: var(--label-tracking); color: var(--on-surface-variant); }
+    .text-input, .select-input {
+      min-height: 44px; width: 100%; padding: var(--space-sm) var(--space-md);
+      background-color: var(--background); color: var(--on-surface);
+      border: var(--hairline-strong); border-radius: var(--rounded); font-size: 0.9375rem;
+    }
+    .text-input:focus, .select-input:focus { border-color: var(--primary); outline: none; box-shadow: 0 0 0 2px color-mix(in srgb, var(--primary) 30%, transparent); }
+    .preset-row { display: flex; flex-wrap: wrap; gap: var(--space-sm); }
+    .preset-row .btn { min-height: 38px; }
+    .entity-inputs { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: var(--space-md); }
+
+    .band-meter { display: grid; gap: var(--space-sm); }
+    .band-track-wrap { position: relative; padding-top: 14px; }
+    .band-track { display: grid; grid-template-columns: 60fr 25fr 15fr; height: 12px; border-radius: var(--rounded-full); overflow: hidden; border: var(--hairline); }
+    .band-seg-low { background-color: var(--data-context); }
+    .band-seg-mid { background-color: var(--warning); }
+    .band-seg-high { background-color: var(--tertiary); }
+    .band-needle {
+      position: absolute; top: 0; left: 68%; width: 3px; height: 26px;
+      background: var(--on-surface); border-radius: 2px;
+      transform: translateX(-50%);
+      transition: left 360ms var(--ease-out);
+      box-shadow: 0 0 0 2px var(--background);
+    }
+    .band-needle::after {
+      content: ''; position: absolute; top: -6px; left: 50%; transform: translateX(-50%);
+      border-left: 6px solid transparent; border-right: 6px solid transparent; border-top: 7px solid var(--on-surface);
+    }
+    .band-labels { display: flex; justify-content: space-between; gap: var(--space-sm); font-family: var(--font-label); font-size: var(--label-size); color: var(--on-surface-variant); }
+
+    .cosine-gauge { display: grid; gap: var(--space-xs); }
+    .cosine-track-wrap { position: relative; padding-top: 18px; }
+    .cosine-track { height: 12px; border-radius: var(--rounded-full); background: var(--surface-container-high); border: var(--hairline); overflow: hidden; }
+    .cosine-fill { height: 100%; width: 0%; border-radius: var(--rounded-full); background: var(--primary); transition: width 420ms var(--ease-out), background-color 420ms var(--ease-out); }
+    .cosine-threshold { position: absolute; top: 10px; left: 35%; width: 2px; height: 24px; background: var(--error); transform: translateX(-50%); }
+    .cosine-threshold-label { position: absolute; top: -4px; left: 35%; transform: translateX(-50%); font-family: var(--font-label); font-size: 0.625rem; color: var(--error); white-space: nowrap; }
+    .cosine-scale { display: flex; justify-content: space-between; font-family: var(--font-label); font-size: 0.6875rem; color: var(--on-surface-variant); }
+
+    .readout-box { display: grid; gap: var(--space-sm); }
+    .readout-row { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: baseline; gap: var(--space-xs) var(--space-md); padding-bottom: var(--space-xs); border-bottom: var(--hairline); }
+    .readout-row:last-child { border-bottom: 0; padding-bottom: 0; }
+    .readout-val { font-family: var(--font-label); font-variant-numeric: tabular-nums; font-weight: 600; color: var(--on-surface); text-align: right; }
+    #dedup-breakdown-val { font-size: 0.75rem; font-weight: 500; color: var(--on-surface-variant); }
+
+    /* ===== Section 3: retrieval ===== */
+    .retrieval-workbench { display: grid; gap: var(--space-lg); }
+    .mode-switcher { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--space-md); }
+    .mode-btn-group { display: flex; flex-wrap: wrap; gap: var(--space-sm); }
+    .retrieval-split { display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr); gap: var(--space-lg); align-items: start; }
+    .ret-svg { width: 100%; height: auto; aspect-ratio: 640 / 320; display: block; }
+    .ret-svg text { user-select: none; pointer-events: none; }
+    .ret-node rect { transition: stroke 300ms var(--ease-out), opacity 300ms var(--ease-out), filter 300ms var(--ease-out); }
+    .ret-node.is-lit rect { filter: drop-shadow(0 0 8px color-mix(in srgb, var(--primary) 60%, transparent)); }
+    .ret-edge { transition: stroke 300ms var(--ease-out), opacity 300ms var(--ease-out); }
+    .query-pulse { filter: drop-shadow(0 0 6px var(--primary)); }
+    .run-query-row { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-sm); padding-top: var(--space-sm); }
+    .sample-query { font-family: var(--font-label); font-size: 0.8125rem; color: var(--on-surface-variant); background: var(--background); border: var(--hairline); border-radius: var(--rounded); padding: var(--space-xs) var(--space-sm); }
+    .sim-results { display: grid; gap: var(--space-sm); }
+    .sim-result-card { display: grid; gap: var(--space-xs); padding: var(--space-sm) var(--space-md); background: var(--background); border: var(--hairline); border-radius: var(--rounded); opacity: 0; transform: translateY(8px); transition: opacity 320ms var(--ease-out), transform 320ms var(--ease-out); }
+    .sim-result-card.is-shown { opacity: 1; transform: translateY(0); }
+    .sim-result-top { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: var(--space-xs) var(--space-sm); }
+    .sim-result-text { font-size: 0.875rem; color: var(--on-surface); line-height: 1.45; }
+    .sim-result-meta { font-family: var(--font-label); font-size: 0.6875rem; color: var(--on-surface-variant); }
+    .score-bar { height: 4px; border-radius: var(--rounded-full); background: var(--surface-container-high); overflow: hidden; }
+    .score-fill { height: 100%; background: var(--primary); border-radius: var(--rounded-full); }
+
+    .schema-table-wrap { overflow-x: auto; }
+    table.schema-table { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
+    table.schema-table th { font-family: var(--font-label); font-size: var(--label-size); text-transform: uppercase; letter-spacing: var(--label-tracking); color: var(--on-surface-variant); text-align: left; padding: var(--space-sm) var(--space-md); border-bottom: var(--hairline-strong); font-weight: 500; }
+    table.schema-table td { padding: var(--space-sm) var(--space-md); border-bottom: var(--hairline); vertical-align: top; color: var(--on-surface); transition: background-color var(--dur-short) var(--ease-out); }
+    table.schema-table tr.is-highlighted td { background-color: var(--cyan-tint); }
+    .mono-cell { font-family: var(--font-label); font-size: 0.85rem; color: var(--primary); white-space: nowrap; }
+
+    /* ===== Section 4: dataset ===== */
+    .pipeline-workbench { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.15fr); gap: var(--space-lg); align-items: start; }
+    .stage-list { display: grid; gap: var(--space-sm); align-content: start; }
+    .stage-btn {
+      display: grid; gap: var(--space-xs); text-align: left; width: 100%;
+      min-height: 44px; padding: var(--space-md);
+      background-color: var(--background); border: var(--hairline); border-radius: var(--rounded);
+      cursor: pointer; transition: background-color var(--dur-micro) var(--ease-out), box-shadow var(--dur-micro) var(--ease-out);
+    }
+    .stage-btn:hover { background-color: var(--surface-container-high); }
+    .stage-btn.is-active { background-color: var(--primary-container); box-shadow: inset 0 0 0 1px var(--primary); }
+    .stage-btn-head { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: var(--space-xs) var(--space-sm); }
+    .stage-btn-title { font-family: var(--font-headline); font-weight: 600; font-size: 1rem; color: var(--on-surface); }
+    .stage-detail-stack { display: grid; gap: var(--space-md); align-content: start; }
+    .stage-detail-head { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: var(--space-xs) var(--space-sm); margin-bottom: var(--space-xs); }
+    .code-pre {
+      margin: 0; padding: var(--space-md);
+      background-color: var(--background); border: var(--hairline); border-radius: var(--rounded);
+      overflow-x: auto;
+      font-family: var(--font-label); font-size: 0.8125rem; line-height: 1.55;
+      color: var(--on-surface); white-space: pre; tab-size: 2;
+    }
+    .dag-svg { width: 100%; height: auto; aspect-ratio: 520 / 150; display: block; }
+    .dag-svg text { user-select: none; pointer-events: none; }
+    .dag-node { cursor: pointer; }
+    .dag-node rect { transition: filter 240ms var(--ease-out), stroke 240ms var(--ease-out); }
+    .dag-node.is-lit rect { filter: drop-shadow(0 0 7px color-mix(in srgb, var(--primary) 60%, transparent)); }
+    .dag-edge { transition: stroke 240ms var(--ease-out), opacity 240ms var(--ease-out); }
+    .dag-hint { font-family: var(--font-label); font-size: 0.6875rem; color: var(--on-surface-variant); padding: var(--space-xs); }
+
+    /* ===== Section 5: config ===== */
+    .config-grid { display: grid; grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr); gap: var(--space-lg); align-items: start; }
+    .config-controls { display: grid; gap: var(--space-md); align-content: start; }
+    .checkbox-row { display: flex; align-items: center; gap: var(--space-sm); min-height: 44px; cursor: pointer; color: var(--on-surface); font-size: 0.9375rem; }
+    .checkbox-row input { width: 18px; height: 18px; accent-color: var(--primary); flex: none; }
+    .code-header-row { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: var(--space-sm); margin-bottom: var(--space-xs); }
+    .code-header-row .btn { min-height: 36px; }
+    .config-output-stack { display: grid; gap: var(--space-md); align-content: start; }
+    .eval-metrics-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(230px, 100%), 1fr)); gap: var(--space-md); }
+
+    details.repo-details { background: var(--panel-gradient); border: var(--hairline); border-radius: var(--rounded-lg); padding: var(--space-md) var(--space-lg); }
+    details.repo-details summary {
+      cursor: pointer; list-style: none;
+      display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--space-sm) var(--space-md);
+      min-height: 44px;
+      font-family: var(--font-headline); font-weight: 600; font-size: 1.0625rem; color: var(--on-surface);
+    }
+    details.repo-details summary::-webkit-details-marker { display: none; }
+    .repo-tree-wrap { margin-top: var(--space-md); padding-top: var(--space-md); border-top: var(--hairline); }
+
+    .site-footer { padding-top: var(--space-xl); border-top: var(--hairline); display: flex; flex-wrap: wrap; justify-content: space-between; gap: var(--space-md); color: var(--on-surface-variant); font-size: 0.9rem; }
+    .site-footer a { color: var(--primary); text-decoration: none; }
+    .site-footer a:hover { text-decoration: underline; }
+
+    /* ===== Responsive ===== */
+    @media (max-width: 980px) {
+      .bitemporal-workbench, .algo-sandbox-wrap, .retrieval-split, .pipeline-workbench, .config-grid { grid-template-columns: 1fr; }
+      .e2e-strip { grid-template-columns: 1fr 1fr; }
+      .e2e-arrow { display: none; }
+    }
+    @media (max-width: 640px) {
+      .page-grid { padding: var(--space-md) var(--space-md) var(--space-2xl); gap: var(--space-xl); }
+      .site-nav-inner { padding: var(--space-sm) var(--space-md); flex-wrap: wrap; }
+      .jump-links { order: 3; width: 100%; overflow-x: auto; flex-wrap: nowrap; padding-bottom: 2px; -webkit-mask-image: linear-gradient(90deg, #000 0%, #000 calc(100% - 28px), transparent 100%); mask-image: linear-gradient(90deg, #000 0%, #000 calc(100% - 28px), transparent 100%); }
+      .panel { padding: var(--space-md); }
+      .e2e-strip { grid-template-columns: 1fr; }
+      .entity-inputs { grid-template-columns: 1fr; }
+      .readout-val { text-align: left; }
+      .svg-well { overflow-x: auto; }
+      .graph-svg { min-width: 640px; touch-action: pan-y; }
+      .ret-svg { min-width: 560px; }
+      .dag-svg { min-width: 480px; }
+      html { scroll-padding-top: 118px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="scroll-progress" id="scroll-progress" aria-hidden="true"></div>
+
+  <nav class="site-nav" aria-label="Section navigation">
+    <div class="site-nav-inner">
+      <a class="brand" href="#top" aria-label="Tempograph home">
+        <svg class="brand-mark" viewBox="0 0 32 32" aria-hidden="true"><rect width="32" height="32" rx="7" fill="var(--surface-container-high)"/><circle cx="10" cy="11" r="4" fill="var(--primary)"/><circle cx="23" cy="21" r="4" fill="var(--tertiary)"/><path d="M13 13 L20 19" stroke="var(--primary)" stroke-width="2"/></svg>
+        tempograph
+      </a>
+      <div class="jump-links" id="jump-links">
+        <a class="jump-link" href="#bitemporal" data-section="bitemporal">Bi-Temporal Graph</a>
+        <a class="jump-link" href="#algorithms" data-section="algorithms">Algorithms</a>
+        <a class="jump-link" href="#surrealdb" data-section="surrealdb">SurrealDB</a>
+        <a class="jump-link" href="#dataset" data-section="dataset">Dataset</a>
+        <a class="jump-link" href="#stack" data-section="stack">Stack &amp; Eval</a>
+      </div>
+      <a class="btn nav-gh" href="https://github.com/daruoktab/tempograph" target="_blank" rel="noopener">
+        <svg width="15" height="15" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27s1.36.09 2 .27c1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8Z"/></svg>
+        GitHub
+      </a>
+    </div>
+  </nav>
+
+  <main class="page-grid" id="top">
+
+    <!-- ============ HERO ============ -->
+    <header class="hero-header">
+      <span class="repo-ident">daruoktab/tempograph · MIT License · Python 3.11+ · SurrealDB</span>
+      <div class="hero-intro">
+        <h1>Tempograph</h1>
+        <p class="hero-lede">
+          An Agentic RAG architecture with a bi-temporal knowledge graph on SurrealDB and a causal synthetic Indonesian conversation generator—engineered so chatbots remember not only <em>what</em> changed, but <em>when</em> each fact held true.
+        </p>
+        <div class="hero-actions">
+          <a class="btn btn-primary" href="#bitemporal">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="6" cy="6" r="3"/><circle cx="18" cy="18" r="3"/><path d="M8.5 8.5 L15.5 15.5"/></svg>
+            Explore Bi-Temporal Graph
+          </a>
+          <a class="btn" href="https://daruoktab.github.io/tempograph/sim/" target="_blank" rel="noopener">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polygon points="6 3 20 12 6 21 6 3"/></svg>
+            Live 10-Session Demo
+          </a>
+          <a class="btn" href="#stack">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="4 17 10 11 4 5"/><line x1="12" y1="19" x2="20" y2="19"/></svg>
+            Configure Stack &amp; CLI
+          </a>
+        </div>
+      </div>
+
+      <div class="metric-grid">
+        <div class="panel metric-tile">
+          <span class="data-label">Vector Index</span>
+          <span class="metric-value">768-dim</span>
+          <span class="metric-delta">Cosine similarity on SurrealDB</span>
+          <p class="metric-note">Shared across <code class="inline-code">extracted_fact</code> and <code class="inline-code">session_passage</code> tables in <code class="inline-code">schema.surql</code>.</p>
+        </div>
+        <div class="panel metric-tile">
+          <span class="data-label">Retrieval Modes</span>
+          <span class="metric-value">3 Paths</span>
+          <span class="metric-delta">Agentic · Vanilla · Hybrid</span>
+          <p class="metric-note">Compare graph traversal (<code class="inline-code">RetrievalAgent</code>), full-session vectors (<code class="inline-code">VanillaRetriever</code>), and combined fusion.</p>
+        </div>
+        <div class="panel metric-tile">
+          <span class="data-label">Entity Deduplication</span>
+          <span class="metric-value">60–84%</span>
+          <span class="metric-delta">rapidfuzz LLM disambiguation band</span>
+          <p class="metric-note">Local token-sort &amp; partial ratio scoring resolves aliases like “Aisha” and “Aisha Santoso” without redundant nodes.</p>
+        </div>
+        <div class="panel metric-tile">
+          <span class="data-label">Contradiction Gate</span>
+          <span class="metric-value">&ge; 0.35</span>
+          <span class="metric-delta">Cosine threshold before LLM check</span>
+          <p class="metric-note">Older conflicting facts are retired via <code class="inline-code">invalid_at = reference_time</code> instead of destructive deletion.</p>
+        </div>
+      </div>
+
+      <section aria-label="End-to-end architecture flow" class="panel">
+        <span class="data-label" style="margin-bottom: var(--space-sm);">End-to-End Architecture</span>
+        <div class="e2e-strip">
+          <div class="e2e-node">
+            <span class="e2e-step-num">01 / GENERATE</span>
+            <span class="e2e-node-title">src/dataset/generator.py</span>
+            <span class="e2e-node-desc">Synthesizes persona, causal life events (<code class="inline-code">caused_by</code>), Indonesian multi-turn sessions, and turn-level ground truth.</span>
+          </div>
+          <span class="e2e-arrow" aria-hidden="true"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></span>
+          <div class="e2e-node">
+            <span class="e2e-step-num">02 / ARTIFACTS</span>
+            <span class="e2e-node-title">conversation_dataset.json</span>
+            <span class="e2e-node-desc">Structured longitudinal history plus <code class="inline-code">user_events.json</code> and <code class="inline-code">evaluation_queries_100.json</code>.</span>
+          </div>
+          <span class="e2e-arrow" aria-hidden="true"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></span>
+          <div class="e2e-node">
+            <span class="e2e-step-num">03 / INGEST</span>
+            <span class="e2e-node-title">scripts/ingest_agentic.py</span>
+            <span class="e2e-node-desc">Extracts facts, deduplicates entities, invalidates contradictions, and clusters Louvain communities into SurrealDB.</span>
+          </div>
+          <span class="e2e-arrow" aria-hidden="true"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></span>
+          <div class="e2e-node">
+            <span class="e2e-step-num">04 / RETRIEVE</span>
+            <span class="e2e-node-title">src/retrieval/*</span>
+            <span class="e2e-node-desc">Routes queries through Agentic, Vanilla, or Hybrid retrievers with optional LLM reranking and evaluation tracing.</span>
+          </div>
+        </div>
+      </section>
+    </header>
+
+    <!-- ============ SECTION 1: BI-TEMPORAL EXPLORER ============ -->
+    <section id="bitemporal" class="story-section reveal">
+      <div class="section-head">
+        <span class="section-kicker">01 · Temporal Conversational Memory</span>
+        <h2>Overwriting old facts erases context; bi-temporal edges keep the timeline intact</h2>
+        <p class="prose">
+          Standard vector RAG flattens multi-session conversations into isolated chunks, causing a chatbot to confuse outdated roles or cities with present truth. Grounded in Graphiti’s temporal model, Tempograph anchors every <strong>extracted_fact</strong> with both <code class="inline-code">valid_at</code> and <code class="inline-code">invalid_at</code> timestamps inside SurrealDB. Step through the episodes, drag the graph nodes, hover for provenance, and time-travel to see history without losing past state.
+        </p>
+      </div>
+
+      <div class="panel bitemporal-workbench">
+        <div class="timeline-controls">
+          <div>
+            <span class="data-label" style="margin-bottom: var(--space-sm);">Step Through Ingestion Episodes</span>
+            <div class="episode-step-list" id="episode-step-list">
+              <button type="button" class="episode-btn is-active" data-step="0">
+                <span class="episode-btn-meta"><span class="ep-date">EPISODE 1 · 2026-03-01</span><span class="status-chip cyan">Initial Fact</span></span>
+                <span class="episode-btn-title">“Aisha” joins Startup Jakarta</span>
+                <span class="episode-btn-quote">“Halo, aku Aisha. Baru mulai kerja jadi backend engineer di Startup Jakarta bulan ini.”</span>
+              </button>
+              <button type="button" class="episode-btn" data-step="1">
+                <span class="episode-btn-meta"><span class="ep-date">EPISODE 2 · 2026-03-14</span><span class="status-chip cyan">Entity Dedup</span></span>
+                <span class="episode-btn-title">“Aisha Santoso” merges with “Aisha”</span>
+                <span class="episode-btn-quote">“Nama lengkapku Aisha Santoso, minggu ini lagi fokus integrasi database SurrealDB.”</span>
+              </button>
+              <button type="button" class="episode-btn" data-step="2">
+                <span class="episode-btn-meta"><span class="ep-date">EPISODE 3 · 2026-04-02</span><span class="status-chip amber">Invalidation</span></span>
+                <span class="episode-btn-title">Relocation invalidates prior workplace fact</span>
+                <span class="episode-btn-quote">“Resign dari Startup Jakarta nih—mulai April aku pindah ke Bandung dan pegang riset AI.”</span>
+              </button>
+              <button type="button" class="episode-btn" data-step="3">
+                <span class="episode-btn-meta"><span class="ep-date">EPISODE 4 · 2026-04-18</span><span class="status-chip sage">Louvain</span></span>
+                <span class="episode-btn-title">Community node summarizes macro context</span>
+                <span class="episode-btn-quote">“Bareng Raka di Bandung, tim riset kami lagi uji chatbot memori jangka panjang.”</span>
+              </button>
+            </div>
+          </div>
+
+          <div class="asof-bar">
+            <div class="time-slider-row">
+              <label class="data-label" for="time-slider">Ingestion Timeline</label>
+              <input type="range" class="time-slider" id="time-slider" min="0" max="3" step="1" value="0" aria-label="Ingestion timeline step">
+              <div class="time-slider-labels"><span>Mar 01</span><span>Mar 14</span><span>Apr 02</span><span>Apr 18</span></div>
+            </div>
+            <span class="data-label">Bi-Temporal Query Perspective</span>
+            <div class="asof-btn-row">
+              <button type="button" class="btn is-active" id="asof-current-btn">Live State (as of episode)</button>
+              <button type="button" class="btn" id="asof-historical-btn">Time-Travel: 2026-03-15</button>
+            </div>
+            <p class="metric-note" id="asof-explanation">
+              Showing facts active at the selected ingestion step. Contradicted facts retain their historical provenance with <code class="inline-code">invalid_at</code> set.
+            </p>
+          </div>
+        </div>
+
+        <div class="graph-stage">
+          <div class="svg-well" id="graph-well">
+            <div class="graph-toolbar">
+              <span class="graph-toolbar-hint">drag nodes · scroll to zoom · drag canvas to pan · click to inspect</span>
+              <div class="graph-zoom-btns">
+                <button type="button" class="btn zoom-btn" id="zoom-out-btn" aria-label="Zoom out">−</button>
+                <button type="button" class="btn zoom-btn" id="zoom-in-btn" aria-label="Zoom in">+</button>
+                <button type="button" class="btn zoom-btn" id="zoom-reset-btn" aria-label="Reset view">reset</button>
+              </div>
+            </div>
+            <svg id="bitemporal-svg" class="graph-svg" viewBox="0 0 800 500" role="img" aria-label="Interactive bi-temporal knowledge graph. Drag nodes, hover for details, click to inspect.">
+              <defs>
+                <marker id="arrow-cyan" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M 0 1 L 10 5 L 0 9 z" fill="var(--primary)"/></marker>
+                <marker id="arrow-sage" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M 0 1 L 10 5 L 0 9 z" fill="var(--tertiary)"/></marker>
+                <marker id="arrow-muted" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M 0 1 L 10 5 L 0 9 z" fill="var(--data-context)"/></marker>
+                <marker id="arrow-error" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M 0 1 L 10 5 L 0 9 z" fill="var(--error)"/></marker>
+                <marker id="arrow-amber" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M 0 1 L 10 5 L 0 9 z" fill="var(--warning)"/></marker>
+              </defs>
+              <g id="bt-viewport">
+                <g id="bt-edges"></g>
+                <g id="bt-nodes"></g>
+              </g>
+            </svg>
+            <div class="graph-tooltip" id="graph-tooltip" role="status"></div>
+            <div class="graph-legend">
+              <span class="legend-item"><span class="legend-swatch" style="background: var(--primary);"></span> Entity</span>
+              <span class="legend-item"><span class="legend-swatch" style="background: var(--tertiary);"></span> Valid fact</span>
+              <span class="legend-item"><span class="legend-swatch" style="background: var(--error);"></span> Invalidated fact</span>
+              <span class="legend-item"><span class="legend-swatch" style="background: var(--warning);"></span> Louvain community</span>
+            </div>
+          </div>
+
+          <div class="well">
+            <div style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: var(--space-xs) var(--space-sm); margin-bottom: var(--space-sm);">
+              <span class="data-label">SurrealDB <code class="inline-code">extracted_fact</code> Records</span>
+              <span class="status-chip cyan" id="bt-status-badge">1 active · 1 total</span>
+            </div>
+            <div class="fact-record-grid" id="bt-fact-list"></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ SECTION 2: ALGORITHMS ============ -->
+    <section id="algorithms" class="story-section reveal">
+      <div class="section-head">
+        <span class="section-kicker">02 · Temporal Graph Maintenance</span>
+        <h2>Three Graphiti-inspired algorithms prevent node sprawl, silent conflicts, and flat memory</h2>
+        <p class="prose">
+          Without active maintenance, multi-turn chatbots accumulate duplicate entities (“Aisha” vs. “Aisha Santoso”) and contradictory facts. Tempograph executes three targeted passes during ingestion and periodic consolidation. Try the live simulators below.
+        </p>
+      </div>
+
+      <div class="algo-grid">
+        <article class="panel algo-card">
+          <span class="status-chip cyan">1 · Dynamic Entity Deduplication</span>
+          <h3>Fuzzy gating + LLM canonical merge</h3>
+          <p class="prose">
+            Computes local text similarity via <strong>rapidfuzz</strong> (token sort &amp; partial ratio). Matches inside the ambiguous <strong>60%–84%</strong> band trigger a contextual LLM check before merging into one SurrealDB node named after the longest, most specific variant.
+          </p>
+        </article>
+        <article class="panel algo-card">
+          <span class="status-chip amber">2 · Bi-Temporal Invalidation</span>
+          <h3>Cosine &ge; 0.35 contradiction resolution</h3>
+          <p class="prose">
+            Before inserting a fact, Tempograph compares its embedding against prior facts sharing the same entity. Pairs scoring <strong>&ge; 0.35</strong> are classified by an LLM as <code class="inline-code">duplicate</code>, <code class="inline-code">contradictory</code>, or <code class="inline-code">compatible</code>—setting <code class="inline-code">invalid_at = reference_time</code> on superseded claims.
+          </p>
+        </article>
+        <article class="panel algo-card">
+          <span class="status-chip sage">3 · Graph Community Detection</span>
+          <h3>NetworkX Louvain macro summaries</h3>
+          <p class="prose">
+            Periodically partitions social and workplace entity subgraphs using NetworkX’s <strong>Louvain</strong> algorithm. An LLM summarizes each cluster into a <code class="inline-code">community</code> node linked via <code class="inline-code">has_member</code> edges, giving subsequent turns macro-level awareness.
+          </p>
+        </article>
+      </div>
+
+      <div class="algo-sandbox-wrap">
+        <!-- Simulator A: dedup -->
+        <div class="panel">
+          <div class="sandbox-head">
+            <div>
+              <span class="data-label">Interactive Simulator A</span>
+              <h3>Entity Deduplication Router</h3>
+            </div>
+            <span class="status-chip amber" id="dedup-band-chip">LLM Check Band</span>
+          </div>
+          <div class="input-stack">
+            <div class="preset-row" aria-label="Entity pair presets">
+              <button type="button" class="btn" data-preset="Aisha|Aisha Santoso">“Aisha” vs “Aisha Santoso”</button>
+              <button type="button" class="btn" data-preset="Aisha|Aisyah">“Aisha” vs “Aisyah” (LLM band)</button>
+              <button type="button" class="btn" data-preset="Budi|Kopi Kenangan">“Budi” vs “Kopi Kenangan”</button>
+            </div>
+            <div class="entity-inputs">
+              <div class="field-group">
+                <label class="field-label" for="entity-a-input">Existing Entity</label>
+                <input class="text-input" id="entity-a-input" type="text" value="Aisha" autocomplete="off">
+              </div>
+              <div class="field-group">
+                <label class="field-label" for="entity-b-input">Incoming Mention</label>
+                <input class="text-input" id="entity-b-input" type="text" value="Aisha Santoso" autocomplete="off">
+              </div>
+            </div>
+            <div class="band-meter">
+              <div class="band-track-wrap">
+                <div class="band-needle" id="band-needle" aria-hidden="true"></div>
+                <div class="band-track" aria-hidden="true">
+                  <div class="band-seg-low"></div><div class="band-seg-mid"></div><div class="band-seg-high"></div>
+                </div>
+              </div>
+              <div class="band-labels"><span>0–59% New</span><span>60–84% LLM</span><span>85–100% Merge</span></div>
+            </div>
+            <div class="well readout-box">
+              <div class="readout-row"><span class="data-label">Fuzzy Score (max sort / partial)</span><span class="readout-val" id="dedup-score-val">—</span></div>
+              <div class="readout-row"><span class="data-label">Score Breakdown</span><span class="readout-val" id="dedup-breakdown-val">—</span></div>
+              <div class="readout-row"><span class="data-label">Routing Decision</span><span class="readout-val" id="dedup-decision-val">—</span></div>
+              <div class="readout-row"><span class="data-label">Canonical SurrealDB Name</span><span class="readout-val" id="dedup-canonical-val">—</span></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Simulator B: contradiction gate -->
+        <div class="panel">
+          <div class="sandbox-head">
+            <div>
+              <span class="data-label">Interactive Simulator B</span>
+              <h3>Bi-Temporal Contradiction Gate</h3>
+            </div>
+            <span class="status-chip amber" id="conflict-class-chip">contradictory</span>
+          </div>
+          <div class="input-stack">
+            <div class="field-group">
+              <label class="field-label" for="conflict-scenario-select">Select Fact Pair Scenario</label>
+              <select class="select-input" id="conflict-scenario-select">
+                <option value="contradictory">Work Relocation (Cosine 0.64 → Contradictory)</option>
+                <option value="compatible">New Project Skill (Cosine 0.42 → Compatible)</option>
+                <option value="duplicate">Repeated Confirmation (Cosine 0.91 → Duplicate)</option>
+                <option value="unrelated">Different Topic (Cosine 0.19 → Below 0.35 Gate)</option>
+              </select>
+            </div>
+            <div class="cosine-gauge" aria-hidden="true">
+              <div class="cosine-track-wrap">
+                <span class="cosine-threshold-label">gate 0.35</span>
+                <div class="cosine-threshold"></div>
+                <div class="cosine-track"><div class="cosine-fill" id="cosine-fill"></div></div>
+              </div>
+              <div class="cosine-scale"><span>0.0</span><span>0.5</span><span>1.0</span></div>
+            </div>
+            <div class="well" style="display: grid; gap: var(--space-sm);">
+              <div>
+                <span class="data-label">Stored Fact (<code class="inline-code">valid_at: 2026-03-01</code>)</span>
+                <p id="conflict-old-fact" style="margin-top: var(--space-xs); font-size: 0.9375rem;"></p>
+              </div>
+              <div style="border-top: var(--hairline); padding-top: var(--space-sm);">
+                <span class="data-label">Incoming Fact (<code class="inline-code">reference_time: 2026-04-02</code>)</span>
+                <p id="conflict-new-fact" style="margin-top: var(--space-xs); font-size: 0.9375rem;"></p>
+              </div>
+            </div>
+            <div class="well readout-box">
+              <div class="readout-row"><span class="data-label">Embedding Cosine</span><span class="readout-val" id="conflict-cosine-val">—</span></div>
+              <div class="readout-row"><span class="data-label">LLM Relation</span><span class="readout-val" id="conflict-relation-val">—</span></div>
+              <div class="readout-row"><span class="data-label">SurrealDB Mutation</span><span class="readout-val" id="conflict-mutation-val">—</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ SECTION 3: SURREALDB RETRIEVAL ============ -->
+    <section id="surrealdb" class="story-section reveal">
+      <div class="section-head">
+        <span class="section-kicker">03 · Unified Graph + Vector Store</span>
+        <h2>One SurrealDB schema routes Agentic, Vanilla, and Hybrid queries side by side</h2>
+        <p class="prose">
+          Instead of splitting graph traversal and dense vector search across separate databases, <code class="inline-code">src/surreal/schema.surql</code> houses both the temporal fact graph and 768-dimensional session passage vectors. Switch retrieval modes and run the sample query to trace which tables and graph edges each retriever touches.
+        </p>
+      </div>
+
+      <div class="panel retrieval-workbench">
+        <div class="mode-switcher">
+          <div>
+            <span class="data-label">Active Retrieval Pipeline</span>
+            <h3 id="retrieval-mode-title" style="margin-top: var(--space-xs);">Agentic Path (<code class="inline-code">RetrievalAgent</code>)</h3>
+          </div>
+          <div class="mode-btn-group" role="group" aria-label="Select retrieval mode">
+            <button type="button" class="btn is-active" id="mode-agentic-btn" data-mode="agentic">Agentic</button>
+            <button type="button" class="btn" id="mode-vanilla-btn" data-mode="vanilla">Vanilla</button>
+            <button type="button" class="btn" id="mode-hybrid-btn" data-mode="hybrid">Hybrid</button>
+          </div>
+        </div>
+
+        <p class="prose" id="retrieval-mode-desc"></p>
+
+        <div class="retrieval-split">
+          <div style="display: grid; gap: var(--space-md);">
+            <div class="svg-well">
+              <svg id="retrieval-svg" class="ret-svg" viewBox="0 0 640 320" role="img" aria-label="SurrealDB retrieval path schematic with animated query flow">
+                <defs>
+                  <marker id="ret-arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M 0 1 L 10 5 L 0 9 z" fill="var(--primary)"/></marker>
+                  <marker id="ret-arrow-sage" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M 0 1 L 10 5 L 0 9 z" fill="var(--tertiary)"/></marker>
+                  <marker id="ret-arrow-dim" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M 0 1 L 10 5 L 0 9 z" fill="var(--data-context)"/></marker>
+                </defs>
+                <g id="ret-edges"></g>
+                <g id="ret-nodes"></g>
+                <g id="ret-pulses"></g>
+              </svg>
+            </div>
+            <div class="run-query-row">
+              <button type="button" class="btn btn-primary" id="run-query-btn">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polygon points="6 3 20 12 6 21 6 3"/></svg>
+                Run Sample Query
+              </button>
+              <span class="sample-query">“Di kota mana Aisha bekerja per April 2026?”</span>
+            </div>
+            <div>
+              <span class="data-label" style="margin-bottom: var(--space-xs);">Retrieved Context <span style="text-transform:none; letter-spacing:0;">(illustrative simulation)</span></span>
+              <div class="sim-results" id="sim-results"></div>
+            </div>
+          </div>
+
+          <div class="well schema-table-wrap">
+            <span class="data-label" style="margin-bottom: var(--space-sm);">SurrealDB Schema (<code class="inline-code">src/surreal/schema.surql</code>)</span>
+            <table class="schema-table">
+              <thead><tr><th>Table / Relation</th><th>Key Fields</th></tr></thead>
+              <tbody id="schema-table-body">
+                <tr data-table="episode"><td class="mono-cell">episode</td><td><code class="inline-code">group_id</code>, <code class="inline-code">name</code>, <code class="inline-code">body</code>, <code class="inline-code">reference_time</code></td></tr>
+                <tr data-table="extracted_fact"><td class="mono-cell">extracted_fact</td><td><code class="inline-code">fact_text</code>, <code class="inline-code">embedding</code> (768-dim), <code class="inline-code">entity_names</code>, <code class="inline-code">valid_at</code>, <code class="inline-code">invalid_at</code></td></tr>
+                <tr data-table="entity"><td class="mono-cell">entity</td><td><code class="inline-code">group_id</code>, <code class="inline-code">name</code> (canonical deduplicated identifier)</td></tr>
+                <tr data-table="community"><td class="mono-cell">community</td><td><code class="inline-code">name</code>, <code class="inline-code">summary</code> (Louvain cluster summary)</td></tr>
+                <tr data-table="session_passage"><td class="mono-cell">session_passage</td><td><code class="inline-code">collection</code>, <code class="inline-code">doc_id</code>, <code class="inline-code">text</code>, <code class="inline-code">embedding</code>, <code class="inline-code">metadata</code></td></tr>
+                <tr data-table="relations"><td class="mono-cell">Graph Edges</td><td><code class="inline-code">has_fact</code> (episode → fact), <code class="inline-code">fact_involves</code> (fact → entity), <code class="inline-code">has_member</code> (community → entity)</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ SECTION 4: DATASET PIPELINE ============ -->
+    <section id="dataset" class="story-section reveal">
+      <div class="section-head">
+        <span class="section-kicker">04 · Longitudinal Dataset Pipeline</span>
+        <h2>Causal Indonesian life events turn synthetic personas into testable memory benchmarks</h2>
+        <p class="prose">
+          Long-term temporal RAG cannot be evaluated on single-turn Q&amp;A. Inspired by LOCOMO, <code class="inline-code">src/dataset/generator.py</code> orchestrates three specialized Gemini model tiers to build dated causal event graphs (<code class="inline-code">caused_by</code>), multi-turn Bahasa Indonesia dialogues, cumulative session summaries, and conflict-resolved ground truth annotations.
+        </p>
+      </div>
+
+      <div class="panel pipeline-workbench">
+        <div class="stage-list" id="dataset-stage-list">
+          <button type="button" class="stage-btn is-active" data-stage="0">
+            <span class="stage-btn-head"><span class="stage-btn-title">1. Persona &amp; Secondary Cast</span><span class="status-chip cyan">STRUCTURED</span></span>
+            <span class="metric-note">Loads <code class="inline-code">--user-file</code> or generates user + secondary personas via <code class="inline-code">--auto-generate-persona</code>.</span>
+          </button>
+          <button type="button" class="stage-btn" data-stage="1">
+            <span class="stage-btn-head"><span class="stage-btn-title">2. Causal Life Events</span><span class="status-chip cyan">STRUCTURED</span></span>
+            <span class="metric-note">Builds a dated causal DAG (e.g., <code class="inline-code">E1</code> &amp; <code class="inline-code">E3</code> → <code class="inline-code">E2</code>) saved to <code class="inline-code">user_events.json</code>.</span>
+          </button>
+          <button type="button" class="stage-btn" data-stage="2">
+            <span class="stage-btn-head"><span class="stage-btn-title">3. Sessions &amp; Summaries</span><span class="status-chip sage">DIALOG + LIGHT</span></span>
+            <span class="metric-note">Loops per date: <code class="inline-code">get_relevant_events</code> → <code class="inline-code">generate_conversation_session</code> → cumulative summary (optional <code class="inline-code">--use-caching</code>).</span>
+          </button>
+          <button type="button" class="stage-btn" data-stage="3">
+            <span class="stage-btn-head"><span class="stage-btn-title">4. Ground Truth &amp; Conflicts</span><span class="status-chip amber">LIGHT</span></span>
+            <span class="metric-note">Annotates <code class="inline-code">generate_ground_truth_for_turn</code> and resolves incremental conflicts into <code class="inline-code">conversation_dataset.json</code>.</span>
+          </button>
+        </div>
+
+        <div class="stage-detail-stack">
+          <div class="well">
+            <div class="stage-detail-head">
+              <span class="data-label" id="stage-env-var">DATASET_GEMINI_MODEL_STRUCTURED</span>
+              <span class="status-chip neutral" id="stage-output-file">In-memory Persona Profile</span>
+            </div>
+            <p id="stage-detail-copy" class="prose" style="font-size: 0.9375rem;"></p>
+          </div>
+
+          <div class="svg-well">
+            <span class="data-label" style="padding: var(--space-xs) var(--space-xs) 0;">Causal Event Graph (<code class="inline-code">caused_by</code>) — click a node</span>
+            <svg id="dag-svg" class="dag-svg" viewBox="0 0 520 150" role="img" aria-label="Interactive causal event DAG: E1 and E3 cause E2, which feeds a session">
+              <defs>
+                <marker id="dag-arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M 0 1 L 10 5 L 0 9 z" fill="var(--primary)"/></marker>
+                <marker id="dag-arrow-sage" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M 0 1 L 10 5 L 0 9 z" fill="var(--tertiary)"/></marker>
+              </defs>
+              <line class="dag-edge" id="dag-e1-e2" x1="128" y1="42" x2="268" y2="66" stroke="var(--primary)" stroke-width="2" marker-end="url(#dag-arrow)"/>
+              <line class="dag-edge" id="dag-e3-e2" x1="128" y1="108" x2="268" y2="84" stroke="var(--primary)" stroke-width="2" marker-end="url(#dag-arrow)"/>
+              <line class="dag-edge" id="dag-e2-s" x1="348" y1="75" x2="428" y2="75" stroke="var(--tertiary)" stroke-width="2" marker-end="url(#dag-arrow-sage)"/>
+              <g class="dag-node" id="dag-n-e1" data-node="e1" tabindex="0" role="button" aria-label="Event E1: AI research offer">
+                <rect x="20" y="22" width="108" height="40" rx="8" fill="var(--surface-container-high)" stroke="var(--outline)"/>
+                <text x="74" y="40" text-anchor="middle" fill="var(--primary)" font-family="Geist Mono, monospace" font-size="10">E1 · Mar 10</text>
+                <text x="74" y="54" text-anchor="middle" fill="var(--on-surface)" font-family="Geist Mono, monospace" font-size="10">Offer riset AI</text>
+              </g>
+              <g class="dag-node" id="dag-n-e3" data-node="e3" tabindex="0" role="button" aria-label="Event E3: Jakarta lease ends">
+                <rect x="20" y="88" width="108" height="40" rx="8" fill="var(--surface-container-high)" stroke="var(--outline)"/>
+                <text x="74" y="106" text-anchor="middle" fill="var(--primary)" font-family="Geist Mono, monospace" font-size="10">E3 · Mar 20</text>
+                <text x="74" y="120" text-anchor="middle" fill="var(--on-surface)" font-family="Geist Mono, monospace" font-size="10">Sewa JKT habis</text>
+              </g>
+              <g class="dag-node" id="dag-n-e2" data-node="e2" tabindex="0" role="button" aria-label="Event E2: relocation to Bandung, caused by E1 and E3">
+                <rect x="270" y="55" width="78" height="40" rx="8" fill="var(--primary-container)" stroke="var(--primary)"/>
+                <text x="309" y="73" text-anchor="middle" fill="var(--on-primary-container)" font-family="Geist Mono, monospace" font-size="11">E2 · Apr 02</text>
+                <text x="309" y="87" text-anchor="middle" fill="var(--on-surface)" font-family="Geist Mono, monospace" font-size="10">Pindah BDG</text>
+              </g>
+              <g class="dag-node" id="dag-n-s" data-node="s" tabindex="0" role="button" aria-label="Session 3 dialogue generated from active events">
+                <rect x="430" y="55" width="76" height="40" rx="8" fill="var(--sage-tint)" stroke="var(--tertiary)"/>
+                <text x="468" y="73" text-anchor="middle" fill="var(--tertiary)" font-family="Geist Mono, monospace" font-size="10">SESSION 03</text>
+                <text x="468" y="87" text-anchor="middle" fill="var(--on-surface)" font-family="Geist Mono, monospace" font-size="10">Multi-turn</text>
+              </g>
+            </svg>
+            <p class="dag-hint" id="dag-hint">E2 carries <code class="inline-code">caused_by: ["E1","E3"]</code> — click any node to trace its causal chain.</p>
+          </div>
+
+          <div>
+            <span class="data-label" style="margin-bottom: var(--space-xs);">Stage Output Structure</span>
+            <pre class="code-pre" id="stage-json-preview"></pre>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ SECTION 5: STACK & EVAL ============ -->
+    <section id="stack" class="story-section reveal">
+      <div class="section-head">
+        <span class="section-kicker">05 · Reproducible Experiments &amp; Evaluation</span>
+        <h2>One <code class="inline-code">--setup env</code> contract swaps providers, embeddings, and retrieval modes without editing code</h2>
+        <p class="prose">
+          Tempograph decouples model selection from ingestion and evaluation scripts. Configure Gemini or Novita AI for fact extraction, Gemini or HuggingFace for 768-dim embeddings, and benchmark Agentic, Vanilla, or Hybrid retrieval against <code class="inline-code">output/example_dataset/evaluation_queries_100.json</code>—or try the <a href="https://daruoktab.github.io/tempograph/sim/" target="_blank" rel="noopener" style="color: var(--primary);">10-session portfolio simulation</a> (<code class="inline-code">web/sim/</code>) without running SurrealDB.
+        </p>
+      </div>
+
+      <div class="eval-metrics-grid">
+        <div class="panel metric-tile">
+          <span class="data-label">Ranking Accuracy</span>
+          <span class="metric-value">Hit Rate / MRR</span>
+          <p class="metric-note">Measured against expected relevant sessions in <code class="inline-code">evaluation_queries_100.json</code>.</p>
+        </div>
+        <div class="panel metric-tile">
+          <span class="data-label">Performance</span>
+          <span class="metric-value">Latency / Query</span>
+          <p class="metric-note">Tracks retrieval execution time per query across Agentic, Vanilla, and Hybrid paths.</p>
+        </div>
+        <div class="panel metric-tile">
+          <span class="data-label">LLM Judge</span>
+          <span class="metric-value">Context Sufficiency</span>
+          <p class="metric-note">Optional Gemini judge (<code class="inline-code">--judge-model</code>) or skip via <code class="inline-code">--no-llm-judge</code>.</p>
+        </div>
+      </div>
+
+      <div class="panel config-grid">
+        <div class="config-controls">
+          <div>
+            <span class="data-label">Centralized Stack Configurator</span>
+            <h3 style="margin-top: var(--space-xs);">Generate <code class="inline-code">.env</code> &amp; CLI Commands</h3>
+          </div>
+          <div class="field-group">
+            <label class="field-label" for="cfg-rag-mode">RAG_MODE</label>
+            <select class="select-input" id="cfg-rag-mode">
+              <option value="agentic">agentic (RetrievalAgent on Fact Graph)</option>
+              <option value="hybrid">hybrid (Fact Graph + Session Passages)</option>
+              <option value="vanilla">vanilla (VanillaRetriever Session Passages)</option>
+            </select>
+          </div>
+          <div class="field-group">
+            <label class="field-label" for="cfg-llm-provider">LLM_PROVIDER</label>
+            <select class="select-input" id="cfg-llm-provider">
+              <option value="gemini">gemini (Google GenAI)</option>
+              <option value="novita">novita (OpenAI-compatible via NOVITAAI_API_KEY)</option>
+            </select>
+          </div>
+          <div class="field-group">
+            <label class="field-label" for="cfg-embed-provider">EMBED_PROVIDER</label>
+            <select class="select-input" id="cfg-embed-provider">
+              <option value="gemini">gemini (Gemini Embeddings)</option>
+              <option value="huggingface">huggingface (Local / HF Embeddings)</option>
+            </select>
+          </div>
+          <div>
+            <label class="checkbox-row"><input type="checkbox" id="cfg-use-caching" checked><span>Enable <code class="inline-code">--use-caching</code> for dataset dialog context cache</span></label>
+            <label class="checkbox-row"><input type="checkbox" id="cfg-no-judge" checked><span>Pass <code class="inline-code">--no-llm-judge</code> for fast retrieval-only evaluation</span></label>
+          </div>
+        </div>
+
+        <div class="config-output-stack">
+          <div>
+            <div class="code-header-row">
+              <span class="data-label">Generated .env Snippet</span>
+              <button type="button" class="btn" id="copy-env-btn" data-copy="env-output-pre">Copy .env</button>
+            </div>
+            <pre class="code-pre" id="env-output-pre"></pre>
+          </div>
+          <div>
+            <div class="code-header-row">
+              <span class="data-label">Generate · Ingest · Evaluate Commands</span>
+              <button type="button" class="btn" id="copy-cli-btn" data-copy="cli-output-pre">Copy CLI</button>
+            </div>
+            <pre class="code-pre" id="cli-output-pre"></pre>
+          </div>
+        </div>
+      </div>
+
+      <details class="repo-details">
+        <summary>
+          <span>Repository Module Architecture (<code class="inline-code">src/</code>, <code class="inline-code">scripts/</code>, <code class="inline-code">web/sim/</code>)</span>
+          <span class="status-chip neutral">Expand tree</span>
+        </summary>
+        <div class="repo-tree-wrap">
+          <pre class="code-pre">├── assets/
+├── src/
+│   ├── config/       # settings.py, experiment_setups, runtime_setup (env RAG), dataset_generation_env
+│   ├── dataset/      # generator.py (persona, causal life events, sessions, ground truth)
+│   ├── ingestion/    # episode_ingester.py (entity dedup, conflict check, community detection)
+│   ├── retrieval/    # agent.py, vanilla_retriever.py, hybrid_retriever.py, llm_reranker.py, trace.py
+│   ├── surreal/      # connection.py, schema.surql, fact_graph.py, vanilla_store.py, ranking.py
+│   ├── vectordb/     # Client wrapper for vanilla vector DB
+│   ├── llm/          # gemini_provider.py, novita_provider.py
+│   ├── embedders/    # gemini_embedder.py, hf_embedder.py
+│   ├── evaluation/   # evaluator.py, metrics.py, query_schema.py
+│   └── utils/        # Gemini helpers, cost tracker, rate limiter
+├── scripts/          # ingest_agentic.py, evaluate_agentic.py, evaluate_vanilla.py, export_sim_ui_dataset.py, run_with_local_surreal.py
+├── output/
+│   ├── example_dataset/     # conversation_dataset.json, evaluation_queries_100.json
+│   └── evaluation_results/
+└── web/sim/          # 10-session interactive portfolio simulation UI (runs without SurrealDB)</pre>
+        </div>
+      </details>
+    </section>
+
+    <footer class="site-footer">
+      <div>
+        <strong>Tempograph</strong> — <a href="https://github.com/daruoktab/tempograph" target="_blank" rel="noopener">daruoktab/tempograph</a> (MIT License).
+      </div>
+      <div>
+        Foundations &amp; Stack: LOCOMO · Graphiti · SurrealDB · Google Gemini · Novita AI · NetworkX · rapidfuzz
+      </div>
+    </footer>
+  </main>
+
+  <script>
+  (function () {
+    'use strict';
+    var $ = function (id) { return document.getElementById(id); };
+    var SVGNS = 'http://www.w3.org/2000/svg';
+    var reduceMotion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+    /* ================================================================
+       SECTION 1 — Interactive bi-temporal knowledge graph
+       Custom mini force layout: home anchors + AABB collision separation.
+       Draggable nodes, pan/zoom, hover tooltips, click-to-inspect.
+       ================================================================ */
+    var EPISODE_DATES = ['2026-03-01', '2026-03-14', '2026-04-02', '2026-04-18'];
+
+    var FACTS = [
+      { id: 'F1', text: 'Aisha works as a backend engineer at Startup Jakarta.', short: 'Backend @ Startup Jakarta', validAt: '2026-03-01', stepAdded: 0, stepInvalidated: 2, episode: 'Sesi 1' },
+      { id: 'F2', text: 'Aisha Santoso is integrating SurrealDB for conversational memory.', short: 'Integrating SurrealDB', validAt: '2026-03-14', stepAdded: 1, stepInvalidated: null, episode: 'Sesi 2' },
+      { id: 'F3', text: 'Aisha Santoso resigned from Startup Jakarta, moved to Bandung, and leads AI research.', short: 'Leads AI research · Bandung', validAt: '2026-04-02', stepAdded: 2, stepInvalidated: null, episode: 'Sesi 3' },
+      { id: 'F4', text: 'Aisha Santoso and Raka collaborate on long-term chatbot memory in Bandung.', short: 'Long-term memory w/ Raka', validAt: '2026-04-18', stepAdded: 3, stepInvalidated: null, episode: 'Sesi 4' }
+    ];
+
+    var currentStep = 0;
+    var asOfMode = 'current';
+    var selectedId = null;
+
+    // ---- graph model ----
+    function buildModel(step, historical) {
+      var eff = historical ? Math.min(step, 1) : step;
+      var canonical = eff >= 1 ? 'Aisha Santoso' : 'Aisha';
+      var nodes = [];
+      var edges = [];
+
+      function N(id, type, label, sub, hx, hy, w, h, meta) {
+        nodes.push({ id: id, type: type, label: label, sub: sub, hx: hx, hy: hy, w: w, h: h, meta: meta || '' });
+      }
+      function E(from, to, kind, label) { edges.push({ from: from, to: to, kind: kind, label: label || '' }); }
+
+      N('aisha', 'entity', canonical, 'ENTITY · CANONICAL', 400, 250, 158, 50,
+        eff >= 1 ? 'Canonical node. Alias “Aisha” auto-merged: partial_ratio 100% (substring of “Aisha Santoso”).' : 'First mention: “Aisha” (Sesi 1).');
+
+      var f1Invalid = !historical && step >= 2;
+      N('F1', f1Invalid ? 'fact-invalid' : 'fact', FACTS[0].short, 'F1 · ' + (f1Invalid ? 'INVALIDATED' : 'VALID'), 165, 70, 200, 52,
+        FACTS[0].text + ' valid_at 2026-03-01' + (f1Invalid ? ' · invalid_at 2026-04-02' : ' · invalid_at null'));
+      E('F1', 'aisha', 'involves', 'fact_involves');
+
+      N('startup', 'entity', 'Startup Jakarta', 'ENTITY · ORGANIZATION', 140, 250, 158, 50, 'Employer mentioned in Sesi 1. Superseded as workplace by F3, kept as historical entity.');
+      E('F1', 'startup', 'involves', '');
+
+      if (eff >= 1) {
+        N('F2', 'fact', FACTS[1].short, 'F2 · ALIAS AUTO-MERGED (100%)', 165, 430, 200, 52, FACTS[1].text + ' valid_at 2026-03-14 · invalid_at null');
+        E('F2', 'aisha', 'involves', '');
+      }
+      if (!historical && step >= 2) {
+        N('F3', 'fact', FACTS[2].short, 'F3 · VALID', 635, 70, 200, 52, FACTS[2].text + ' valid_at 2026-04-02 · invalid_at null');
+        N('bandung', 'entity', 'Bandung', 'ENTITY · LOCATION', 660, 250, 118, 50, 'City of residence and work since 2026-04-02 (F3).');
+        E('F3', 'aisha', 'involves', '');
+        E('F3', 'bandung', 'involves', '');
+        E('F3', 'F1', 'contradicts', 'contradicts · cosine 0.64');
+      }
+      if (!historical && step >= 3) {
+        N('F4', 'fact', FACTS[3].short, 'F4 · VALID', 400, 445, 200, 52, FACTS[3].text + ' valid_at 2026-04-18 · invalid_at null');
+        N('raka', 'entity', 'Raka', 'ENTITY · PERSON', 680, 360, 100, 50, 'Research teammate in Bandung, first mentioned in Sesi 4.');
+        N('comm', 'community', 'Bandung AI Memory Team', 'COMMUNITY · LOUVAIN', 640, 445, 210, 52, 'Louvain cluster summary: Aisha Santoso + Raka research long-term chatbot memory in Bandung.');
+        E('F4', 'aisha', 'involves', '');
+        E('F4', 'raka', 'involves', '');
+        E('comm', 'aisha', 'member', 'has_member');
+        E('comm', 'raka', 'member', '');
+      }
+      return { nodes: nodes, edges: edges, canonical: canonical, f1Invalid: f1Invalid };
+    }
+
+    // ---- simulation state ----
+    var simNodes = [];   // live node objects with x,y,vx,vy
+    var simEdges = [];
+    var nodeById = {};
+    var view = { x: 0, y: 0, k: 1 };
+    var svg = $('bitemporal-svg');
+    var viewportG = $('bt-viewport');
+    var edgesG = $('bt-edges');
+    var nodesG = $('bt-nodes');
+    var tooltip = $('graph-tooltip');
+    var well = $('graph-well');
+    var rafId = null;
+    var settleFrames = 0;
+    var dragState = null;
+
+    var COLORS = {
+      entity: { stroke: 'var(--primary)', fill: 'var(--primary-container)', kicker: 'var(--on-primary-container)', marker: 'url(#arrow-cyan)' },
+      fact: { stroke: 'var(--tertiary)', fill: 'var(--surface-container)', kicker: 'var(--tertiary)', marker: 'url(#arrow-sage)' },
+      'fact-invalid': { stroke: 'var(--error)', fill: 'var(--surface-container)', kicker: 'var(--error)', marker: 'url(#arrow-error)' },
+      community: { stroke: 'var(--warning)', fill: 'var(--amber-tint)', kicker: 'var(--warning)', marker: 'url(#arrow-amber)' }
+    };
+
+    function el(tag, attrs, parent) {
+      var e = document.createElementNS(SVGNS, tag);
+      for (var k in attrs) e.setAttribute(k, attrs[k]);
+      if (parent) parent.appendChild(e);
+      return e;
+    }
+
+    function applyView() {
+      viewportG.setAttribute('transform', 'translate(' + view.x + ',' + view.y + ') scale(' + view.k + ')');
+    }
+
+    function rebuildGraph() {
+      var model = buildModel(currentStep, asOfMode === 'historical');
+      var prev = nodeById;
+      nodeById = {};
+      simNodes = model.nodes.map(function (n) {
+        var old = prev[n.id];
+        var live = {
+          id: n.id, type: n.type, label: n.label, sub: n.sub, w: n.w, h: n.h, meta: n.meta,
+          hx: n.hx, hy: n.hy,
+          x: old ? old.x : n.hx + (Math.random() * 24 - 12),
+          y: old ? old.y : n.hy + (Math.random() * 24 - 12),
+          vx: 0, vy: 0, isNew: !old
+        };
+        nodeById[n.id] = live;
+        return live;
+      });
+      simEdges = model.edges;
+
+      // edges DOM
+      edgesG.textContent = '';
+      simEdges.forEach(function (e) {
+        var g = el('g', { 'class': 'gedge', 'data-from': e.from, 'data-to': e.to }, edgesG);
+        var stroke, marker, dash = '';
+        if (e.kind === 'contradicts') { stroke = 'var(--error)'; marker = 'url(#arrow-error)'; dash = '5 4'; }
+        else if (e.kind === 'member') { stroke = 'var(--warning)'; marker = 'url(#arrow-amber)'; }
+        else if (e.kind === 'involves') {
+          var src = nodeById[e.from];
+          if (src && src.type === 'fact-invalid') { stroke = 'var(--error)'; marker = 'url(#arrow-error)'; dash = '5 4'; }
+          else { stroke = 'var(--tertiary)'; marker = 'url(#arrow-sage)'; }
+        } else { stroke = 'var(--primary)'; marker = 'url(#arrow-cyan)'; }
+        e.lineEl = el('line', { stroke: stroke, 'stroke-width': 2, 'marker-end': marker }, g);
+        if (dash) e.lineEl.setAttribute('stroke-dasharray', dash);
+        if (e.label) {
+          e.labelEl = el('text', { 'class': 'edge-label', fill: stroke, 'font-family': 'Geist Mono, monospace', 'font-size': 11, 'text-anchor': 'middle' }, g);
+          e.labelEl.textContent = e.label;
+        }
+        e.gEl = g;
+      });
+
+      // nodes DOM
+      nodesG.textContent = '';
+      simNodes.forEach(function (n) {
+        var c = COLORS[n.type];
+        var g = el('g', { 'class': 'gnode' + (n.isNew && !reduceMotion ? ' is-entering' : ''), 'data-id': n.id, tabindex: 0, role: 'button', 'aria-label': n.label + '. ' + n.meta }, nodesG);
+        var inner = el('g', { 'class': 'node-inner' }, g);
+        el('rect', { 'class': 'node-box', x: -n.w / 2, y: -n.h / 2, width: n.w, height: n.h, rx: 10, fill: c.fill, stroke: c.stroke, 'stroke-width': 1.6 }, inner);
+        var k = el('text', { x: 0, y: -n.h / 2 + 19, 'text-anchor': 'middle', fill: c.kicker, 'font-family': 'Geist Mono, monospace', 'font-size': 10 }, inner);
+        k.textContent = n.sub;
+        var t = el('text', { x: 0, y: -n.h / 2 + 38, 'text-anchor': 'middle', fill: 'var(--on-surface)', 'font-family': 'Instrument Sans, sans-serif', 'font-weight': 600, 'font-size': 13 }, inner);
+        t.textContent = n.label;
+        if (n.type === 'fact-invalid') g.setAttribute('opacity', '0.72');
+        n.gEl = g;
+        if (n.isNew && !reduceMotion) {
+          setTimeout(function () { g.classList.remove('is-entering'); }, 40);
+        }
+      });
+
+      draw(); // paint immediately even if rAF is throttled (background tab)
+      wake();
+      renderFactList(model);
+      updateSelectionClasses();
+    }
+
+    // rect boundary point from node center toward (tx,ty)
+    function boundaryPoint(n, tx, ty, pad) {
+      var dx = tx - n.x, dy = ty - n.y;
+      if (dx === 0 && dy === 0) return { x: n.x, y: n.y };
+      var hw = n.w / 2 + pad, hh = n.h / 2 + pad;
+      var s = 1 / Math.max(Math.abs(dx) / hw, Math.abs(dy) / hh);
+      return { x: n.x + dx * s, y: n.y + dy * s };
+    }
+
+    function tick() {
+      var i, j, n, m;
+      // home spring + integrate
+      for (i = 0; i < simNodes.length; i++) {
+        n = simNodes[i];
+        if (dragState && dragState.node === n) { n.vx = 0; n.vy = 0; continue; }
+        n.vx += (n.hx - n.x) * 0.02;
+        n.vy += (n.hy - n.y) * 0.02;
+        n.vx *= 0.82; n.vy *= 0.82;
+        n.x += n.vx; n.y += n.vy;
+      }
+      // AABB separation (2 passes) — guarantees boxes never overlap
+      for (var pass = 0; pass < 2; pass++) {
+        for (i = 0; i < simNodes.length; i++) {
+          for (j = i + 1; j < simNodes.length; j++) {
+            n = simNodes[i]; m = simNodes[j];
+            var dx = m.x - n.x, dy = m.y - n.y;
+            var ox = (n.w + m.w) / 2 + 22 - Math.abs(dx);
+            var oy = (n.h + m.h) / 2 + 22 - Math.abs(dy);
+            if (ox > 0 && oy > 0) {
+              var nFixed = dragState && dragState.node === n;
+              var mFixed = dragState && dragState.node === m;
+              if (nFixed && mFixed) continue;
+              if (ox < oy) {
+                if (!nFixed) n.x -= (dx >= 0 ? 1 : -1) * ox * (mFixed ? 1 : 0.5);
+                if (!mFixed) m.x += (dx >= 0 ? 1 : -1) * ox * (nFixed ? 1 : 0.5);
+              } else {
+                if (!nFixed) n.y -= (dy >= 0 ? 1 : -1) * oy * (mFixed ? 1 : 0.5);
+                if (!mFixed) m.y += (dy >= 0 ? 1 : -1) * oy * (nFixed ? 1 : 0.5);
+              }
+            }
+          }
+        }
+      }
+      // clamp to canvas bounds (world coords)
+      for (i = 0; i < simNodes.length; i++) {
+        n = simNodes[i];
+        n.x = Math.max(n.w / 2 + 8, Math.min(800 - n.w / 2 - 8, n.x));
+        n.y = Math.max(n.h / 2 + 8, Math.min(500 - n.h / 2 - 8, n.y));
+      }
+      draw();
+      // settle detection
+      var maxV = 0;
+      for (i = 0; i < simNodes.length; i++) {
+        n = simNodes[i];
+        maxV = Math.max(maxV, Math.abs(n.vx), Math.abs(n.vy), Math.abs(n.hx - n.x) * 0.02, Math.abs(n.hy - n.y) * 0.02);
+      }
+      if (dragState || maxV > 0.02) { settleFrames = 0; } else { settleFrames++; }
+      if (settleFrames > 40 && !dragState) { rafId = null; return; }
+      rafId = setTimeout(tick, 16);
+    }
+
+    function draw() {
+      var i, n, e;
+      for (i = 0; i < simNodes.length; i++) {
+        n = simNodes[i];
+        n.gEl.setAttribute('transform', 'translate(' + n.x.toFixed(1) + ',' + n.y.toFixed(1) + ')');
+      }
+      for (i = 0; i < simEdges.length; i++) {
+        e = simEdges[i];
+        var a = nodeById[e.from], b = nodeById[e.to];
+        if (!a || !b) continue;
+        var p1 = boundaryPoint(a, b.x, b.y, 3);
+        var p2 = boundaryPoint(b, a.x, a.y, 7);
+        e.lineEl.setAttribute('x1', p1.x.toFixed(1)); e.lineEl.setAttribute('y1', p1.y.toFixed(1));
+        e.lineEl.setAttribute('x2', p2.x.toFixed(1)); e.lineEl.setAttribute('y2', p2.y.toFixed(1));
+        if (e.labelEl) {
+          var mx = (p1.x + p2.x) / 2, my = (p1.y + p2.y) / 2;
+          e.labelEl.setAttribute('x', mx.toFixed(1));
+          e.labelEl.setAttribute('y', (my - 8).toFixed(1));
+        }
+      }
+    }
+
+    function wake() {
+      settleFrames = 0;
+      if (rafId === null) rafId = setTimeout(tick, 16);
+    }
+
+    // ---- fact records panel ----
+    function factActiveInView(f) {
+      if (asOfMode === 'historical') return f.stepAdded <= 1;
+      if (f.stepAdded > currentStep) return false;
+      if (f.stepInvalidated !== null && currentStep >= f.stepInvalidated) return false;
+      return true;
+    }
+
+    function renderFactList(model) {
+      var list = $('bt-fact-list');
+      var badge = $('bt-status-badge');
+      var visible = FACTS.filter(function (f) {
+        return asOfMode === 'historical' ? f.stepAdded <= 1 : f.stepAdded <= currentStep;
+      });
+      var activeCount = visible.filter(factActiveInView).length;
+      badge.textContent = activeCount + ' active · ' + visible.length + ' total';
+      list.textContent = '';
+      visible.forEach(function (f) {
+        var active = factActiveInView(f);
+        var invText = (!active && f.stepInvalidated !== null && asOfMode === 'current') ? '2026-04-02' : 'null';
+        var row = document.createElement('div');
+        row.className = 'fact-row' + (active ? '' : ' is-invalidated') + (selectedId === f.id ? ' is-selected' : '');
+        row.setAttribute('data-fact', f.id);
+        row.setAttribute('role', 'button');
+        row.setAttribute('tabindex', '0');
+        var top = document.createElement('div'); top.className = 'fact-row-top';
+        var lbl = document.createElement('span'); lbl.className = 'data-label'; lbl.textContent = f.id + ' · ' + f.episode;
+        var chip = document.createElement('span');
+        chip.className = 'status-chip ' + (invText !== 'null' ? 'error' : 'sage');
+        chip.textContent = invText !== 'null' ? 'Invalidated (' + invText + ')' : 'Active';
+        top.appendChild(lbl); top.appendChild(chip);
+        var txt = document.createElement('div'); txt.className = 'fact-text'; txt.textContent = f.text;
+        var meta = document.createElement('div'); meta.className = 'fact-temporal-meta';
+        ['valid_at: ' + f.validAt, 'invalid_at: ' + invText, 'entity: ' + model.canonical].forEach(function (s) {
+          var sp = document.createElement('span'); sp.textContent = s; meta.appendChild(sp);
+        });
+        row.appendChild(top); row.appendChild(txt); row.appendChild(meta);
+        row.addEventListener('click', function () { selectNode(selectedId === f.id ? null : f.id); });
+        row.addEventListener('keydown', function (ev) { if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); selectNode(selectedId === f.id ? null : f.id); } });
+        list.appendChild(row);
+      });
+    }
+
+    // ---- selection ----
+    function selectNode(id) {
+      selectedId = id;
+      updateSelectionClasses();
+      // sync fact rows
+      document.querySelectorAll('.fact-row').forEach(function (r) {
+        r.classList.toggle('is-selected', r.getAttribute('data-fact') === id);
+      });
+    }
+
+    function updateSelectionClasses() {
+      var connected = {};
+      if (selectedId) {
+        connected[selectedId] = true;
+        simEdges.forEach(function (e) {
+          if (e.from === selectedId) connected[e.to] = true;
+          if (e.to === selectedId) connected[e.from] = true;
+        });
+      }
+      simNodes.forEach(function (n) {
+        n.gEl.classList.toggle('is-selected', n.id === selectedId);
+        n.gEl.classList.toggle('is-dimmed', !!selectedId && !connected[n.id]);
+      });
+      simEdges.forEach(function (e) {
+        var on = !selectedId || e.from === selectedId || e.to === selectedId;
+        e.gEl.classList.toggle('is-dimmed', !on);
+      });
+    }
+
+    // ---- pointer interaction: drag nodes / pan canvas ----
+    function svgPoint(ev) {
+      var r = svg.getBoundingClientRect();
+      var ratio = 800 / r.width;
+      return {
+        wx: ((ev.clientX - r.left) * ratio - view.x) / view.k,
+        wy: ((ev.clientY - r.top) * ratio - view.y) / view.k,
+        px: (ev.clientX - r.left) * ratio,
+        py: (ev.clientY - r.top) * ratio
+      };
+    }
+
+    svg.addEventListener('pointerdown', function (ev) {
+      var g = ev.target.closest ? ev.target.closest('.gnode') : null;
+      var p = svgPoint(ev);
+      if (g) {
+        var n = nodeById[g.getAttribute('data-id')];
+        if (!n) return;
+        dragState = { node: n, dx: n.x - p.wx, dy: n.y - p.wy, moved: false, sx: ev.clientX, sy: ev.clientY };
+      } else {
+        dragState = { pan: true, sx: ev.clientX, sy: ev.clientY, ox: view.x, oy: view.y, moved: false };
+        svg.classList.add('is-panning');
+      }
+      svg.setPointerCapture(ev.pointerId);
+      hideTooltip();
+      ev.preventDefault();
+    });
+
+    svg.addEventListener('pointermove', function (ev) {
+      if (dragState) {
+        if (Math.abs(ev.clientX - dragState.sx) + Math.abs(ev.clientY - dragState.sy) > 4) dragState.moved = true;
+        if (dragState.node) {
+          var p = svgPoint(ev);
+          dragState.node.x = p.wx + dragState.dx;
+          dragState.node.y = p.wy + dragState.dy;
+          wake();
+        } else if (dragState.pan) {
+          var r = svg.getBoundingClientRect();
+          var ratio = 800 / r.width;
+          view.x = dragState.ox + (ev.clientX - dragState.sx) * ratio;
+          view.y = dragState.oy + (ev.clientY - dragState.sy) * ratio;
+          applyView();
+        }
+        return;
+      }
+      // hover tooltip
+      var g = ev.target.closest ? ev.target.closest('.gnode') : null;
+      if (g) {
+        var n = nodeById[g.getAttribute('data-id')];
+        if (n) showTooltip(n, ev);
+      } else hideTooltip();
+    });
+
+    function endDrag(ev) {
+      if (!dragState) return;
+      var wasNode = dragState.node;
+      var moved = dragState.moved;
+      svg.classList.remove('is-panning');
+      dragState = null;
+      if (wasNode && !moved) {
+        selectNode(selectedId === wasNode.id ? null : wasNode.id);
+      } else if (!wasNode && !moved) {
+        selectNode(null);
+      }
+      wake();
+    }
+    svg.addEventListener('pointerup', endDrag);
+    svg.addEventListener('pointercancel', endDrag);
+    svg.addEventListener('pointerleave', function () { if (!dragState) hideTooltip(); });
+
+    // keyboard access on nodes
+    nodesG.addEventListener('keydown', function (ev) {
+      var g = ev.target.closest ? ev.target.closest('.gnode') : null;
+      if (g && (ev.key === 'Enter' || ev.key === ' ')) {
+        ev.preventDefault();
+        var id = g.getAttribute('data-id');
+        selectNode(selectedId === id ? null : id);
+      }
+    });
+
+    // ---- zoom ----
+    function zoomAt(factor, px, py) {
+      var k2 = Math.max(0.5, Math.min(2.6, view.k * factor));
+      var real = k2 / view.k;
+      view.x = px - (px - view.x) * real;
+      view.y = py - (py - view.y) * real;
+      view.k = k2;
+      applyView();
+    }
+    svg.addEventListener('wheel', function (ev) {
+      ev.preventDefault();
+      var p = svgPoint(ev);
+      zoomAt(Math.exp(-ev.deltaY * 0.0012), p.px, p.py);
+    }, { passive: false });
+    $('zoom-in-btn').addEventListener('click', function () { zoomAt(1.25, 400, 250); });
+    $('zoom-out-btn').addEventListener('click', function () { zoomAt(0.8, 400, 250); });
+    $('zoom-reset-btn').addEventListener('click', function () {
+      view = { x: 0, y: 0, k: 1 }; applyView();
+      nodeById = {}; // force fresh spawn at home anchors
+      selectedId = null;
+      rebuildGraph();
+    });
+
+    // ---- tooltip ----
+    function showTooltip(n, ev) {
+      tooltip.textContent = '';
+      var k = document.createElement('span'); k.className = 'tt-kicker'; k.textContent = n.sub;
+      var b = document.createElement('span'); b.textContent = n.meta || n.label;
+      tooltip.appendChild(k); tooltip.appendChild(b);
+      var wr = well.getBoundingClientRect();
+      var x = ev.clientX - wr.left + 14;
+      var y = ev.clientY - wr.top + 14;
+      tooltip.classList.add('is-shown');
+      var tw = tooltip.offsetWidth, th = tooltip.offsetHeight;
+      if (x + tw > wr.width - 8) x = ev.clientX - wr.left - tw - 14;
+      if (y + th > wr.height - 8) y = ev.clientY - wr.top - th - 14;
+      tooltip.style.left = Math.max(8, x) + 'px';
+      tooltip.style.top = Math.max(8, y) + 'px';
+    }
+    function hideTooltip() { tooltip.classList.remove('is-shown'); }
+
+    // ---- episode / timeline controls ----
+    function setStep(step) {
+      currentStep = step;
+      document.querySelectorAll('.episode-btn').forEach(function (b) {
+        b.classList.toggle('is-active', Number(b.getAttribute('data-step')) === step);
+      });
+      var slider = $('time-slider');
+      slider.value = String(step);
+      if (selectedId && !nodeById[selectedId]) selectedId = null;
+      rebuildGraph();
+    }
+
+    document.querySelectorAll('.episode-btn').forEach(function (b) {
+      b.addEventListener('click', function () { setStep(Number(b.getAttribute('data-step'))); });
+    });
+    $('time-slider').addEventListener('input', function () { setStep(Number(this.value)); });
+
+    function setAsOf(mode) {
+      asOfMode = mode;
+      $('asof-current-btn').classList.toggle('is-active', mode === 'current');
+      $('asof-historical-btn').classList.toggle('is-active', mode === 'historical');
+      $('time-slider').disabled = mode === 'historical';
+      var exp = $('asof-explanation');
+      if (mode === 'historical') {
+        exp.innerHTML = 'Time-travel filter active (<strong>2026-03-15</strong>): <code class="inline-code">valid_at &lt;= 2026-03-15 AND (invalid_at IS NULL OR invalid_at &gt; 2026-03-15)</code>. Even after Episode 3 invalidates F1, querying March 15 still returns Startup Jakarta as true.';
+      } else {
+        exp.innerHTML = 'Showing facts active at the selected ingestion step. Contradicted facts retain their historical provenance with <code class="inline-code">invalid_at</code> set.';
+      }
+      selectedId = null;
+      rebuildGraph();
+    }
+    $('asof-current-btn').addEventListener('click', function () { setAsOf('current'); });
+    $('asof-historical-btn').addEventListener('click', function () { setAsOf('historical'); });
+
+    /* ================================================================
+       SECTION 2 — sandboxes
+       ================================================================ */
+    // Faithful port of src/surreal/fact_graph.py entity dedup scoring:
+    // score = max(fuzz.token_sort_ratio, fuzz.partial_ratio), substring boost >= 75.
+    // rapidfuzz ratios use normalized Indel similarity: 2*LCS / (len1+len2).
+    function lcsLen(a, b) {
+      var m = a.length, n = b.length;
+      if (!m || !n) return 0;
+      var prev = new Array(n + 1).fill(0), cur = new Array(n + 1).fill(0);
+      for (var i = 1; i <= m; i++) {
+        for (var j = 1; j <= n; j++) {
+          cur[j] = a[i - 1] === b[j - 1] ? prev[j - 1] + 1 : Math.max(prev[j], cur[j - 1]);
+        }
+        var tmp = prev; prev = cur; cur = tmp;
+      }
+      return prev[n];
+    }
+    function indelRatio(a, b) {
+      var total = a.length + b.length;
+      if (total === 0) return 100;
+      return (2 * lcsLen(a, b) / total) * 100;
+    }
+    function tokenSortRatio(s1, s2) {
+      var n1 = s1.toLowerCase().trim().split(/\s+/).filter(Boolean).sort().join(' ');
+      var n2 = s2.toLowerCase().trim().split(/\s+/).filter(Boolean).sort().join(' ');
+      return indelRatio(n1, n2);
+    }
+    function partialRatio(s1, s2) {
+      var a = s1.toLowerCase().trim(), b = s2.toLowerCase().trim();
+      if (!a || !b) return 0;
+      var short = a.length <= b.length ? a : b;
+      var long = a.length <= b.length ? b : a;
+      if (long.indexOf(short) !== -1) return 100;
+      var best = 0;
+      for (var i = 0; i + short.length <= long.length; i++) {
+        best = Math.max(best, indelRatio(short, long.substr(i, short.length)));
+      }
+      return best;
+    }
+    function dedupScore(a, b) {
+      var al = a.toLowerCase(), bl = b.toLowerCase();
+      var sort = tokenSortRatio(a, b);
+      var partial = partialRatio(a, b);
+      var score = Math.max(sort, partial);
+      var substring = al.indexOf(bl) !== -1 || bl.indexOf(al) !== -1;
+      if (substring) score = Math.max(score, 75);
+      return { score: Math.round(score), sort: Math.round(sort), partial: Math.round(partial), substring: substring };
+    }
+
+    function evaluateDedup() {
+      var a = $('entity-a-input').value.trim();
+      var b = $('entity-b-input').value.trim();
+      var scoreEl = $('dedup-score-val'), decEl = $('dedup-decision-val'), canEl = $('dedup-canonical-val'), chip = $('dedup-band-chip'), needle = $('band-needle');
+      var breakdown = $('dedup-breakdown-val');
+      if (!a || !b) {
+        scoreEl.textContent = '—'; decEl.textContent = 'Enter both entity names'; canEl.textContent = '—';
+        breakdown.textContent = '—';
+        chip.className = 'status-chip neutral'; chip.textContent = 'Awaiting Input';
+        needle.style.left = '0%';
+        return;
+      }
+      var r = dedupScore(a, b);
+      scoreEl.textContent = r.score + '%';
+      breakdown.textContent = 'sort ' + r.sort + '% · partial ' + r.partial + '%' + (r.substring ? ' · substring boost' : '');
+      needle.style.left = r.score + '%';
+      var longest = a.length >= b.length ? a : b;
+      if (r.score >= 85) {
+        chip.className = 'status-chip sage'; chip.textContent = 'Auto-Merge (≥ 85%)';
+        decEl.textContent = 'Merged locally, no LLM call'; canEl.textContent = longest;
+      } else if (r.score >= 60) {
+        chip.className = 'status-chip amber'; chip.textContent = 'LLM Check Band (60–84%)';
+        decEl.textContent = 'Invoke LLM contextual disambiguation'; canEl.textContent = longest;
+      } else {
+        chip.className = 'status-chip neutral'; chip.textContent = 'Distinct (< 60%)';
+        decEl.textContent = 'Create separate entity node'; canEl.textContent = a + ' / ' + b + ' (2 nodes)';
+      }
+    }
+    $('entity-a-input').addEventListener('input', evaluateDedup);
+    $('entity-b-input').addEventListener('input', evaluateDedup);
+    document.querySelectorAll('[data-preset]').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        var parts = btn.getAttribute('data-preset').split('|');
+        $('entity-a-input').value = parts[0];
+        $('entity-b-input').value = parts[1];
+        evaluateDedup();
+      });
+    });
+
+    var CONFLICTS = {
+      contradictory: { old: 'Aisha Santoso works as a backend engineer at Startup Jakarta.', neu: 'Aisha Santoso resigned from Startup Jakarta and leads AI research in Bandung.', cosine: 0.64, gate: '≥ 0.35 gate triggered', relation: 'contradictory', chip: 'status-chip amber', mutation: 'Set old.invalid_at = 2026-04-02; insert new fact', fill: 'var(--warning)' },
+      compatible: { old: 'Aisha Santoso leads AI research in Bandung.', neu: 'Aisha Santoso published a benchmark on SurrealDB vector indexes.', cosine: 0.42, gate: '≥ 0.35 gate triggered', relation: 'compatible', chip: 'status-chip sage', mutation: 'Keep both facts active (invalid_at = null)', fill: 'var(--tertiary)' },
+      duplicate: { old: 'Aisha Santoso uses Python 3.11 and SurrealDB for Tempograph.', neu: 'Aisha Santoso builds Tempograph on Python 3.11 with SurrealDB.', cosine: 0.91, gate: '≥ 0.35 gate triggered', relation: 'duplicate', chip: 'status-chip cyan', mutation: 'Skip redundant insert; preserve existing valid_at', fill: 'var(--primary)' },
+      unrelated: { old: 'Aisha Santoso leads AI research in Bandung.', neu: 'Aisha Santoso adopted a cat named Mochi in Jakarta.', cosine: 0.19, gate: '< 0.35 threshold', relation: 'skipped (below gate)', chip: 'status-chip neutral', mutation: 'Insert directly without LLM conflict check', fill: 'var(--data-context)' }
+    };
+    function updateConflict() {
+      var d = CONFLICTS[$('conflict-scenario-select').value] || CONFLICTS.contradictory;
+      $('conflict-old-fact').textContent = d.old;
+      $('conflict-new-fact').textContent = d.neu;
+      $('conflict-cosine-val').textContent = d.cosine.toFixed(2) + ' (' + d.gate + ')';
+      $('conflict-relation-val').textContent = d.relation;
+      $('conflict-mutation-val').textContent = d.mutation;
+      var chip = $('conflict-class-chip');
+      chip.className = d.chip; chip.textContent = d.relation;
+      var fill = $('cosine-fill');
+      fill.style.width = (d.cosine * 100) + '%';
+      fill.style.backgroundColor = d.fill;
+    }
+    $('conflict-scenario-select').addEventListener('change', updateConflict);
+
+    /* ================================================================
+       SECTION 3 — retrieval paths + animated query flow
+       ================================================================ */
+    var RET_NODES = {
+      query:   { x: 60,  y: 160, w: 88,  h: 44, label: 'Query',            sub: 'embed · 768-dim', fill: 'var(--surface-container-high)', stroke: 'var(--primary)' },
+      agent:   { x: 248, y: 86,  w: 132, h: 52, label: 'RetrievalAgent',   sub: 'fact graph',      fill: 'var(--primary-container)',      stroke: 'var(--primary)' },
+      vanilla: { x: 248, y: 236, w: 132, h: 52, label: 'VanillaRetriever', sub: 'session vectors', fill: 'var(--sage-tint)',              stroke: 'var(--tertiary)' },
+      facts:   { x: 494, y: 60,  w: 178, h: 48, label: 'extracted_fact',   sub: 'has_fact ← episode', fill: 'var(--surface-container)',   stroke: 'var(--primary)' },
+      ents:    { x: 494, y: 136, w: 178, h: 48, label: 'entity + community', sub: 'fact_involves / has_member', fill: 'var(--surface-container)', stroke: 'var(--primary)' },
+      pass:    { x: 494, y: 236, w: 178, h: 48, label: 'session_passage',  sub: '768-dim cosine index', fill: 'var(--surface-container)', stroke: 'var(--tertiary)' }
+    };
+    var RET_EDGES = [
+      { from: 'query', to: 'agent', path: 'agentic' },
+      { from: 'query', to: 'vanilla', path: 'vanilla' },
+      { from: 'agent', to: 'facts', path: 'agentic' },
+      { from: 'agent', to: 'ents', path: 'agentic' },
+      { from: 'vanilla', to: 'pass', path: 'vanilla' }
+    ];
+    var MODES = {
+      agentic: {
+        title: 'Agentic Path (RetrievalAgent)',
+        desc: 'Queries <strong>extracted_fact</strong> embeddings (768-dim cosine) and traverses <strong>fact_involves</strong> to <strong>entity</strong> nodes, linking back to source <strong>episode</strong> records via <strong>has_fact</strong> and macro <strong>community</strong> summaries via <strong>has_member</strong>.',
+        tables: ['episode', 'extracted_fact', 'entity', 'community', 'relations'],
+        agentic: true, vanilla: false,
+        flow: [['query', 'agent'], ['agent', 'facts'], ['agent', 'ents']],
+        results: [
+          { type: 'FACT · F3', chip: 'sage', text: 'Aisha Santoso resigned from Startup Jakarta; leads AI research in Bandung.', meta: 'valid_at 2026-04-02 · invalid_at null', score: 0.92 },
+          { type: 'ENTITY', chip: 'cyan', text: 'Aisha Santoso — canonical node (alias “Aisha” auto-merged, partial_ratio 100%).', meta: 'fact_involves · 4 linked facts', score: 0.88 },
+          { type: 'COMMUNITY', chip: 'amber', text: 'Bandung AI Memory Team — Louvain macro summary.', meta: 'has_member: Aisha Santoso, Raka', score: 0.74 }
+        ]
+      },
+      vanilla: {
+        title: 'Vanilla Path (VanillaRetriever)',
+        desc: 'Bypasses the temporal knowledge graph and executes direct 768-dim cosine vector search against full-session chunks stored in <strong>session_passage</strong> under <code class="inline-code">RAG_SESSION_COLLECTION</code>.',
+        tables: ['session_passage'],
+        agentic: false, vanilla: true,
+        flow: [['query', 'vanilla'], ['vanilla', 'pass']],
+        results: [
+          { type: 'PASSAGE · session_03', chip: 'sage', text: '“Mulai April aku resmi pindah ke Bandung dan pegang riset AI.”', meta: '768-dim cosine · full-session chunk', score: 0.83 },
+          { type: 'PASSAGE · session_01', chip: 'error', text: '“Baru mulai kerja jadi backend engineer di Startup Jakarta bulan ini.”', meta: 'outdated context included — no invalidation signal', score: 0.71 },
+          { type: 'PASSAGE · session_04', chip: 'sage', text: '“Bareng Raka di Bandung, tim riset kami lagi uji chatbot memori jangka panjang.”', meta: '768-dim cosine · full-session chunk', score: 0.66 }
+        ]
+      },
+      hybrid: {
+        title: 'Hybrid Path (HybridRetriever)',
+        desc: 'Dispatches queries to both <strong>RetrievalAgent</strong> (bi-temporal graph facts + entities) and <strong>VanillaRetriever</strong> (session-level passage vectors), combining precision fact recall with full conversational context.',
+        tables: ['episode', 'extracted_fact', 'entity', 'community', 'session_passage', 'relations'],
+        agentic: true, vanilla: true,
+        flow: [['query', 'agent'], ['query', 'vanilla'], ['agent', 'facts'], ['vanilla', 'pass'], ['agent', 'ents']],
+        results: [
+          { type: 'FACT · F3', chip: 'sage', text: 'Aisha Santoso resigned from Startup Jakarta; leads AI research in Bandung.', meta: 'graph path · valid_at 2026-04-02', score: 0.92 },
+          { type: 'PASSAGE · session_03', chip: 'cyan', text: '“Mulai April aku resmi pindah ke Bandung dan pegang riset AI.”', meta: 'vector path · full conversational context', score: 0.83 },
+          { type: 'COMMUNITY', chip: 'amber', text: 'Bandung AI Memory Team — Louvain macro summary.', meta: 'has_member: Aisha Santoso, Raka', score: 0.74 }
+        ]
+      }
+    };
+    var currentMode = 'agentic';
+    var retNodeEls = {}, retEdgeEls = [];
+    var queryAnim = null;
+
+    function retBoundary(n, tx, ty, pad) {
+      var dx = tx - n.x, dy = ty - n.y;
+      if (!dx && !dy) return { x: n.x, y: n.y };
+      var s = 1 / Math.max(Math.abs(dx) / (n.w / 2 + pad), Math.abs(dy) / (n.h / 2 + pad));
+      return { x: n.x + dx * s, y: n.y + dy * s };
+    }
+
+    function buildRetrievalSvg() {
+      var eg = $('ret-edges'), ng = $('ret-nodes');
+      eg.textContent = ''; ng.textContent = '';
+      retEdgeEls = RET_EDGES.map(function (e) {
+        var a = RET_NODES[e.from], b = RET_NODES[e.to];
+        var p1 = retBoundary(a, b.x, b.y, 3), p2 = retBoundary(b, a.x, a.y, 7);
+        var line = el('line', { 'class': 'ret-edge', x1: p1.x, y1: p1.y, x2: p2.x, y2: p2.y, 'stroke-width': 2 }, eg);
+        return { def: e, el: line, p1: p1, p2: p2 };
+      });
+      Object.keys(RET_NODES).forEach(function (id) {
+        var n = RET_NODES[id];
+        var g = el('g', { 'class': 'ret-node', 'data-id': id }, ng);
+        el('rect', { x: n.x - n.w / 2, y: n.y - n.h / 2, width: n.w, height: n.h, rx: 9, fill: n.fill, stroke: n.stroke, 'stroke-width': 1.5 }, g);
+        var t = el('text', { x: n.x, y: n.y - 2, 'text-anchor': 'middle', fill: 'var(--on-surface)', 'font-family': 'Geist Mono, monospace', 'font-size': 11.5 }, g);
+        t.textContent = n.label;
+        var s = el('text', { x: n.x, y: n.y + 14, 'text-anchor': 'middle', fill: 'var(--on-surface-variant)', 'font-family': 'Geist Mono, monospace', 'font-size': 9 }, g);
+        s.textContent = n.sub;
+        retNodeEls[id] = g;
+      });
+    }
+
+    function paintRetrievalMode() {
+      var cfg = MODES[currentMode];
+      retEdgeEls.forEach(function (e) {
+        var active = (e.def.path === 'agentic' && cfg.agentic) || (e.def.path === 'vanilla' && cfg.vanilla);
+        var col = !active ? 'var(--data-context)' : (e.def.path === 'agentic' ? 'var(--primary)' : 'var(--tertiary)');
+        e.el.setAttribute('stroke', col);
+        e.el.setAttribute('marker-end', !active ? 'url(#ret-arrow-dim)' : (e.def.path === 'agentic' ? 'url(#ret-arrow)' : 'url(#ret-arrow-sage)'));
+        e.el.setAttribute('opacity', active ? '1' : '0.4');
+      });
+      var activeNodes = { query: true, agent: cfg.agentic, facts: cfg.agentic, ents: cfg.agentic, vanilla: cfg.vanilla, pass: cfg.vanilla };
+      Object.keys(retNodeEls).forEach(function (id) {
+        retNodeEls[id].setAttribute('opacity', activeNodes[id] ? '1' : '0.38');
+        retNodeEls[id].classList.remove('is-lit');
+      });
+    }
+
+    function renderResults(shown) {
+      var wrap = $('sim-results');
+      wrap.textContent = '';
+      MODES[currentMode].results.forEach(function (r, i) {
+        var card = document.createElement('div');
+        card.className = 'sim-result-card' + (shown ? ' is-shown' : '');
+        var top = document.createElement('div'); top.className = 'sim-result-top';
+        var chip = document.createElement('span'); chip.className = 'status-chip ' + r.chip; chip.textContent = r.type;
+        var score = document.createElement('span'); score.className = 'sim-result-meta'; score.textContent = 'score ' + r.score.toFixed(2);
+        top.appendChild(chip); top.appendChild(score);
+        var txt = document.createElement('div'); txt.className = 'sim-result-text'; txt.textContent = r.text;
+        var meta = document.createElement('div'); meta.className = 'sim-result-meta'; meta.textContent = r.meta;
+        var bar = document.createElement('div'); bar.className = 'score-bar';
+        var fill = document.createElement('div'); fill.className = 'score-fill'; fill.style.width = (r.score * 100) + '%';
+        bar.appendChild(fill);
+        card.appendChild(top); card.appendChild(txt); card.appendChild(meta); card.appendChild(bar);
+        wrap.appendChild(card);
+        if (shown && !reduceMotion) {
+          card.classList.remove('is-shown');
+          setTimeout(function () { card.classList.add('is-shown'); }, 120 * i);
+        }
+      });
+    }
+
+    function selectMode(mode) {
+      currentMode = mode;
+      stopQueryAnim();
+      ['agentic', 'vanilla', 'hybrid'].forEach(function (m) {
+        $('mode-' + m + '-btn').classList.toggle('is-active', m === mode);
+      });
+      $('retrieval-mode-title').textContent = MODES[mode].title;
+      $('retrieval-mode-desc').innerHTML = MODES[mode].desc;
+      document.querySelectorAll('#schema-table-body tr').forEach(function (tr) {
+        tr.classList.toggle('is-highlighted', MODES[mode].tables.indexOf(tr.getAttribute('data-table')) !== -1);
+      });
+      paintRetrievalMode();
+      renderResults(false);
+    }
+    ['agentic', 'vanilla', 'hybrid'].forEach(function (m) {
+      $('mode-' + m + '-btn').addEventListener('click', function () { selectMode(m); });
+    });
+
+    // animated query pulse along the active flow
+    function stopQueryAnim() {
+      if (queryAnim) { clearInterval(queryAnim.timer); queryAnim = null; }
+      $('ret-pulses').textContent = '';
+      $('run-query-btn').disabled = false;
+      Object.keys(retNodeEls).forEach(function (id) { retNodeEls[id].classList.remove('is-lit'); });
+    }
+
+    function runQuery() {
+      stopQueryAnim();
+      var cfg = MODES[currentMode];
+      var btn = $('run-query-btn');
+      btn.disabled = true;
+      renderResults(false);
+      retNodeEls.query.classList.add('is-lit');
+
+      if (reduceMotion) {
+        cfg.flow.forEach(function (pair) { retNodeEls[pair[1]].classList.add('is-lit'); });
+        renderResults(true);
+        btn.disabled = false;
+        return;
+      }
+
+      var pulsesG = $('ret-pulses');
+      var segs = cfg.flow.map(function (pair) {
+        var e = retEdgeEls.filter(function (x) { return x.def.from === pair[0] && x.def.to === pair[1]; })[0];
+        var dot = el('circle', { r: 5, fill: pair[0] === 'query' || e.def.path === 'agentic' ? 'var(--primary)' : 'var(--tertiary)', 'class': 'query-pulse', cx: e.p1.x, cy: e.p1.y }, pulsesG);
+        return { e: e, dot: dot, to: pair[1] };
+      });
+      // stagger parallel branches slightly
+      var start = performance.now();
+      var segDur = 520, stagger = 140;
+      var total = segDur + stagger * (segs.length - 1) + 200;
+      function frame(now) {
+        var t = now - start;
+        var allDone = true;
+        segs.forEach(function (s, i) {
+          var local = (t - i * stagger) / segDur;
+          if (local < 0) { allDone = false; s.dot.setAttribute('opacity', '0'); return; }
+          if (local >= 1) {
+            s.dot.setAttribute('opacity', '0');
+            retNodeEls[s.to].classList.add('is-lit');
+            return;
+          }
+          allDone = false;
+          s.dot.setAttribute('opacity', '1');
+          var ease = 1 - Math.pow(1 - local, 3);
+          s.dot.setAttribute('cx', s.e.p1.x + (s.e.p2.x - s.e.p1.x) * ease);
+          s.dot.setAttribute('cy', s.e.p1.y + (s.e.p2.y - s.e.p1.y) * ease);
+        });
+        if (t < total || !allDone) {
+          // interval (not rAF) so the animation still completes in background tabs
+        } else {
+          clearInterval(queryAnim.timer);
+          pulsesG.textContent = '';
+          renderResults(true);
+          btn.disabled = false;
+          queryAnim = null;
+        }
+      }
+      queryAnim = { timer: setInterval(function () { frame(performance.now()); }, 16) };
+    }
+    $('run-query-btn').addEventListener('click', runQuery);
+
+    /* ================================================================
+       SECTION 4 — dataset stages + interactive causal DAG
+       ================================================================ */
+    var STAGES = [
+      { env: 'DATASET_GEMINI_MODEL_STRUCTURED', out: 'User Profile + Secondary Personas', detail: 'Loads a structured persona via --user-file or synthesizes a primary Indonesian user profile and supporting cast (--auto-generate-persona) as JSON.', json: '{\n  "user_profile": {\n    "name": "Aisha Santoso",\n    "location": "Jakarta -> Bandung",\n    "language": "id-ID"\n  },\n  "secondary_personas": ["Raka (Riset AI)", "Budi (Tech Lead)"]\n}' },
+      { env: 'DATASET_GEMINI_MODEL_STRUCTURED', out: 'user_events.json (caused_by DAG)', detail: 'Generates dated life events across --num-days with explicit causal links (caused_by), ensuring later sessions reflect logical career, relocation, and social shifts.', json: '{\n  "events": [\n    { "id": "E1", "date": "2026-03-10", "title": "Terima tawaran riset AI di Bandung" },\n    { "id": "E3", "date": "2026-03-20", "title": "Kontrak sewa apartemen Jakarta selesai" },\n    { "id": "E2", "date": "2026-04-02", "title": "Resmi pindah ke Bandung", "caused_by": ["E1", "E3"] }\n  ]\n}' },
+      { env: 'DATASET_GEMINI_MODEL_DIALOG + LIGHT', out: 'Cumulative Session Logs', detail: 'For each session date, get_relevant_events selects active events, generate_conversation_session creates multi-turn Indonesian dialogue (optionally cached via --use-caching), and generate_session_summary carries context forward.', json: '{\n  "session_id": "session_03",\n  "date": "2026-04-02",\n  "turns": [\n    { "speaker": "user", "text": "Mulai April aku resmi pindah ke Bandung dan pegang riset AI." },\n    { "speaker": "assistant", "text": "Selamat ya Aisha! Proyek di Startup Jakarta berarti sudah serah terima?" }\n  ],\n  "cumulative_summary": "Aisha pindah ke Bandung per April 2026 untuk memimpin riset AI."\n}' },
+      { env: 'DATASET_GEMINI_MODEL_LIGHT', out: 'conversation_dataset.json', detail: 'Runs generate_ground_truth_annotations per turn (generate_ground_truth_for_turn), calling resolve_ground_truth_conflicts in incremental mode so benchmark queries align with exact temporal state.', json: '{\n  "query_id": "q_042",\n  "question": "Di kota mana Aisha bekerja per pertengahan April 2026?",\n  "expected_session": "session_03",\n  "ground_truth_state": { "city": "Bandung", "superseded": "Jakarta" }\n}' }
+    ];
+    function selectStage(idx) {
+      var s = STAGES[idx] || STAGES[0];
+      document.querySelectorAll('.stage-btn').forEach(function (b, i) { b.classList.toggle('is-active', i === idx); });
+      $('stage-env-var').textContent = s.env;
+      $('stage-output-file').textContent = s.out;
+      $('stage-detail-copy').textContent = s.detail;
+      $('stage-json-preview').textContent = s.json;
+    }
+    document.querySelectorAll('.stage-btn').forEach(function (b) {
+      b.addEventListener('click', function () { selectStage(Number(b.getAttribute('data-stage'))); });
+    });
+
+    var DAG_CHAINS = {
+      e1: { lit: ['dag-n-e1', 'dag-n-e2', 'dag-n-s'], edges: ['dag-e1-e2', 'dag-e2-s'], hint: 'E1 (offer riset AI, Mar 10) → E2 (pindah Bandung) → Session 03. One of two causes of the relocation.' },
+      e3: { lit: ['dag-n-e3', 'dag-n-e2', 'dag-n-s'], edges: ['dag-e3-e2', 'dag-e2-s'], hint: 'E3 (sewa Jakarta habis, Mar 20) → E2 (pindah Bandung) → Session 03. The second cause — events combine via caused_by.' },
+      e2: { lit: ['dag-n-e1', 'dag-n-e3', 'dag-n-e2', 'dag-n-s'], edges: ['dag-e1-e2', 'dag-e3-e2', 'dag-e2-s'], hint: 'E2 carries caused_by: ["E1","E3"] — both upstream events light up, and the downstream session consumes E2.' },
+      s:  { lit: ['dag-n-e1', 'dag-n-e3', 'dag-n-e2', 'dag-n-s'], edges: ['dag-e1-e2', 'dag-e3-e2', 'dag-e2-s'], hint: 'Session 03 dialogue is generated from all active events — get_relevant_events pulls the full causal ancestry of E2.' }
+    };
+    var dagSelected = null;
+    function selectDag(id) {
+      dagSelected = dagSelected === id ? null : id;
+      var chain = dagSelected ? DAG_CHAINS[dagSelected] : null;
+      document.querySelectorAll('.dag-node').forEach(function (n) {
+        n.classList.toggle('is-lit', !!chain && chain.lit.indexOf(n.id) !== -1);
+        n.setAttribute('opacity', !chain || chain.lit.indexOf(n.id) !== -1 ? '1' : '0.45');
+      });
+      document.querySelectorAll('.dag-edge').forEach(function (e) {
+        e.setAttribute('opacity', !chain || chain.edges.indexOf(e.id) !== -1 ? '1' : '0.3');
+      });
+      $('dag-hint').textContent = chain ? chain.hint : 'E2 carries caused_by: ["E1","E3"] — click any node to trace its causal chain.';
+    }
+    document.querySelectorAll('.dag-node').forEach(function (n) {
+      n.addEventListener('click', function () { selectDag(n.getAttribute('data-node')); });
+      n.addEventListener('keydown', function (ev) { if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); selectDag(n.getAttribute('data-node')); } });
+    });
+
+    /* ================================================================
+       SECTION 5 — configurator + clipboard
+       ================================================================ */
+    function updateStackConfig() {
+      var rag = $('cfg-rag-mode').value;
+      var llm = $('cfg-llm-provider').value;
+      var emb = $('cfg-embed-provider').value;
+      var cache = $('cfg-use-caching').checked;
+      var noJudge = $('cfg-no-judge').checked;
+      var keyLine = llm === 'novita' ? 'GEMINI_API_KEY=<your_gemini_key>\nNOVITAAI_API_KEY=<your_novita_key>' : 'GEMINI_API_KEY=<your_gemini_key>';
+      $('env-output-pre').textContent = keyLine + '\nSURREAL_URL=ws://127.0.0.1:8000\nSURREAL_NS=tempograph\nSURREAL_DB=memory\n\nLLM_PROVIDER=' + llm + '\nEMBED_PROVIDER=' + emb + '\nRAG_GROUP_ID=agentic_default\nRAG_SESSION_COLLECTION=vanilla_default\nRAG_MODE=' + rag;
+      $('cli-output-pre').textContent = '# 1. Generate synthetic Indonesian dataset\npython src/dataset/generator.py --out-dir ./data/dataset --num-sessions 10 --num-events 20 --num-days 60' + (cache ? ' --use-caching' : '') + '\n\n# 2. Ingest episodes & vectors into SurrealDB\npython scripts/run_with_local_surreal.py --no-start -- \\\n  python scripts/ingest_agentic.py --setup env --limit 10 --batch 10\n\n# 3. Evaluate ' + rag + ' retrieval against evaluation_queries_100.json\npython scripts/run_with_local_surreal.py --no-start -- \\\n  python scripts/evaluate_agentic.py --setup env --limit 5' + (noJudge ? ' --no-llm-judge' : '');
+    }
+    ['cfg-rag-mode', 'cfg-llm-provider', 'cfg-embed-provider', 'cfg-use-caching', 'cfg-no-judge'].forEach(function (id) {
+      $(id).addEventListener('change', updateStackConfig);
+    });
+
+    function copyText(text, btn) {
+      var orig = btn.textContent;
+      function done(ok) {
+        btn.textContent = ok ? 'Copied ✓' : 'Select text to copy';
+        setTimeout(function () { btn.textContent = orig; }, 1600);
+      }
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(text).then(function () { done(true); }, function () { fallback(); });
+      } else fallback();
+      function fallback() {
+        var ta = document.createElement('textarea');
+        ta.value = text; ta.style.position = 'fixed'; ta.style.opacity = '0';
+        document.body.appendChild(ta); ta.select();
+        var ok = false;
+        try { ok = document.execCommand('copy'); } catch (e) { ok = false; }
+        document.body.removeChild(ta);
+        done(ok);
+      }
+    }
+    document.querySelectorAll('[data-copy]').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        copyText($(btn.getAttribute('data-copy')).textContent, btn);
+      });
+    });
+
+    /* ================================================================
+       Nav: scroll progress + scrollspy + safe reveals
+       ================================================================ */
+    var progress = $('scroll-progress');
+    function onScroll() {
+      var h = document.documentElement;
+      var max = h.scrollHeight - h.clientHeight;
+      progress.style.width = (max > 0 ? (h.scrollTop / max) * 100 : 0) + '%';
+    }
+    window.addEventListener('scroll', onScroll, { passive: true });
+    onScroll();
+
+    // scrollspy
+    var sections = ['bitemporal', 'algorithms', 'surrealdb', 'dataset', 'stack'];
+    if ('IntersectionObserver' in window) {
+      var spy = new IntersectionObserver(function (entries) {
+        entries.forEach(function (en) {
+          if (en.isIntersecting) {
+            document.querySelectorAll('.jump-link').forEach(function (l) {
+              l.classList.toggle('is-current', l.getAttribute('data-section') === en.target.id);
+            });
+          }
+        });
+      }, { rootMargin: '-30% 0px -60% 0px', threshold: 0 });
+      sections.forEach(function (id) { var s = $(id); if (s) spy.observe(s); });
+    }
+
+    // Reveal: content is visible by default. Only hide when we can guarantee
+    // the observer fires; failsafe timer force-reveals everything after 1.5s.
+    var revealEls = Array.prototype.slice.call(document.querySelectorAll('.reveal'));
+    if ('IntersectionObserver' in window && !reduceMotion) {
+      revealEls.forEach(function (elm) {
+        var r = elm.getBoundingClientRect();
+        if (r.top > window.innerHeight * 0.92) elm.classList.add('reveal-init');
+      });
+      var ro = new IntersectionObserver(function (entries) {
+        entries.forEach(function (en) {
+          if (en.isIntersecting) { en.target.classList.add('is-visible'); ro.unobserve(en.target); }
+        });
+      }, { rootMargin: '0px 0px -8% 0px', threshold: 0 });
+      revealEls.forEach(function (elm) { if (elm.classList.contains('reveal-init')) ro.observe(elm); });
+      setTimeout(function () {
+        revealEls.forEach(function (elm) { elm.classList.add('is-visible'); });
+      }, 1500);
+    }
+
+    /* ================================================================
+       Init
+       ================================================================ */
+    rebuildGraph();
+    evaluateDedup();
+    updateConflict();
+    buildRetrievalSvg();
+    selectMode('agentic');
+    selectStage(0);
+    updateStackConfig();
+  })();
+  </script>
+</body>
+</html>
