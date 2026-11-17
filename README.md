@@ -6,6 +6,8 @@
 
 **Agentic RAG with a temporal fact graph for Indonesian long-context chatbots**
 
+> 🌐 **Live interactive showcase:** [daruoktab.github.io/tempograph](https://daruoktab.github.io/tempograph/) — graf bi-temporal interaktif (drag, zoom, time-travel), simulator dedup & contradiction gate, komunitas Louvain, dan [demo 10 sesi](https://daruoktab.github.io/tempograph/sim/). Sumber: `Tempograph_Portfolio_Showcase_v2.html`.
+
 Sistem RAG agentic di atas **SurrealDB**: graf temporal (episode → fakta → entitas), pencarian vektor pada fakta dan pada passage sesi, serta jalur **vanilla**, **agentic**, dan **hybrid**. Dataset longitudinal berbahasa Indonesia dapat dihasilkan dengan pipeline terpisah lalu di-ingest ke basis yang sama.
 
 ---
