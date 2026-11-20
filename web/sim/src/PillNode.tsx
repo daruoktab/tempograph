@@ -12,7 +12,7 @@ export const PillNode = memo(function PillNode({ data }: NodeProps) {
         maxWidth: 220,
         padding: "12px 16px",
         borderRadius: "999px", // Fully rounded pill shape
-        background: "#ffffff",
+        background: "#fdfbf6",
         border: "1px solid var(--border-base)",
         boxShadow: "var(--shadow-md)",
         display: "flex",
@@ -37,7 +37,7 @@ export const PillNode = memo(function PillNode({ data }: NodeProps) {
       <Handle 
         type="target" 
         position={Position.Top} 
-        style={{ background: "var(--primary)", width: 8, height: 8, border: "2px solid #fff", top: -4 }} 
+        style={{ background: "var(--primary)", width: 8, height: 8, border: "2px solid #fdfbf6", top: -4 }} 
       />
       <div style={{ fontWeight: 600, fontSize: 13, color: "var(--text-main)", lineHeight: 1.2 }}>{d.label}</div>
       {d.sub && (
@@ -46,7 +46,7 @@ export const PillNode = memo(function PillNode({ data }: NodeProps) {
       <Handle 
         type="source" 
         position={Position.Bottom} 
-        style={{ background: "var(--primary)", width: 8, height: 8, border: "2px solid #fff", bottom: -4 }} 
+        style={{ background: "var(--primary)", width: 8, height: 8, border: "2px solid #fdfbf6", bottom: -4 }} 
       />
     </div>
   );

@@ -63,7 +63,7 @@ export function buildSessionKnowledgeGraph(
       target: id,
       label: "persona",
       animated: true,
-      style: { stroke: "#8b5cf6", strokeWidth: 2 },
+      style: { stroke: "#a3431a", strokeWidth: 2 },
     });
   });
 
@@ -87,7 +87,7 @@ export function buildSessionKnowledgeGraph(
       target: id,
       label: "mentioned",
       animated: true,
-      style: { stroke: "#0ea5e9", strokeWidth: 1.5, opacity: 0.6 },
+      style: { stroke: "#46626f", strokeWidth: 1.5, opacity: 0.6 },
     });
   });
 
@@ -110,7 +110,7 @@ export function buildSessionKnowledgeGraph(
           source: a,
           target: b,
           animated: false,
-          style: { stroke: "#cbd5e1", strokeWidth: 1, strokeDasharray: "4 4" },
+          style: { stroke: "#c9bda3", strokeWidth: 1, strokeDasharray: "4 4" },
         });
       }
     }
@@ -141,7 +141,7 @@ export function buildLifeEventGraph(events: LifeEvent[] | undefined): { nodes: N
         target: ev.id,
         label: "caused",
         animated: true,
-        style: { stroke: "#f59e0b", strokeWidth: 2 },
+        style: { stroke: "#8f5c08", strokeWidth: 2 },
       });
     }
   });

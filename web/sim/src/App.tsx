@@ -159,13 +159,13 @@ export default function App() {
   if (err) {
     return (
       <div style={{ padding: 40, display: "flex", justifyContent: "center", height: "100vh", alignItems: "center", background: "var(--bg-app)" }}>
-        <div style={{ background: "#fef2f2", color: "var(--error)", padding: 32, borderRadius: "var(--radius-lg)", border: "1px solid #fca5a5", maxWidth: 500, boxShadow: "var(--shadow-lg)" }}>
+        <div style={{ background: "#f5dcd7", color: "var(--error)", padding: 32, borderRadius: "var(--radius-lg)", border: "1px solid #b0262a", maxWidth: 500, boxShadow: "var(--shadow-lg)" }}>
           <h1 style={{ marginTop: 0, fontSize: 22, display: "flex", alignItems: "center", gap: 12 }}>
             <svg width="24" height="24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
             Gagal memuat dataset
           </h1>
           <p style={{ lineHeight: 1.6 }}>{err}</p>
-          <div className="mono" style={{ fontSize: 12, opacity: 0.8, marginTop: 16, background: "rgba(239, 68, 68, 0.1)", padding: 12, borderRadius: 8 }}>
+          <div className="mono" style={{ fontSize: 12, opacity: 0.8, marginTop: 16, background: "rgba(176, 38, 42, 0.1)", padding: 12, borderRadius: 8 }}>
             Jalankan dari root repo:<br/>
             <code>python scripts/export_sim_ui_dataset.py</code><br/>
             Lalu jalankan ulang dev server.
@@ -220,9 +220,9 @@ export default function App() {
               justifyContent: "center",
               width: 40,
               height: 40,
-              background: "#ffffff",
+              background: "#fdfbf6",
               borderRadius: 10,
-              boxShadow: "0 2px 8px rgba(0,0,0,0.05)",
+              boxShadow: "0 2px 8px rgba(36,26,16,0.06)",
               border: "1px solid var(--border-light)"
             }}>
               <img 
@@ -390,7 +390,7 @@ export default function App() {
                       color: "white",
                       fontWeight: 600,
                       fontSize: 13,
-                      boxShadow: "0 2px 8px rgba(59, 130, 246, 0.3)",
+                      boxShadow: "0 2px 8px rgba(163, 67, 26, 0.3)",
                     }}
                     onMouseEnter={(e) => e.currentTarget.style.transform = "translateY(-1px)"}
                     onMouseLeave={(e) => e.currentTarget.style.transform = "translateY(0)"}
@@ -451,7 +451,7 @@ export default function App() {
                             background: isUser ? "var(--msg-user-bg)" : "var(--msg-bot-bg)",
                             color: isUser ? "var(--msg-user-text)" : "var(--msg-bot-text)",
                             border: isUser ? "none" : "1px solid var(--border-base)",
-                            boxShadow: isUser ? "0 4px 12px rgba(59, 130, 246, 0.25)" : "var(--shadow-sm)",
+                            boxShadow: isUser ? "0 4px 12px rgba(163, 67, 26, 0.25)" : "var(--shadow-sm)",
                             fontSize: 15,
                             lineHeight: 1.5,
                           }}
@@ -459,7 +459,7 @@ export default function App() {
                           <ReactMarkdown
                             components={{
                               p: ({node, ...props}) => <p style={{ margin: 0, padding: 0 }} {...props} />,
-                              em: ({node, ...props}) => <em style={{ fontStyle: "italic", color: isUser ? "rgba(255,255,255,0.9)" : "var(--primary)" }} {...props} />,
+                              em: ({node, ...props}) => <em style={{ fontStyle: "italic", color: isUser ? "rgba(253,251,246,0.9)" : "var(--primary)" }} {...props} />,
                               strong: ({node, ...props}) => <strong style={{ fontWeight: 700 }} {...props} />,
                             }}
                           >
@@ -474,7 +474,7 @@ export default function App() {
               </div>
 
               {/* Mock Retrieval Bottom Bar */}
-              <div style={{ padding: "20px 24px", background: "var(--bg-panel)", borderTop: "1px solid var(--border-base)", boxShadow: "0 -4px 12px rgba(0,0,0,0.02)", zIndex: 2 }}>
+              <div style={{ padding: "20px 24px", background: "var(--bg-panel)", borderTop: "1px solid var(--border-base)", boxShadow: "0 -4px 12px rgba(36,26,16,0.03)", zIndex: 2 }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
                   <div style={{ flex: 1, position: "relative" }}>
                     <div style={{ position: "absolute", left: 14, top: "50%", transform: "translateY(-50%)", color: "var(--text-lighter)", pointerEvents: "none", display: "flex" }}>

@@ -66,7 +66,7 @@ function FlowInner({
           opacity: 0.85,
         }}
         nodeColor={() => "var(--border-dark)"}
-        maskColor="rgba(248, 250, 252, 0.6)"
+        maskColor="rgba(245, 240, 230, 0.6)"
         position="bottom-right"
         zoomable
         pannable
@@ -90,7 +90,7 @@ export function FlowPanel({ nodes, edges, title }: Props) {
           top: 16, 
           left: 16, 
           zIndex: 4, 
-          background: "rgba(255,255,255,0.85)", 
+          background: "rgba(253,251,246,0.85)", 
           backdropFilter: "blur(8px)", 
           padding: "6px 14px", 
           borderRadius: "var(--radius-full)", 
