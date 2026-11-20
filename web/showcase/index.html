@@ -1,0 +1,1845 @@
+<!doctype html>
+<html lang="en" class="no-js">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Tempograph — Agentic RAG with a bi-temporal knowledge graph</title>
+<meta name="description" content="Interactive showcase of Tempograph: Agentic RAG on SurrealDB with causal life-event graphs, bi-temporal fact memory, entity deduplication, Louvain communities and an Indonesian conversation benchmark.">
+<meta name="theme-color" content="#f6eddc">
+<meta property="og:type" content="website">
+<meta property="og:title" content="Tempograph — Agentic RAG with a bi-temporal knowledge graph">
+<meta property="og:description" content="Interactive showcase of Tempograph: Agentic RAG on SurrealDB with causal life-event graphs, bi-temporal fact memory, entity deduplication, Louvain communities and an Indonesian conversation benchmark.">
+<meta property="og:image" content="https://daruoktab.github.io/tempograph/assets/logo-16-by-9.png">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Tempograph — Agentic RAG with a bi-temporal knowledge graph">
+<meta name="twitter:description" content="Interactive showcase of Tempograph: Agentic RAG on SurrealDB with causal life-event graphs, bi-temporal fact memory, entity deduplication, Louvain communities and an Indonesian conversation benchmark.">
+<meta name="twitter:image" content="https://daruoktab.github.io/tempograph/assets/logo-16-by-9.png">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%23f6eddc'/%3E%3Cg stroke='%23a3431a' stroke-width='2' stroke-linecap='round'%3E%3Cpath d='M7 22 16 9l9 13'/%3E%3C/g%3E%3Ccircle cx='7' cy='22' r='3.4' fill='%23f4dccb' stroke='%23a3431a' stroke-width='2'/%3E%3Ccircle cx='16' cy='9' r='3.4' fill='%23a3431a'/%3E%3Ccircle cx='25' cy='22' r='3.4' fill='%23f4dccb' stroke='%232e6b44' stroke-width='2'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Geist+Mono:wght@400;500;600&family=Instrument+Sans:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root {
+  color-scheme: light;
+  /* warm parchment surfaces */
+  --bg: #f6eddc;
+  --bg-2: #efe4cf;
+  --surface: #fffaf0;
+  --surface-2: #f3e8d3;
+  --surface-3: #e8d9bd;
+  --graph-bg: #fbf4e6;
+  /* ink: every text token is >= 4.7:1 on --bg and --surface-2 */
+  --text: #2a1c10;
+  --text-2: #55402f;
+  --text-3: #75604b;
+  --line: #dfd0b4;
+  --line-2: #c4b08d;
+
+  --accent: #a3431a;        /* terracotta */
+  --accent-ink: #fffaf0;
+  --accent-deep: #6b2a0e;
+  --accent-soft: #f4dccb;
+  --green: #2e6b44;
+  --ochre: #8f5c08;
+  --teal: #1d6a73;
+  --blue: #3b6389;
+  --red: #b0262a;
+
+  --accent-tint: color-mix(in srgb, var(--accent) 11%, transparent);
+  --green-tint: color-mix(in srgb, var(--green) 12%, transparent);
+  --ochre-tint: color-mix(in srgb, var(--ochre) 13%, transparent);
+  --red-tint: color-mix(in srgb, var(--red) 10%, transparent);
+  --mute-tint: color-mix(in srgb, #8a7358 13%, transparent);
+  --shadow: 0 1px 0 rgba(255,255,255,.7) inset, 0 10px 28px -16px rgba(90,58,26,.28);
+
+  --f-head: 'Instrument Sans', 'Plus Jakarta Sans', system-ui, sans-serif;
+  --f-body: 'Plus Jakarta Sans', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --f-mono: 'Geist Mono', ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
+
+  --r: 10px;
+  --r-lg: 16px;
+  --gap: clamp(14px, 2vw, 24px);
+  --nav-h: 60px;
+  --ease: cubic-bezier(.16, 1, .3, 1);
+}
+
+*, *::before, *::after { box-sizing: border-box; }
+html { scroll-behavior: smooth; scroll-padding-top: calc(var(--nav-h) + 12px); }
+html, body { margin: 0; background: var(--bg); color: var(--text); overflow-x: clip; }
+body {
+  font-family: var(--f-body);
+  font-size: 1rem;
+  line-height: 1.62;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+img, svg { display: block; max-width: 100%; }
+h1, h2, h3, h4, p, ul, ol, pre, figure { margin: 0; }
+h1, h2, h3, h4 { font-family: var(--f-head); font-weight: 600; letter-spacing: -.022em; color: var(--text); text-wrap: balance; }
+h1 { font-size: clamp(2.6rem, 1.4rem + 5vw, 4.75rem); line-height: 1.02; letter-spacing: -.04em; }
+h2 { font-size: clamp(1.7rem, 1.2rem + 1.9vw, 2.55rem); line-height: 1.12; }
+h3 { font-size: clamp(1.1rem, 1rem + .4vw, 1.3rem); line-height: 1.25; }
+h2 code.i { font-size: .72em; vertical-align: .08em; }
+p { color: var(--text-2); text-wrap: pretty; }
+a { color: var(--accent); text-underline-offset: 3px; }
+strong { color: var(--text); font-weight: 600; }
+em { font-style: italic; }
+code, pre, kbd { font-family: var(--f-mono); }
+code.i {
+  font-size: .84em; color: var(--accent);
+  background: var(--bg); border: 1px solid var(--line); border-radius: 6px;
+  padding: .08em .4em; white-space: nowrap;
+}
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 6px; }
+::selection { background: color-mix(in srgb, var(--accent) 35%, transparent); }
+
+.skip { position: absolute; left: -999px; top: 8px; z-index: 100; background: var(--accent); color: var(--accent-ink); padding: 8px 14px; border-radius: 8px; font-weight: 600; }
+.skip:focus { left: 8px; }
+
+.wrap { width: 100%; max-width: 1200px; margin-inline: auto; padding-inline: clamp(16px, 4vw, 32px); }
+.kicker { font-family: var(--f-mono); font-size: .76rem; letter-spacing: .08em; text-transform: uppercase; color: var(--accent); }
+.label { font-family: var(--f-mono); font-size: .72rem; letter-spacing: .07em; text-transform: uppercase; color: var(--text-3); display: block; }
+.muted { color: var(--text-3); }
+.small { font-size: .875rem; }
+.mono { font-family: var(--f-mono); }
+
+/* ---------- nav ---------- */
+.nav { position: sticky; top: 0; z-index: 50; height: var(--nav-h); background: color-mix(in srgb, var(--bg) 82%, transparent); backdrop-filter: blur(14px) saturate(1.2); -webkit-backdrop-filter: blur(14px) saturate(1.2); border-bottom: 1px solid var(--line); }
+.nav-in { height: 100%; display: flex; align-items: center; gap: 18px; }
+.brand { display: inline-flex; align-items: center; gap: 10px; font-family: var(--f-head); font-weight: 650; font-size: 1.08rem; color: var(--text); text-decoration: none; letter-spacing: -.02em; flex: none; }
+.brand svg { width: 26px; height: 26px; }
+.nav-links { display: flex; gap: 2px; margin-left: auto; overflow-x: auto; scrollbar-width: none; min-width: 0; }
+.nav-links::-webkit-scrollbar { display: none; }
+.nav-links a { flex: none; font-family: var(--f-mono); font-size: .78rem; color: var(--text-2); text-decoration: none; padding: 8px 11px; border-radius: 8px; transition: color .15s, background .15s; }
+.nav-links a:hover { color: var(--text); background: var(--surface); }
+.nav-links a.on { color: var(--accent); background: var(--accent-tint); }
+.nav .btn { flex: none; }
+
+/* ---------- buttons & controls ---------- */
+.btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+  min-height: 40px; padding: 8px 16px; border-radius: var(--r);
+  font: 500 .8rem/1.2 var(--f-mono); letter-spacing: .02em; color: var(--text);
+  background: transparent; border: 1px solid var(--line-2); cursor: pointer; text-decoration: none;
+  transition: background .15s, border-color .15s, color .15s, transform .1s;
+  white-space: nowrap;
+}
+.btn:hover:not(:disabled) { background: var(--surface-2); border-color: var(--text-3); }
+.btn:active:not(:disabled) { transform: translateY(1px); }
+.btn:disabled { color: var(--text-3); background: var(--surface-2); border-style: dashed; cursor: not-allowed; }
+.btn svg { width: 16px; height: 16px; flex: none; }
+.btn-primary { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); font-weight: 650; }
+.btn-primary:hover:not(:disabled) { background: #8a3414; border-color: #8a3414; }
+.btn-sm { min-height: 34px; padding: 6px 12px; font-size: .76rem; }
+.btn-ico { width: 40px; padding: 0; }
+.btn.on { background: var(--accent-soft); border-color: var(--accent); color: var(--accent-deep); }
+
+.seg { display: inline-flex; flex-wrap: wrap; gap: 4px; padding: 4px; background: var(--bg); border: 1px solid var(--line); border-radius: 12px; }
+.seg button { font: 500 .78rem/1.2 var(--f-mono); color: var(--text-2); background: transparent; border: 0; padding: 9px 14px; border-radius: 8px; cursor: pointer; min-height: 38px; transition: background .15s, color .15s; }
+.seg button:hover:not(:disabled) { color: var(--text); background: var(--surface-2); }
+.seg button:disabled { color: var(--text-3); cursor: not-allowed; }
+.seg button.on { background: var(--accent-soft); color: var(--accent-deep); box-shadow: inset 0 0 0 1px var(--accent); }
+
+.field { display: grid; gap: 6px; min-width: 0; }
+.field > span { font-family: var(--f-mono); font-size: .72rem; letter-spacing: .07em; text-transform: uppercase; color: var(--text-3); }
+.input, .select {
+  width: 100%; min-height: 42px; padding: 8px 12px; color: var(--text);
+  background: var(--bg); border: 1px solid var(--line-2); border-radius: var(--r);
+  font: 400 .95rem/1.3 var(--f-body);
+}
+.input::placeholder { color: var(--text-3); }
+.select { appearance: none; padding-right: 36px; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' fill='none' stroke='%2375604b' stroke-width='1.6'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 12px center; }
+.check { display: flex; align-items: flex-start; gap: 10px; min-height: 36px; font-size: .92rem; color: var(--text); cursor: pointer; }
+.check input { width: 18px; height: 18px; margin-top: 3px; accent-color: var(--accent); flex: none; }
+
+input[type=range] { -webkit-appearance: none; appearance: none; width: 100%; height: 28px; background: transparent; cursor: pointer; margin: 0; }
+input[type=range]::-webkit-slider-runnable-track { height: 6px; border-radius: 999px; background: var(--surface-3); }
+input[type=range]::-moz-range-track { height: 6px; border-radius: 999px; background: var(--surface-3); }
+input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; width: 20px; height: 20px; margin-top: -7px; border-radius: 50%; background: var(--accent); border: 3px solid var(--surface); box-shadow: 0 0 0 1px var(--accent); }
+input[type=range]::-moz-range-thumb { width: 14px; height: 14px; border-radius: 50%; background: var(--accent); border: 3px solid var(--bg); box-shadow: 0 0 0 1px var(--accent); }
+
+.chip { display: inline-flex; align-items: center; gap: 6px; padding: 3px 9px; border-radius: 8px; font: 500 .74rem/1.35 var(--f-mono); border: 1px solid var(--line); background: var(--mute-tint); color: var(--text-2); white-space: nowrap; }
+.chip.accent { background: var(--accent-tint); color: var(--accent); border-color: color-mix(in srgb, var(--accent) 35%, transparent); }
+.chip.green { background: var(--green-tint); color: var(--green); border-color: color-mix(in srgb, var(--green) 35%, transparent); }
+.chip.ochre { background: var(--ochre-tint); color: var(--ochre); border-color: color-mix(in srgb, var(--ochre) 35%, transparent); }
+.chip.red { background: var(--red-tint); color: var(--red); border-color: color-mix(in srgb, var(--red) 35%, transparent); }
+button.chip { cursor: pointer; font-family: var(--f-mono); }
+button.chip:hover { border-color: var(--accent); color: var(--text); }
+
+/* ---------- surfaces ---------- */
+.panel { background: var(--surface); box-shadow: var(--shadow); border: 1px solid var(--line); border-radius: var(--r-lg); padding: clamp(16px, 2.4vw, 26px); min-width: 0; }
+.well { background: var(--bg); border: 1px solid var(--line); border-radius: var(--r); padding: 14px; min-width: 0; }
+.stack { display: grid; gap: var(--gap); min-width: 0; align-content: start; }
+.stack-s { display: grid; gap: 10px; min-width: 0; align-content: start; }
+.row { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; min-width: 0; }
+.row.between { justify-content: space-between; }
+.grid-2 { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--gap); }
+.grid-3 { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--gap); }
+.hr { height: 1px; background: var(--line); border: 0; margin: 0; }
+
+pre.code {
+  background: #2a1c10; border: 1px solid #1d130a; border-radius: var(--r); padding: 14px 16px;
+  font-size: .8rem; line-height: 1.6; color: #f6eddc; overflow: auto; max-width: 100%;
+  white-space: pre; tab-size: 2;
+}
+pre.code.wrap-lines { white-space: pre-wrap; word-break: break-word; }
+.tok-k { color: #f4a778; } .tok-s { color: #a8d8a8; } .tok-n { color: #ebc86e; } .tok-c { color: #b8a58c; } .tok-r { color: #f28f7f; }
+
+/* ---------- hero ---------- */
+.hero { position: relative; padding-top: clamp(48px, 9vw, 104px); padding-bottom: clamp(32px, 5vw, 56px); isolation: isolate; }
+.hero::before {
+  content: ''; position: absolute; inset: -10% -20% auto -20%; height: 120%; z-index: -1;
+  background:
+    radial-gradient(520px 320px at 14% 8%, color-mix(in srgb, var(--accent) 13%, transparent), transparent 70%),
+    radial-gradient(460px 300px at 82% 2%, color-mix(in srgb, var(--green) 10%, transparent), transparent 70%),
+    radial-gradient(420px 260px at 60% 60%, color-mix(in srgb, var(--ochre) 8%, transparent), transparent 70%);
+  pointer-events: none;
+}
+.hero-in { display: grid; gap: clamp(18px, 3vw, 28px); max-width: 880px; }
+.hero .lede { font-size: clamp(1.1rem, 1rem + .6vw, 1.35rem); line-height: 1.5; color: var(--text-2); max-width: 62ch; }
+.hero .lede em { color: var(--text); }
+.tags { display: flex; flex-wrap: wrap; gap: 8px; }
+.hero-cta { display: flex; flex-wrap: wrap; gap: 10px; }
+.metrics { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 176px), 1fr)); gap: 12px; margin-top: clamp(28px, 4vw, 44px); }
+.metric { padding: 16px 18px; border-radius: var(--r-lg); background: color-mix(in srgb, var(--surface) 80%, transparent); border: 1px solid var(--line); display: grid; gap: 2px; align-content: start; }
+.metric b { font: 600 clamp(1.6rem, 1.3rem + 1vw, 2.1rem)/1.1 var(--f-head); letter-spacing: -.03em; font-variant-numeric: tabular-nums; color: var(--text); }
+.metric span { font-size: .84rem; color: var(--text-2); line-height: 1.4; }
+.metric .label { margin-bottom: 4px; }
+
+.pipe { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 14px; margin-top: var(--gap); counter-reset: step; }
+.pipe-step { position: relative; display: grid; gap: 6px; align-content: start; padding: 16px; background: var(--bg); border: 1px solid var(--line); border-radius: var(--r); }
+.pipe-step .num { font: 500 .72rem var(--f-mono); color: var(--accent); letter-spacing: .08em; }
+.pipe-step b { font: 600 .86rem/1.3 var(--f-mono); color: var(--text); word-break: break-word; }
+.pipe-step p { font-size: .86rem; line-height: 1.5; }
+.pipe-step:not(:last-child)::after { content: ''; position: absolute; top: 50%; right: -14px; width: 14px; height: 1px; background: var(--line-2); }
+
+/* ---------- sections ---------- */
+.block { padding-block: clamp(48px, 7vw, 88px); border-top: 1px solid var(--line); }
+.sec-head { display: grid; gap: 12px; max-width: 70ch; margin-bottom: clamp(22px, 3vw, 34px); }
+.sec-head p { font-size: 1.04rem; }
+
+.bench { display: grid; grid-template-columns: minmax(0, 1fr) minmax(280px, 340px); gap: var(--gap); align-items: start; }
+.stage { display: grid; gap: 12px; min-width: 0; }
+.side { display: grid; gap: 12px; align-content: start; min-width: 0; }
+
+/* ---------- graph ---------- */
+.tb { display: grid; gap: 10px; }
+.tb-row { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; min-width: 0; }
+.tb-row .grow { flex: 1 1 200px; min-width: 0; }
+.datebox { font: 500 .86rem var(--f-mono); color: var(--text); background: var(--bg); border: 1px solid var(--line); border-radius: 8px; padding: 8px 12px; min-width: 112px; text-align: center; font-variant-numeric: tabular-nums; }
+.graph-box { position: relative; height: clamp(430px, 66vh, 640px); background: radial-gradient(circle at 50% 40%, #fffaf0 0%, var(--graph-bg) 70%, #f1e5cd 100%); border: 1px solid var(--line); border-radius: var(--r); overflow: hidden; }
+.graph-box.short { height: clamp(400px, 58vh, 560px); }
+.graph-box svg { position: absolute; inset: 0; width: 100%; height: 100%; cursor: grab; user-select: none; -webkit-user-select: none; }
+.graph-box svg.panning { cursor: grabbing; }
+.graph-box .node { cursor: pointer; touch-action: none; }
+.graph-box .node circle { transition: opacity .2s, stroke-width .15s; }
+.graph-box .node text { font: 500 10px var(--f-mono); fill: var(--text); paint-order: stroke; stroke: var(--graph-bg); stroke-width: 3.5px; stroke-linejoin: round; pointer-events: none; transition: opacity .2s; }
+.graph-box .edge { transition: opacity .2s; }
+.tip { position: absolute; z-index: 5; max-width: min(300px, 80%); padding: 10px 12px; border-radius: 10px; background: var(--surface); border: 1px solid var(--line-2); box-shadow: 0 12px 30px rgba(70,45,20,.25); font-size: .84rem; line-height: 1.45; color: var(--text); pointer-events: none; opacity: 0; transform: translateY(4px); transition: opacity .12s, transform .12s; }
+.tip.show { opacity: 1; transform: none; }
+.tip .label { margin-bottom: 4px; }
+.gtools { position: absolute; right: 10px; bottom: 10px; z-index: 4; display: flex; gap: 6px; }
+.gtools .btn { background: color-mix(in srgb, var(--surface) 90%, transparent); }
+.ghint { position: absolute; left: 12px; bottom: 10px; z-index: 3; font: 400 .7rem var(--f-mono); color: var(--text-3); pointer-events: none; max-width: calc(100% - 150px); }
+.legend { display: flex; flex-wrap: wrap; gap: 8px 18px; font: 400 .76rem var(--f-mono); color: var(--text-2); }
+.legend i { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 7px; vertical-align: -1px; }
+.legend i.ln { width: 18px; height: 2px; border-radius: 2px; vertical-align: 3px; }
+
+.ev-card { display: grid; gap: 10px; }
+.ev-card .txt { color: var(--text); font-size: .98rem; line-height: 1.5; }
+.link-list { display: flex; flex-wrap: wrap; gap: 6px; }
+.scroll-y { max-height: 300px; overflow: auto; padding-right: 4px; scrollbar-width: thin; scrollbar-color: var(--line-2) transparent; }
+.stat-row { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+.stat-row > div { background: var(--bg); border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; }
+.stat-row b { display: block; font: 600 1.3rem/1.1 var(--f-head); font-variant-numeric: tabular-nums; }
+.stat-row span { font: 400 .68rem var(--f-mono); letter-spacing: .05em; text-transform: uppercase; color: var(--text-3); }
+
+/* ---------- timeline ---------- */
+.tl { display: grid; gap: 0; }
+.tl-axis, .tl-row { display: grid; grid-template-columns: minmax(120px, 210px) minmax(0, 1fr); gap: 14px; align-items: center; }
+.tl-axis { padding-bottom: 8px; }
+.tl-ticks { position: relative; height: 22px; }
+.tl-ticks span { position: absolute; top: 0; transform: translateX(-50%); font: 400 .68rem var(--f-mono); color: var(--text-3); white-space: nowrap; }
+.tl-ticks span:first-child { transform: none; } .tl-ticks span:last-child { transform: translateX(-100%); }
+.tl-body { position: relative; display: grid; gap: 0; }
+.tl-row { min-height: 46px; border-top: 1px solid var(--line); }
+.tl-row:last-child { border-bottom: 1px solid var(--line); }
+.tl-name { display: flex; align-items: center; gap: 8px; min-width: 0; font-size: .84rem; color: var(--text); line-height: 1.3; }
+.tl-name .chip { flex: none; }
+.tl-name span:last-child { min-width: 0; overflow-wrap: anywhere; }
+.tl-track { position: relative; height: 46px; user-select: none; -webkit-user-select: none; }
+.tl-track::before { content: ''; position: absolute; inset: 0; background-image: linear-gradient(to right, var(--line) 1px, transparent 1px); background-size: calc(100% / var(--weeks)) 100%; opacity: .55; }
+.tl-bar { position: absolute; top: 12px; height: 22px; border-radius: 7px; border: 1px solid var(--green); background: var(--green-tint); transition: background .2s, border-color .2s, opacity .2s; }
+.tl-bar.open { border-right-style: dashed; border-top-right-radius: 3px; border-bottom-right-radius: 3px; }
+.tl-bar.stale { border-color: var(--red); background: var(--red-tint); }
+.tl-bar.future { border-color: var(--line-2); border-style: dashed; background: transparent; opacity: .55; }
+.tl-bar.active { background: color-mix(in srgb, var(--green) 38%, transparent); box-shadow: 0 0 0 1px var(--green); }
+.tl-cap { position: absolute; top: 8px; width: 3px; height: 30px; border-radius: 2px; background: var(--red); }
+.tl-cursor { position: absolute; top: 0; bottom: 0; width: 0; margin-left: -1px; border-left: 2px solid var(--accent); pointer-events: none; z-index: 3; }
+.tl-cursor.dot::after { content: ''; position: absolute; top: -4px; left: -6px; width: 10px; height: 10px; border-radius: 50%; background: var(--accent); }
+.tl-ticks .t-odd { }
+
+.facts { display: grid; gap: 8px; }
+.fact { display: grid; gap: 6px; padding: 12px 14px; background: var(--bg); border: 1px solid var(--line); border-radius: var(--r); transition: opacity .2s, border-color .2s; }
+.fact.dim { background: var(--surface-2); border-style: dashed; }
+.fact.dim .t { color: var(--text-2); }
+.fact.is-active { border-color: color-mix(in srgb, var(--green) 55%, var(--line)); }
+.fact.is-stale { border-color: color-mix(in srgb, var(--red) 55%, var(--line)); }
+.fact .t { color: var(--text); font-size: .93rem; line-height: 1.45; }
+.fact .m { display: flex; flex-wrap: wrap; gap: 4px 14px; font: 400 .74rem var(--f-mono); color: var(--text-3); }
+
+.compare { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+.compare > div { padding: 14px; border-radius: var(--r); border: 1px solid var(--line); background: var(--bg); display: grid; gap: 4px; align-content: start; }
+.compare b { font: 600 1.7rem/1.1 var(--f-head); font-variant-numeric: tabular-nums; }
+.compare .good { border-color: color-mix(in srgb, var(--green) 45%, var(--line)); }
+.compare .bad { border-color: color-mix(in srgb, var(--red) 45%, var(--line)); }
+
+/* ---------- maintenance lab ---------- */
+.log { display: grid; gap: 6px; font: 400 .76rem/1.5 var(--f-mono); }
+.log > div { padding: 8px 10px; background: var(--bg); border: 1px solid var(--line); border-radius: 8px; color: var(--text-2); overflow-wrap: anywhere; }
+.log > div b { color: var(--text); font-weight: 500; }
+.log > div.merge { border-color: color-mix(in srgb, var(--green) 40%, var(--line)); }
+.log > div.llm { border-color: color-mix(in srgb, var(--ochre) 40%, var(--line)); }
+.steps-h { display: grid; gap: 10px; }
+.step-btn { display: grid; grid-template-columns: 28px minmax(0, 1fr); gap: 12px; align-items: start; text-align: left; padding: 12px 14px; background: var(--bg); border: 1px solid var(--line); border-radius: var(--r); color: var(--text); cursor: pointer; font: inherit; transition: border-color .15s, background .15s; }
+.step-btn:hover:not(:disabled) { border-color: var(--line-2); background: var(--surface-2); }
+.step-btn:disabled { background: var(--surface-2); border-style: dashed; cursor: not-allowed; }
+.step-btn:disabled b { color: var(--text-2); }
+.step-btn:disabled .n { background: var(--surface-3); color: var(--text-2); }
+.step-btn .n { width: 28px; height: 28px; border-radius: 50%; display: grid; place-items: center; font: 600 .8rem var(--f-mono); background: var(--accent-soft); color: var(--accent-deep); }
+.step-btn.done .n { background: var(--green-tint); color: var(--green); }
+.step-btn b { display: block; font: 600 .92rem var(--f-head); }
+.step-btn span { display: block; font-size: .82rem; color: var(--text-2); line-height: 1.4; margin-top: 2px; }
+
+.meter { display: grid; gap: 6px; }
+.meter-bar { position: relative; height: 12px; border-radius: 999px; overflow: hidden; display: grid; grid-template-columns: 60fr 25fr 15fr; border: 1px solid var(--line); }
+.meter-bar i:nth-child(1) { background: #cdbb98; } .meter-bar i:nth-child(2) { background: var(--ochre); } .meter-bar i:nth-child(3) { background: var(--green); }
+.meter-pin { position: absolute; top: -3px; bottom: -3px; width: 3px; margin-left: -1.5px; border-radius: 2px; background: var(--text); box-shadow: 0 0 0 2px var(--surface); transition: left .25s var(--ease); }
+.meter-lab { display: grid; grid-template-columns: 60fr 25fr 15fr; font: 400 .68rem var(--f-mono); color: var(--text-3); }
+.meter-lab span:nth-child(2) { text-align: center; } .meter-lab span:nth-child(3) { text-align: right; }
+.gate-bar { position: relative; height: 12px; border-radius: 999px; background: linear-gradient(to right, #cdbb98 0 35%, var(--ochre) 35% 100%); border: 1px solid var(--line); }
+.gate-bar .meter-pin { transition: left .1s linear; }
+.gate-lab { position: relative; height: 18px; font: 400 .68rem var(--f-mono); color: var(--text-3); }
+.gate-lab span { position: absolute; top: 0; }
+.readout { display: grid; gap: 0; }
+.readout > div { display: flex; justify-content: space-between; align-items: baseline; gap: 14px; padding: 9px 0; border-bottom: 1px solid var(--line); min-width: 0; }
+.readout > div:last-child { border-bottom: 0; }
+.readout > div > b { font: 500 .84rem var(--f-mono); color: var(--text); text-align: right; overflow-wrap: anywhere; min-width: 0; }
+.mini-tl { position: relative; height: 54px; }
+.mini-tl .lane { position: absolute; left: 0; right: 0; height: 20px; border-radius: 6px; font: 500 .68rem/18px var(--f-mono); padding: 0 8px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; border: 1px solid var(--line-2); color: var(--text-2); transition: all .3s var(--ease); }
+
+/* ---------- retrieval diagram ---------- */
+.flow { position: relative; display: grid; grid-template-columns: minmax(110px, .6fr) minmax(0, 1fr) minmax(0, 1.15fr); gap: clamp(28px, 6vw, 72px); align-items: center; padding: clamp(10px, 2vw, 18px); }
+.flow-col { display: grid; gap: 22px; align-content: center; position: relative; z-index: 1; }
+.flow svg.links { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; z-index: 0; overflow: visible; }
+.fnode { padding: 12px 14px; border-radius: 12px; background: var(--surface-2); border: 1px solid var(--line-2); display: grid; gap: 3px; transition: opacity .3s, border-color .3s, background .3s; min-width: 0; }
+.fnode b { font: 600 .86rem/1.3 var(--f-mono); color: var(--text); overflow-wrap: anywhere; }
+.fnode span { font: 400 .76rem/1.4 var(--f-mono); color: var(--text-2); overflow-wrap: anywhere; }
+.fnode.q { background: var(--accent-soft); border-color: var(--accent); }
+.fnode.ag { border-color: color-mix(in srgb, var(--accent) 60%, var(--line-2)); }
+.fnode.va { border-color: color-mix(in srgb, var(--green) 60%, var(--line-2)); }
+.fnode.off { background: var(--surface-2); border-style: dashed; }
+.fnode.off b, .fnode.off span { color: var(--text-3); }
+.out-bar { display: grid; gap: 8px; }
+.out-bar .seg-row { display: flex; height: 34px; border-radius: 10px; overflow: hidden; border: 1px solid var(--line-2); font: 500 .72rem/34px var(--f-mono); }
+.out-bar .seg-row > div { padding: 0 10px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; transition: flex .4s var(--ease); }
+.out-bar .a { background: var(--accent-soft); color: var(--accent-deep); } .out-bar .v { background: var(--green-tint); color: var(--green); }
+
+.loop { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 10px; counter-reset: lp; }
+.loop-step { position: relative; padding: 12px; border-radius: var(--r); background: var(--bg); border: 1px solid var(--line); display: grid; gap: 4px; align-content: start; transition: border-color .25s, background .25s, transform .25s; }
+.loop-step .n { font: 500 .7rem var(--f-mono); color: var(--text-3); }
+.loop-step b { font: 600 .84rem var(--f-mono); color: var(--text); }
+.loop-step p { font-size: .8rem; line-height: 1.45; }
+.loop-step.on { border-color: var(--accent); background: var(--accent-soft); transform: translateY(-2px); }
+.loop-step.on .n { color: var(--accent); }
+.params { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 196px), 1fr)); gap: 10px; }
+.param { padding: 10px 12px; background: var(--bg); border: 1px solid var(--line); border-radius: 10px; display: grid; gap: 2px; }
+.param b { font: 600 1.25rem/1.1 var(--f-head); font-variant-numeric: tabular-nums; }
+.param span { font: 400 .7rem/1.35 var(--f-mono); color: var(--text-2); overflow-wrap: anywhere; }
+
+table.tbl { width: 100%; border-collapse: collapse; font-size: .88rem; }
+.tbl th { text-align: left; font: 500 .7rem var(--f-mono); letter-spacing: .07em; text-transform: uppercase; color: var(--text-3); padding: 8px 12px; border-bottom: 1px solid var(--line-2); }
+.tbl td { padding: 10px 12px; border-bottom: 1px solid var(--line); vertical-align: top; color: var(--text); }
+.tbl tr { transition: background .25s; }
+.tbl tr.hl { background: var(--accent-tint); }
+.tbl tr.hl td:first-child { box-shadow: inset 2px 0 0 var(--accent); }
+.tbl .tn { font: 500 .82rem var(--f-mono); color: var(--accent); white-space: nowrap; }
+.tbl-wrap { overflow-x: auto; }
+
+/* ---------- dataset / eval ---------- */
+.tabs { display: grid; gap: 8px; align-content: start; }
+.tab { display: grid; gap: 4px; text-align: left; padding: 12px 14px; background: var(--bg); border: 1px solid var(--line); border-radius: var(--r); color: var(--text); cursor: pointer; font: inherit; transition: border-color .15s, background .15s; }
+.tab:hover { background: var(--surface-2); }
+.tab.on { background: var(--accent-soft); border-color: var(--accent); }
+.tab b { font: 600 .94rem var(--f-head); display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.tab span { font-size: .82rem; color: var(--text-2); line-height: 1.4; }
+.ds { display: grid; grid-template-columns: minmax(0, .9fr) minmax(0, 1.25fr); gap: var(--gap); align-items: start; }
+
+.bars { display: grid; gap: 10px; }
+.bar-row { display: grid; grid-template-columns: minmax(110px, 150px) minmax(0, 1fr) 38px; gap: 12px; align-items: center; font: 400 .78rem var(--f-mono); }
+.bar-row .nm { color: var(--text-2); overflow-wrap: anywhere; }
+.bar-row .tr { height: 10px; border-radius: 999px; background: var(--surface-3); overflow: hidden; }
+.bar-row .tr i { display: block; height: 100%; border-radius: 999px; background: var(--accent); }
+.bar-row .ct { text-align: right; color: var(--text); font-variant-numeric: tabular-nums; }
+
+.qlist { display: grid; gap: 8px; max-height: 460px; overflow: auto; padding-right: 4px; scrollbar-width: thin; scrollbar-color: var(--line-2) transparent; }
+.qitem { display: grid; gap: 8px; text-align: left; padding: 12px 14px; background: var(--bg); border: 1px solid var(--line); border-radius: var(--r); cursor: pointer; font: inherit; color: var(--text); transition: border-color .15s; }
+.qitem:hover { border-color: var(--line-2); }
+.qitem.open { border-color: var(--accent); }
+.qitem .qq { font-size: .92rem; line-height: 1.45; }
+.qitem .qa { font-size: .86rem; line-height: 1.5; color: var(--text-2); padding-top: 8px; border-top: 1px dashed var(--line-2); }
+.qitem .chips { display: flex; flex-wrap: wrap; gap: 6px; }
+
+.tree { font-size: .82rem; line-height: 1.7; }
+
+details.fold { background: var(--surface); box-shadow: var(--shadow); border: 1px solid var(--line); border-radius: var(--r-lg); padding: 4px 22px; }
+details.fold > summary { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 56px; cursor: pointer; list-style: none; font: 600 1.02rem var(--f-head); }
+details.fold > summary::-webkit-details-marker { display: none; }
+details.fold > summary::after { content: '+'; font: 400 1.4rem var(--f-mono); color: var(--accent); flex: none; }
+details.fold[open] > summary::after { content: '–'; }
+details.fold > div { padding: 4px 0 20px; }
+
+.foot { border-top: 1px solid var(--line); padding-block: 36px 56px; }
+.foot-in { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 14px 28px; font-size: .88rem; color: var(--text-3); }
+.foot-in a { color: var(--text-2); }
+
+.reveal { opacity: 0; transform: translateY(14px); transition: opacity .6s var(--ease), transform .6s var(--ease); }
+.reveal.in { opacity: 1; transform: none; }
+.no-js .reveal { opacity: 1; transform: none; }
+
+/* ---------- responsive ---------- */
+@media (max-width: 1020px) {
+  .bench { grid-template-columns: minmax(0, 1fr); }
+  .ds { grid-template-columns: minmax(0, 1fr); }
+  .tabs { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .loop { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .pipe { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .pipe-step:nth-child(2)::after { display: none; }
+}
+@media (max-width: 760px) {
+  .grid-2, .grid-3 { grid-template-columns: minmax(0, 1fr); }
+  .flow { grid-template-columns: minmax(0, 1fr); gap: 36px; padding: 6px 0; }
+  .compare { grid-template-columns: minmax(0, 1fr); }
+  .tl-axis, .tl-row { grid-template-columns: minmax(84px, 112px) minmax(0, 1fr); gap: 10px; }
+  .tl-name { font-size: .76rem; }
+  .tl-name .chip { display: none; }
+  .bar-row { grid-template-columns: minmax(96px, 120px) minmax(0, 1fr) 30px; gap: 8px; }
+  .nav-in { gap: 10px; }
+  .nav .btn span { display: none; }
+  .ghint { display: none; }
+}
+@media (max-width: 560px) {
+  .pipe { grid-template-columns: minmax(0, 1fr); }
+  .pipe-step::after { display: none !important; }
+  .loop { grid-template-columns: minmax(0, 1fr); }
+  .tabs { grid-template-columns: minmax(0, 1fr); }
+  .stat-row { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .stat-row b { font-size: 1.1rem; }
+  .readout > div { flex-direction: column; gap: 2px; }
+  .readout > div > b { text-align: left; }
+  h1 { font-size: clamp(2.3rem, 12vw, 3rem); }
+}
+@media (pointer: coarse) { .btn, .seg button, .tab { min-height: 44px; } }
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  *, *::before, *::after { animation-duration: .01ms !important; transition-duration: .01ms !important; }
+  .reveal { opacity: 1; transform: none; }
+}
+
+/* ---------- flow connectors ---------- */
+.flow svg.links .lk { fill: none; stroke-width: 1.7; }
+.flow svg.links .lk.off { stroke: #c4b08d; stroke-dasharray: 3 6; opacity: .7; }
+.flow svg.links .lk.on.ag { stroke: var(--accent); stroke-dasharray: 7 6; animation: flowdash 1.1s linear infinite; }
+.flow svg.links .lk.on.va { stroke: var(--green); stroke-dasharray: 7 6; animation: flowdash 1.1s linear infinite; }
+@keyframes flowdash { to { stroke-dashoffset: -26; } }
+@media (max-width: 760px) {
+  .flow svg.links { display: none; }
+  .flow-col + .flow-col::before { content: '↓'; position: absolute; top: -32px; left: 50%; transform: translateX(-50%); font: 400 1.1rem var(--f-mono); color: var(--text-3); }
+  .tl-ticks .t-odd { display: none; }
+}
+
+</style>
+</head>
+<body>
+<a class="skip" href="#main">Skip to content</a>
+
+<header class="nav" id="top">
+  <div class="wrap nav-in">
+    <a class="brand" href="#top" aria-label="Tempograph — back to top">
+      <svg viewBox="0 0 32 32" aria-hidden="true"><g stroke="#a3431a" stroke-width="1.8" stroke-linecap="round"><path d="M7 22 16 9l9 13"/><path d="M7 22h18" stroke-dasharray="2 3"/></g><circle cx="7" cy="22" r="3.4" fill="#f4dccb" stroke="#a3431a" stroke-width="1.8"/><circle cx="16" cy="9" r="3.4" fill="#a3431a"/><circle cx="25" cy="22" r="3.4" fill="#f4dccb" stroke="#2e6b44" stroke-width="1.8"/></svg>
+      Tempograph
+    </a>
+    <nav class="nav-links" aria-label="Sections">
+      <a href="#graph">Event graph</a>
+      <a href="#memory">Bi-temporal</a>
+      <a href="#maintenance">Maintenance</a>
+      <a href="#retrieval">Retrieval</a>
+      <a href="#dataset">Dataset</a>
+      <a href="#run">Run it</a>
+    </nav>
+    <a class="btn btn-sm" href="https://github.com/daruoktab/tempograph" target="_blank" rel="noopener">
+      <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 .5a11.5 11.5 0 0 0-3.64 22.41c.58.1.79-.25.79-.56v-2c-3.2.7-3.88-1.36-3.88-1.36-.52-1.33-1.28-1.69-1.28-1.69-1.05-.71.08-.7.08-.7 1.16.08 1.77 1.19 1.77 1.19 1.03 1.77 2.7 1.26 3.36.96.1-.75.4-1.26.73-1.55-2.55-.29-5.24-1.28-5.24-5.69 0-1.26.45-2.28 1.19-3.09-.12-.29-.52-1.46.11-3.05 0 0 .97-.31 3.17 1.18a11 11 0 0 1 5.77 0c2.2-1.49 3.17-1.18 3.17-1.18.63 1.59.23 2.76.11 3.05.74.81 1.19 1.83 1.19 3.09 0 4.42-2.7 5.4-5.27 5.68.41.36.78 1.06.78 2.13v3.16c0 .31.21.67.8.56A11.5 11.5 0 0 0 12 .5Z"/></svg>
+      <span>GitHub</span>
+    </a>
+  </div>
+</header>
+
+<main id="main">
+
+<!-- ================= HERO ================= -->
+<section class="hero wrap" aria-labelledby="h-title">
+  <div class="hero-in">
+    <div class="tags">
+      <span class="chip accent">Agentic RAG</span>
+      <span class="chip green">Bi-temporal knowledge graph</span>
+      <span class="chip ochre">SurrealDB</span>
+      <span class="chip">Bahasa Indonesia</span>
+    </div>
+    <h1 id="h-title">Tempograph</h1>
+    <p class="lede">A chatbot memory that remembers not only <em>what</em> changed, but <em>when</em> each fact was true — Agentic RAG on SurrealDB with a causal, synthetic Indonesian conversation benchmark.</p>
+    <div class="hero-cta">
+      <a class="btn btn-primary" href="#graph">Explore the graph</a>
+      <a class="btn" href="./sim/">Live 10-session demo</a>
+      <a class="btn" href="https://github.com/daruoktab/tempograph" target="_blank" rel="noopener">View source on GitHub</a>
+    </div>
+  </div>
+
+  <div class="metrics" role="list">
+    <div class="metric" role="listitem"><span class="label">Benchmark</span><b>100</b><span>sessions · 1,143 annotated turns · Jan 1 – Apr 28, 2024</span></div>
+    <div class="metric" role="listitem"><span class="label">Ground truth</span><b>3,150</b><span>per-turn facts with entities and temporal references</span></div>
+    <div class="metric" role="listitem"><span class="label">Causal events</span><b>80</b><span>83 <code class="i">caused_by</code> edges form the life-event DAG</span></div>
+    <div class="metric" role="listitem"><span class="label">Eval queries</span><b>100</b><span>5 reasoning types · easy / medium / hard</span></div>
+    <div class="metric" role="listitem"><span class="label">Vector index</span><b>768-d</b><span>cosine MTREE on facts and session passages</span></div>
+    <div class="metric" role="listitem"><span class="label">Retrieval</span><b>3 paths</b><span>Agentic · Vanilla · Hybrid</span></div>
+  </div>
+
+  <div class="pipe" aria-label="End-to-end architecture">
+    <div class="pipe-step"><span class="num">01 · GENERATE</span><b>src/dataset/generator.py</b><p>Persona, causal life events, multi-turn Indonesian sessions and per-turn ground truth.</p></div>
+    <div class="pipe-step"><span class="num">02 · ARTIFACTS</span><b>conversation_dataset.json</b><p>Longitudinal history plus <code class="i">user_events.json</code> and 100 evaluation queries.</p></div>
+    <div class="pipe-step"><span class="num">03 · INGEST</span><b>scripts/ingest_agentic.py</b><p>Extract facts, dedupe entities, invalidate contradictions, build Louvain communities.</p></div>
+    <div class="pipe-step"><span class="num">04 · RETRIEVE</span><b>src/retrieval/*</b><p>Agentic, Vanilla or Hybrid retrieval with reranking and evaluation tracing.</p></div>
+  </div>
+</section>
+
+<!-- ================= 01 EVENT GRAPH ================= -->
+<section class="block reveal" id="graph" aria-labelledby="h-graph">
+  <div class="wrap">
+    <div class="sec-head">
+      <span class="kicker">01 · Causal life-event graph</span>
+      <h2 id="h-graph">80 life events and 83 causal links, as a graph you can pull apart</h2>
+      <p>Before any conversation exists, the generator writes a dated <strong>event DAG</strong>: each event can list the earlier events that caused it (<code class="i">caused_by</code>). Sessions are then written around those events, so the benchmark has real cause-and-effect to ask about. This is the actual <code class="i">user_events.json</code> from the repo — drag nodes, click one to trace its causes and effects, or press play to watch January–April unfold.</p>
+    </div>
+
+    <div class="panel bench">
+      <div class="stage">
+        <div class="tb">
+          <div class="tb-row">
+            <button class="btn btn-sm" id="g1-play" type="button">▶ Play timeline</button>
+            <div class="grow"><input type="range" id="g1-date" min="0" max="0" value="0" aria-label="Show events up to this date"></div>
+            <div class="datebox" id="g1-datelab" aria-live="polite">—</div>
+          </div>
+          <div class="tb-row">
+            <div class="grow"><input class="input" type="search" id="g1-search" placeholder="Search events — try “kopi”, “Dewi”, “kampanye”" aria-label="Search events"></div>
+            <span class="chip" id="g1-count" aria-live="polite">80 / 80 events</span>
+          </div>
+        </div>
+        <div class="graph-box" id="g1-box">
+          <svg id="g1" role="img" aria-label="Force-directed graph of 80 life events connected by caused_by edges"></svg>
+          <div class="tip" id="g1-tip" role="tooltip"></div>
+          <div class="ghint">drag nodes · Ctrl/⌘ + scroll to zoom</div>
+          <div class="gtools">
+            <button class="btn btn-sm btn-ico" id="g1-zin" type="button" aria-label="Zoom in">+</button>
+            <button class="btn btn-sm btn-ico" id="g1-zout" type="button" aria-label="Zoom out">−</button>
+            <button class="btn btn-sm" id="g1-fit" type="button">Fit</button>
+          </div>
+        </div>
+        <div class="legend" aria-label="Legend">
+          <span><i style="background:var(--teal)"></i>Jan</span>
+          <span><i style="background:var(--green)"></i>Feb</span>
+          <span><i style="background:var(--ochre)"></i>Mar</span>
+          <span><i style="background:var(--accent)"></i>Apr</span>
+          <span><i class="ln" style="background:var(--text-3)"></i>cause → effect</span>
+          <span><i class="ln" style="background:var(--ochre)"></i>selected’s causes</span>
+          <span><i class="ln" style="background:var(--green)"></i>selected’s effects</span>
+        </div>
+      </div>
+
+      <aside class="side" aria-label="Selected event">
+        <div class="well ev-card" id="g1-card"></div>
+        <div class="stat-row" id="g1-stats"></div>
+        <div class="well stack-s">
+          <span class="label">Why it matters</span>
+          <p class="small">Take <code class="i">E1 → E9 → E13</code>: the big campaign (E1) triggers a creative block (E9), which feeds into finishing the first concept draft (E13, also helped by E12). Multi-hop evaluation queries ask for exactly this kind of cross-session chain — not one similar chunk.</p>
+        </div>
+      </aside>
+    </div>
+  </div>
+</section>
+
+<!-- ================= 02 BI-TEMPORAL ================= -->
+<section class="block reveal" id="memory" aria-labelledby="h-mem">
+  <div class="wrap">
+    <div class="sec-head">
+      <span class="kicker">02 · Bi-temporal conversational memory</span>
+      <h2 id="h-mem">Don’t overwrite old facts — give every fact a validity window</h2>
+      <p>Each <code class="i">extracted_fact</code> carries <code class="i">valid_at</code> and <code class="i">invalid_at</code>. When a newer fact supersedes an older one, the old row isn’t deleted; it just gets an end date. Drag the cursor to ask the memory a question <em>as of</em> any day. Facts and dates below come from the example dataset (Aisha’s coffee-brand collaboration).</p>
+    </div>
+
+    <div class="stack">
+      <div class="panel stack">
+        <div class="row between">
+          <div class="stack-s" style="flex:1 1 320px">
+            <span class="label">Query “as of” date</span>
+            <input type="range" id="tl-date" min="0" max="0" value="0" aria-label="Query as-of date">
+          </div>
+          <div class="row">
+            <div class="datebox" id="tl-datelab" aria-live="polite">—</div>
+            <div class="seg" id="tl-presets" role="group" aria-label="Preset dates"></div>
+          </div>
+        </div>
+        <div class="tl" id="tl" aria-label="Fact validity timeline"></div>
+        <div class="row" style="gap:8px 18px">
+          <span class="chip green">valid at cursor</span>
+          <span class="chip red">superseded (invalid_at ≤ cursor)</span>
+          <span class="chip">not yet known</span>
+        </div>
+      </div>
+
+      <div class="grid-2" style="align-items:start">
+        <div class="panel stack">
+          <div class="stack-s">
+            <span class="label">What retrieval sees at this date</span>
+            <div class="compare" id="tl-compare"></div>
+          </div>
+          <div class="stack-s">
+            <span class="label">Temporal filter (src/surreal/fact_graph.py)</span>
+            <pre class="code" id="tl-query"></pre>
+          </div>
+        </div>
+        <div class="panel stack-s">
+          <div class="row between"><span class="label">extracted_fact records</span><span class="chip accent" id="tl-badge">—</span></div>
+          <div class="facts" id="tl-facts"></div>
+          <p class="small muted">F4’s end date illustrates what the contradiction gate does when F6 arrives; it is not a recorded database row.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ================= 03 MAINTENANCE ================= -->
+<section class="block reveal" id="maintenance" aria-labelledby="h-maint">
+  <div class="wrap">
+    <div class="sec-head">
+      <span class="kicker">03 · Graph maintenance</span>
+      <h2 id="h-maint">Three passes keep the memory from sprawling, contradicting itself, or going flat</h2>
+      <p>Chat extracts messy mentions: “Dewi” and “Dewi Lestari”, “Rizky” and “Rizky Firmansyah”. Tempograph merges aliases, retires contradicted facts, then clusters what’s left with Louvain. Below, the real entity co-mention graph from the 100 sessions goes through the same steps — with the actual thresholds from <code class="i">fact_graph.py</code>.</p>
+    </div>
+
+    <div class="stack">
+      <div class="panel bench">
+        <div class="stage">
+          <div class="row between">
+            <div class="stack-s"><span class="label">Entity co-mention graph</span><h3 id="eg-title">29 raw entities · 80 edges</h3></div>
+            <span class="chip" id="eg-badge">raw</span>
+          </div>
+          <div class="graph-box short" id="g2-box">
+            <svg id="g2" role="img" aria-label="Entity co-mention graph"></svg>
+            <div class="tip" id="g2-tip" role="tooltip"></div>
+            <div class="ghint">drag nodes · node size = mentions</div>
+            <div class="gtools"><button class="btn btn-sm" id="g2-fit" type="button">Fit</button></div>
+          </div>
+          <div class="legend" id="g2-legend"></div>
+        </div>
+
+        <aside class="side">
+          <div class="steps-h">
+            <button class="step-btn" id="eg-dedup" type="button"><span class="n">1</span><div><b>Deduplicate entities</b><span>rapidfuzz scoring · ≥ 85 merge · 60–84 ask the LLM</span></div></button>
+            <button class="step-btn" id="eg-louvain" type="button"><span class="n">2</span><div><b>Detect communities</b><span>Louvain modularity on the merged graph</span></div></button>
+            <button class="btn btn-sm" id="eg-reset" type="button">↺ Reset</button>
+          </div>
+          <div class="well stack-s">
+            <span class="label">Pass log</span>
+            <div class="log scroll-y" id="eg-log" style="max-height:220px"><div>Run step 1 to merge aliases.</div></div>
+          </div>
+        </aside>
+      </div>
+
+      <div class="grid-2">
+        <!-- dedup playground -->
+        <div class="panel stack">
+          <div class="row between">
+            <div class="stack-s"><span class="label">Playground A</span><h3>Entity deduplication scorer</h3></div>
+            <span class="chip" id="dd-chip">—</span>
+          </div>
+          <div class="row" id="dd-presets" aria-label="Presets"></div>
+          <div class="grid-2" style="gap:12px">
+            <label class="field"><span>Existing entity</span><input class="input" id="dd-a" value="Dewi" autocomplete="off" spellcheck="false"></label>
+            <label class="field"><span>Incoming mention</span><input class="input" id="dd-b" value="Dewi Lestari" autocomplete="off" spellcheck="false"></label>
+          </div>
+          <div class="meter">
+            <div class="meter-bar" aria-hidden="true"><i></i><i></i><i></i><div class="meter-pin" id="dd-pin" style="left:0"></div></div>
+            <div class="meter-lab"><span>&lt; 60 new node</span><span>60–84 LLM</span><span>≥ 85 merge</span></div>
+          </div>
+          <div class="well readout">
+            <div><span class="label">token_sort_ratio</span><b id="dd-sort">—</b></div>
+            <div><span class="label">partial_ratio</span><b id="dd-part">—</b></div>
+            <div><span class="label">substring floor</span><b id="dd-sub">—</b></div>
+            <div><span class="label">Final score → decision</span><b id="dd-dec">—</b></div>
+            <div><span class="label">Canonical name</span><b id="dd-can">—</b></div>
+          </div>
+          <p class="small muted">JavaScript port of <code class="i">fuzz.token_sort_ratio</code> / <code class="i">fuzz.partial_ratio</code> plus the substring floor (75) used in <code class="i">_resolve_entity</code>. The LLM call itself isn’t simulated.</p>
+        </div>
+
+        <!-- contradiction gate -->
+        <div class="panel stack">
+          <div class="row between">
+            <div class="stack-s"><span class="label">Playground B</span><h3>Contradiction gate</h3></div>
+            <span class="chip" id="cg-chip">—</span>
+          </div>
+          <div class="stack-s">
+            <div class="well stack-s">
+              <div><span class="label">Stored fact · valid_at 2024-01-14</span><p class="small" style="color:var(--text)">Proyek Kopi Senja Pagi masih di tahap riset influencer.</p></div>
+              <hr class="hr">
+              <div><span class="label">Incoming fact · reference_time 2024-02-03</span><p class="small" style="color:var(--text)">Menghadiri acara launching produk dari brand kopi kolaborasi, melihat hasil karyanya dipublikasikan.</p></div>
+            </div>
+          </div>
+          <div class="stack-s">
+            <div class="row between"><span class="label">Embedding cosine similarity (drag to simulate)</span><b class="mono" id="cg-val">0.52</b></div>
+            <input type="range" id="cg-cos" min="0" max="100" value="52" aria-label="Cosine similarity">
+            <div class="gate-bar" aria-hidden="true"><div class="meter-pin" id="cg-pin" style="left:52%"></div></div>
+            <div class="gate-lab" aria-hidden="true"><span style="left:0">0</span><span style="left:35%;transform:translateX(-50%)">0.35 gate</span><span style="right:0">1</span></div>
+          </div>
+          <div class="stack-s" id="cg-verdict-wrap">
+            <span class="label">LLM verdict (what would the classifier say?)</span>
+            <div class="seg" id="cg-verdict" role="group" aria-label="LLM verdict">
+              <button type="button" data-v="compatible">compatible</button>
+              <button type="button" data-v="contradictory" class="on">contradictory</button>
+              <button type="button" data-v="duplicate">duplicate</button>
+            </div>
+          </div>
+          <div class="mini-tl" id="cg-tl" aria-hidden="true"></div>
+          <div class="well readout">
+            <div><span class="label">Gate</span><b id="cg-gate">—</b></div>
+            <div><span class="label">Mutation</span><b id="cg-mut">—</b></div>
+          </div>
+          <p class="small muted">From <code class="i">_resolve_contradictions</code>: similarity ≥ 0.35 sends the pair to the LLM; <code class="i">contradictory</code> sets <code class="i">invalid_at = reference_time</code> on the old fact, <code class="i">duplicate</code> skips the insert.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ================= 04 RETRIEVAL ================= -->
+<section class="block reveal" id="retrieval" aria-labelledby="h-ret">
+  <div class="wrap">
+    <div class="sec-head">
+      <span class="kicker">04 · Unified graph + vector store</span>
+      <h2 id="h-ret">One SurrealDB schema serves Agentic, Vanilla and Hybrid retrieval</h2>
+      <p>Instead of splitting graph traversal and dense vector search across two databases, <code class="i">schema.surql</code> holds both the temporal fact graph and 768-d session passages. Switch modes to see which retriever and which tables a query touches.</p>
+    </div>
+
+    <div class="stack">
+      <div class="panel stack">
+        <div class="row between">
+          <div class="stack-s"><span class="label">Active pipeline</span><h3 id="rt-title">Agentic</h3></div>
+          <div class="seg" id="rt-mode" role="group" aria-label="Retrieval mode">
+            <button type="button" data-m="agentic" class="on">Agentic</button>
+            <button type="button" data-m="vanilla">Vanilla</button>
+            <button type="button" data-m="hybrid">Hybrid</button>
+          </div>
+        </div>
+        <p id="rt-desc" style="max-width:78ch"></p>
+
+        <div class="flow" id="flow">
+          <svg class="links" id="flow-links" aria-hidden="true"></svg>
+          <div class="flow-col">
+            <div class="fnode q" id="fn-q"><b>Query</b><span>natural-language question</span></div>
+          </div>
+          <div class="flow-col">
+            <div class="fnode ag" id="fn-ag"><b>RetrievalAgent</b><span>classify → plan → search → judge</span></div>
+            <div class="fnode va" id="fn-va"><b>VanillaRetriever</b><span>embed → vector search → rerank</span></div>
+          </div>
+          <div class="flow-col">
+            <div class="fnode ag" id="fn-fact"><b>extracted_fact</b><span>768-d embedding · valid_at / invalid_at</span></div>
+            <div class="fnode ag" id="fn-ent"><b>entity · community</b><span>via fact_involves / has_member</span></div>
+            <div class="fnode va" id="fn-pass"><b>session_passage</b><span>full-session vectors · RAG_SESSION_COLLECTION</span></div>
+          </div>
+        </div>
+
+        <div class="out-bar">
+          <span class="label">Context handed to the answer model</span>
+          <div class="seg-row" id="rt-out"></div>
+        </div>
+      </div>
+
+      <div class="panel stack">
+        <div class="row between">
+          <div class="stack-s"><span class="label">Agentic loop</span><h3>Iterate until the context is sufficient</h3></div>
+          <div class="row"><span class="chip" id="lp-iter">iteration 1 / 3</span><button class="btn btn-sm" id="lp-play" type="button">▶ Run loop</button></div>
+        </div>
+        <div class="loop" id="loop"></div>
+      </div>
+
+      <div class="grid-2">
+        <div class="panel stack-s">
+          <span class="label">Retrieval defaults (src/config/settings.py)</span>
+          <div class="params" id="params"></div>
+        </div>
+        <div class="panel stack-s">
+          <span class="label">SurrealDB tables (src/surreal/schema.surql)</span>
+          <div class="tbl-wrap">
+            <table class="tbl">
+              <thead><tr><th>Table</th><th>Key fields</th></tr></thead>
+              <tbody id="schema-body">
+                <tr data-t="episode"><td class="tn">episode</td><td><code class="i">group_id</code> <code class="i">name</code> <code class="i">body</code> <code class="i">reference_time</code></td></tr>
+                <tr data-t="extracted_fact"><td class="tn">extracted_fact</td><td><code class="i">fact_text</code> <code class="i">embedding</code> <code class="i">entity_names</code> <code class="i">valid_at</code> <code class="i">invalid_at</code></td></tr>
+                <tr data-t="entity"><td class="tn">entity</td><td><code class="i">group_id</code> <code class="i">name</code> (canonical)</td></tr>
+                <tr data-t="community"><td class="tn">community</td><td><code class="i">name</code> <code class="i">summary</code> (Louvain cluster)</td></tr>
+                <tr data-t="session_passage"><td class="tn">session_passage</td><td><code class="i">collection</code> <code class="i">doc_id</code> <code class="i">text</code> <code class="i">embedding</code> <code class="i">metadata</code></td></tr>
+                <tr data-t="edges"><td class="tn">edges</td><td><code class="i">has_fact</code> episode→fact · <code class="i">fact_involves</code> fact→entity · <code class="i">has_member</code> community→entity</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ================= 05 DATASET ================= -->
+<section class="block reveal" id="dataset" aria-labelledby="h-ds">
+  <div class="wrap">
+    <div class="sec-head">
+      <span class="kicker">05 · Longitudinal dataset &amp; evaluation</span>
+      <h2 id="h-ds">Causal Indonesian life events become a testable memory benchmark</h2>
+      <p>Long-term memory can’t be judged on single-turn Q&amp;A. Inspired by LOCOMO, the generator builds a persona, a causal event graph, multi-turn Bahasa Indonesia sessions with cumulative summaries, and per-turn ground truth. Every snippet below is real output from <code class="i">output/example_dataset/</code>.</p>
+    </div>
+
+    <div class="stack">
+      <div class="panel ds">
+        <div class="tabs" id="ds-tabs" role="tablist" aria-label="Generator stages"></div>
+        <div class="stack-s">
+          <div class="row between">
+            <span class="label" id="ds-env">—</span>
+            <span class="chip" id="ds-out">—</span>
+          </div>
+          <p class="small" id="ds-copy"></p>
+          <pre class="code wrap-lines" id="ds-json" style="max-height:420px"></pre>
+        </div>
+      </div>
+
+      <div class="panel stack">
+        <div class="row between">
+          <div class="stack-s"><span class="label">Evaluation set</span><h3>100 queries across five reasoning types</h3></div>
+          <span class="chip accent">evaluation_queries_100.json</span>
+        </div>
+        <div class="grid-2">
+          <div class="stack-s"><span class="label">By type</span><div class="bars" id="bars-type"></div></div>
+          <div class="stack-s"><span class="label">By difficulty</span><div class="bars" id="bars-diff"></div></div>
+        </div>
+        <hr class="hr">
+        <div class="row" style="align-items:flex-end">
+          <div class="field" style="flex:1 1 200px"><span>Filter type</span><select class="select" id="q-type" aria-label="Filter by type"></select></div>
+          <div class="field" style="flex:1 1 160px"><span>Difficulty</span><select class="select" id="q-diff" aria-label="Filter by difficulty"></select></div>
+          <div class="field" style="flex:2 1 240px"><span>Search</span><input class="input" type="search" id="q-search" placeholder="Search queries — try “Dewi”, “kafe”…" aria-label="Search queries"></div>
+        </div>
+        <div class="row between"><span class="chip" id="q-count">—</span><span class="small muted">click a query to reveal the expected answer</span></div>
+        <div class="qlist" id="q-list"></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ================= 06 RUN ================= -->
+<section class="block reveal" id="run" aria-labelledby="h-run">
+  <div class="wrap">
+    <div class="sec-head">
+      <span class="kicker">06 · Reproducible experiments</span>
+      <h2 id="h-run">One <code class="i">--setup env</code> contract swaps providers, embeddings and retrieval mode</h2>
+      <p>Model choice is decoupled from ingestion and evaluation scripts. Pick a stack and copy the generated <code class="i">.env</code> and commands. Evaluation reports hit rate / MRR on expected sessions, retrieval latency per query, and an optional LLM-judged context-sufficiency score.</p>
+    </div>
+
+    <div class="stack">
+      <div class="panel bench" style="grid-template-columns:minmax(0,.8fr) minmax(0,1.2fr)">
+        <div class="stack">
+          <div class="stack-s"><span class="label">Stack configurator</span><h3>Generate .env and CLI</h3></div>
+          <label class="field"><span>RAG_MODE</span>
+            <select class="select" id="cf-mode"><option value="agentic">agentic — fact graph</option><option value="hybrid">hybrid — graph + passages</option><option value="vanilla">vanilla — session passages</option></select></label>
+          <label class="field"><span>LLM_PROVIDER</span>
+            <select class="select" id="cf-llm"><option value="gemini">gemini — Google GenAI</option><option value="novita">novita — OpenAI-compatible</option></select></label>
+          <label class="field"><span>EMBED_PROVIDER</span>
+            <select class="select" id="cf-emb"><option value="gemini">gemini — Gemini embeddings</option><option value="huggingface">huggingface — local embeddings</option></select></label>
+          <div class="stack-s">
+            <label class="check"><input type="checkbox" id="cf-cache" checked><span>Dataset generation with <code class="i">--use-caching</code></span></label>
+            <label class="check"><input type="checkbox" id="cf-nojudge" checked><span>Evaluate with <code class="i">--no-llm-judge</code> (retrieval-only, faster)</span></label>
+          </div>
+        </div>
+        <div class="stack">
+          <div class="stack-s">
+            <div class="row between"><span class="label">.env</span><button class="btn btn-sm" type="button" data-copy="cf-env">Copy</button></div>
+            <pre class="code" id="cf-env"></pre>
+          </div>
+          <div class="stack-s">
+            <div class="row between"><span class="label">Generate · ingest · evaluate</span><button class="btn btn-sm" type="button" data-copy="cf-cli">Copy</button></div>
+            <pre class="code" id="cf-cli"></pre>
+          </div>
+        </div>
+      </div>
+
+      <div class="grid-2">
+        <div class="panel stack-s">
+          <div class="row between"><span class="label">Setup</span><button class="btn btn-sm" type="button" data-copy="cf-setup">Copy</button></div>
+          <pre class="code" id="cf-setup">git clone https://github.com/daruoktab/tempograph.git
+cd tempograph
+
+conda env create -f environment.example.yml
+conda activate tempograph
+uv pip install -U -r requirements.txt
+
+cp .env.example .env   # add GEMINI_API_KEY + SURREAL_*
+python scripts/run_with_local_surreal.py -- \
+  python scripts/test_surreal_connection.py</pre>
+        </div>
+        <div class="panel stack-s">
+          <div class="row between"><span class="label">Try the simulation UI — no SurrealDB needed</span><span class="row"><a class="btn btn-sm" href="./sim/">Open live demo</a><button class="btn btn-sm" type="button" data-copy="cf-sim">Copy</button></span></div>
+          <pre class="code" id="cf-sim">python scripts/export_sim_ui_dataset.py
+cd web/sim
+npm install
+npm run dev</pre>
+          <p class="small">The live demo at <code class="i">/sim/</code> is a Vite + React app over the first 10 sessions: interactive transcript, session graph, life-event graph and a token-overlap mock retriever. It is a UI demo, not a connection to SurrealDB.</p>
+        </div>
+      </div>
+
+      <details class="fold">
+        <summary><span>Repository layout</span></summary>
+        <div><pre class="code tree">├── assets/
+├── src/
+│   ├── config/       settings, experiment_setups, runtime_setup (env RAG), dataset_generation_env
+│   ├── dataset/      generator.py — persona, causal events, sessions, ground truth
+│   ├── ingestion/    episode_ingester.py
+│   ├── retrieval/    agent.py, vanilla_retriever.py, hybrid_retriever.py, llm_reranker.py, trace.py
+│   ├── surreal/      connection.py, schema.surql, fact_graph.py, vanilla_store.py, ranking.py
+│   ├── llm/          gemini_provider.py, novita_provider.py
+│   ├── embedders/    gemini_embedder.py, hf_embedder.py
+│   ├── evaluation/   evaluator.py, metrics.py, query_schema.py
+│   └── utils/        Gemini helpers, cost tracker, rate limiter
+├── scripts/          ingest_agentic.py, evaluate_agentic.py, evaluate_vanilla.py, export_sim_ui_dataset.py …
+├── output/example_dataset/   conversation_dataset.json, evaluation_queries_100.json, user_events.json …
+└── web/sim/          Vite + React simulation UI</pre></div>
+      </details>
+    </div>
+  </div>
+</section>
+
+</main>
+
+<footer class="foot">
+  <div class="wrap foot-in">
+    <div><strong>Tempograph</strong> · MIT License · by Daru — <a href="https://github.com/daruoktab/tempograph" target="_blank" rel="noopener">github.com/daruoktab/tempograph</a></div>
+    <div>Built on ideas from LOCOMO · Graphiti · SurrealDB · Gemini · NetworkX · rapidfuzz</div>
+  </div>
+</footer>
+
+<script>
+const DATA = {"events":[{"id":"E1","date":"2024-01-02","text":"Memulai proyek kampanye media sosial besar untuk klien baru, menuntut kreativitas tinggi.","by":[]},{"id":"E2","date":"2024-01-03","text":"Diskusi strategi awal yang intens dengan Dewi, rekan kerja dan partner di agensi, untuk kampanye E1.","by":["E1"]},{"id":"E3","date":"2024-01-04","text":"Ikut kelas yoga pagi untuk menyegarkan pikiran dan meredakan ketegangan dari pekerjaan.","by":[]},{"id":"E4","date":"2024-01-05","text":"Menerima email tawaran kolaborasi dari brand kopi lokal untuk konten promosi.","by":[]},{"id":"E5","date":"2024-01-06","text":"Mengunjungi kafe baru di Bandung, mencoba kopi unik dan mengabadikan interiornya dengan kamera.","by":[]},{"id":"E6","date":"2024-01-07","text":"Menghabiskan waktu membaca buku pengembangan diri tentang manajemen prioritas.","by":[]},{"id":"E7","date":"2024-01-08","text":"Rapat pertama dengan brand kopi terkait tawaran kolaborasi, membahas konsep dan ekspektasi.","by":["E4"]},{"id":"E8","date":"2024-01-09","text":"Brainstorming ide konten yang inovatif untuk kolaborasi brand kopi bersama Dewi.","by":["E7"]},{"id":"E9","date":"2024-01-10","text":"Mengalami creative block saat menyusun konsep visual untuk kampanye klien E1.","by":["E1"]},{"id":"E10","date":"2024-01-11","text":"Telepon dengan Rizky, sahabat lama, berbagi cerita tentang kesulitan pekerjaan dan creative block.","by":["E9"]},{"id":"E11","date":"2024-01-12","text":"Mengambil foto landscape di Dago atas, mencari inspirasi dan mengisi energi positif.","by":[]},{"id":"E12","date":"2024-01-13","text":"Mendapat inspirasi baru untuk konsep kampanye E1 setelah melihat pameran seni lokal dadakan.","by":["E11"]},{"id":"E13","date":"2024-01-14","text":"Berhasil menyelesaikan draft konsep kampanye klien E1 dengan ide segar dan detail yang rapi.","by":["E9","E12"]},{"id":"E14","date":"2024-01-15","text":"Presentasi konsep kampanye klien E1, mendapat feedback positif dan persetujuan.","by":["E13"]},{"id":"E15","date":"2024-01-16","text":"Diskusi dengan Dewi tentang potensi merekrut staf baru untuk agensi guna menangani beban kerja.","by":[]},{"id":"E16","date":"2024-01-17","text":"Mengunjungi orang tua, Bapak Suryo Santoso, makan malam bersama dan berbagi cerita.","by":[]},{"id":"E17","date":"2024-01-18","text":"Menerima notifikasi tagihan bulanan agensi yang lebih tinggi dari perkiraan.","by":[]},{"id":"E18","date":"2024-01-19","text":"Mulai overthinking tentang keuangan agensi dan target tabungan apartemen impian.","by":["E17"]},{"id":"E19","date":"2024-01-20","text":"Menghadiri workshop fotografi human interest untuk mengasah skill dan mencari inspirasi baru.","by":[]},{"id":"E20","date":"2024-01-21","text":"Mendapat ide untuk proyek konten personal bertema 'human interest' dari workshop E19.","by":["E19"]},{"id":"E21","date":"2024-01-22","text":"Menerima proposal kerjasama dari klien potensial baru di bidang fashion.","by":[]},{"id":"E22","date":"2024-01-23","text":"Rapat dengan klien potensial E21, membahas scope pekerjaan dan kebutuhan mereka.","by":["E21"]},{"id":"E23","date":"2024-01-24","text":"Menulis artikel blog di website agensi tentang 'Tips Menghadapi Creative Block'.","by":[]},{"id":"E24","date":"2024-01-25","text":"Merasa lelah dan burnout karena beban kerja yang menumpuk dari beberapa proyek.","by":["E1","E13","E22"]},{"id":"E25","date":"2024-01-26","text":"Ditemani Rizky mencari tempat relaksasi baru, ngopi bareng dan bercerita ringan.","by":["E24"]},{"id":"E26","date":"2024-01-27","text":"Mengajukan penawaran harga dan proposal detail untuk klien potensial E21.","by":["E22"]},{"id":"E27","date":"2024-01-28","text":"Mengikuti kelas pilates untuk mengembalikan energi dan fokus setelah merasa burnout.","by":[]},{"id":"E28","date":"2024-01-29","text":"Menerima kabar baik bahwa penawaran E26 diterima, agensi mendapat klien baru yang besar.","by":["E26"]},{"id":"E29","date":"2024-01-30","text":"Merayakan keberhasilan mendapatkan klien baru dengan Dewi, merasakan kebanggaan bersama.","by":["E28"]},{"id":"E30","date":"2024-01-31","text":"Meninjau ulang target tabungan apartemen, merasa lebih optimis dengan pemasukan baru.","by":["E28"]},{"id":"E31","date":"2024-02-01","text":"Memulai project dengan klien baru E28, melakukan kick-off meeting dan perencanaan konten.","by":["E28"]},{"id":"E32","date":"2024-02-02","text":"Mendapat undangan menjadi pembicara di seminar tentang social media marketing untuk UMKM.","by":[]},{"id":"E33","date":"2024-02-03","text":"Menghadiri acara launching produk dari brand kopi kolaborasi E7, melihat hasil karyanya dipublikasikan.","by":["E7"]},{"id":"E34","date":"2024-02-04","text":"Merasa bangga dan puas melihat hasil karyanya dipamerkan di acara launching E33.","by":["E33"]},{"id":"E35","date":"2024-02-05","text":"Mulai menyusun materi presentasi yang menarik dan informatif untuk seminar E32.","by":["E32"]},{"id":"E36","date":"2024-02-07","text":"Diskusi intensif dengan Dewi mengenai rencana pengembangan skill tim agensi di masa depan.","by":[]},{"id":"E37","date":"2024-02-10","text":"Merasa gugup menjelang seminar E32, overthinking tentang performa dan ekspektasi audiens.","by":["E32"]},{"id":"E38","date":"2024-02-15","text":"Berhasil menyampaikan materi seminar E32 dengan lancar, mendapat apresiasi dan banyak pertanyaan dari peserta.","by":["E37"]},{"id":"E39","date":"2024-02-20","text":"Mendapat tawaran freelance fotografi dari salah satu peserta seminar yang terkesan dengan presentasinya.","by":["E38"]},{"id":"E40","date":"2024-02-28","text":"Menutup bulan dengan rapat evaluasi kinerja agensi dan perencanaan strategi bulan berikutnya, merasa optimis.","by":[]},{"id":"E41","date":"2024-03-01","text":"Menindaklanjuti tawaran proyek fotografi freelance dari peserta seminar E38, menjadwalkan pertemuan awal.","by":["E39"]},{"id":"E42","date":"2024-03-04","text":"Mengimplementasikan strategi konten baru untuk klien agensi berdasarkan hasil rapat evaluasi E40.","by":["E40"]},{"id":"E43","date":"2024-03-05","text":"Bertemu Dewi untuk memfinalisasi rencana pengembangan skill tim agensi, menetapkan target dan materi pelatihan.","by":["E36","E40"]},{"id":"E44","date":"2024-03-08","text":"Memulai proyek fotografi freelance pertama, merasa tertantang untuk memberikan hasil terbaik.","by":["E41"]},{"id":"E45","date":"2024-03-10","text":"Menghadiri pameran desain interior minimalis lokal, mencari inspirasi untuk penataan ulang sudut kerja.","by":["E40","E38"]},{"id":"E46","date":"2024-03-12","text":"Sesi brainstorming intensif dengan tim untuk kampanye digital baru klien utama, mengintegrasikan tren media sosial terkini.","by":["E42","E43"]},{"id":"E47","date":"2024-03-14","text":"Menyelesaikan sesi pemotretan untuk proyek freelance pertama, merasa puas dengan hasil yang didapat.","by":["E44"]},{"id":"E48","date":"2024-03-16","text":"Kopi darat dengan teman lama, berbagi cerita tentang perkembangan agensi dan proyek freelance.","by":["E47"]},{"id":"E49","date":"2024-03-18","text":"Presentasi proposal kampanye digital baru kepada klien, mendapat respons sangat positif dan persetujuan segera.","by":["E46"]},{"id":"E50","date":"2024-03-20","text":"Merencanakan perjalanan singkat ke Yogyakarta untuk mengeksplorasi kebudayaan lokal dan mencari spot fotografi baru.","by":["E47","E49"]},{"id":"E51","date":"2024-03-22","text":"Memulai implementasi kampanye digital baru setelah mendapatkan persetujuan dari klien.","by":["E49"]},{"id":"E52","date":"2024-03-24","text":"Mencari referensi dan berbelanja furnitur minimalis online untuk memperbarui tampilan sudut kerja di rumah.","by":["E45"]},{"id":"E53","date":"2024-03-26","text":"Melakukan perjalanan singkat ke Yogyakarta, terkesima dengan arsitektur tradisional dan suasana kota yang kental budaya.","by":["E50"]},{"id":"E54","date":"2024-03-27","text":"Menghabiskan hari memotret keindahan candi dan kegiatan masyarakat lokal di Yogyakarta untuk portofolio pribadi.","by":["E53"]},{"id":"E55","date":"2024-03-29","text":"Menganalisis performa awal kampanye baru, mengidentifikasi beberapa area yang memerlukan optimasi lebih lanjut.","by":["E51"]},{"id":"E56","date":"2024-03-31","text":"Memulai penyusunan modul pelatihan internal untuk tim agensi, fokus pada skill yang relevan dengan tren terbaru.","by":["E43","E55"]},{"id":"E57","date":"2024-04-02","text":"Mendapat tawaran proyek fotografi freelance kedua dari sebuah brand lokal, terkesan dengan hasil proyek sebelumnya.","by":["E47","E39"]},{"id":"E58","date":"2024-04-04","text":"Menulis dan mempublikasikan blog post tentang pengalaman perjalanan ke Yogyakarta dan tips fotografi.","by":["E54"]},{"id":"E59","date":"2024-04-05","text":"Mengadakan sesi brainstorming internal dengan tim untuk merumuskan strategi optimasi kampanye yang sedang berjalan.","by":["E55"]},{"id":"E60","date":"2024-04-07","text":"Melakukan negosiasi detail kontrak dengan brand lokal untuk proyek fotografi kedua, mencapai kesepakatan yang saling menguntungkan.","by":["E57"]},{"id":"E61","date":"2024-04-08","text":"Mengunjungi toko buku independen, menemukan buku menarik tentang sejarah desain interior Indonesia.","by":["E52","E45"]},{"id":"E62","date":"2024-04-10","text":"Menerima feedback positif dari klien mengenai peningkatan performa kampanye setelah optimasi yang dilakukan tim.","by":["E59"]},{"id":"E63","date":"2024-04-12","text":"Mengikuti webinar tentang tren AI dalam digital marketing, merasa perlu untuk terus mengasah pengetahuan di bidang ini.","by":["E56","E62"]},{"id":"E64","date":"2024-04-14","text":"Memulai persiapan dan riset visual untuk proyek fotografi brand lokal, menyesuaikan dengan identitas brand.","by":["E60"]},{"id":"E65","date":"2024-04-15","text":"Makan siang dengan Dewi, membahas potensi ekspansi agensi dan ide-ide inovatif untuk pengembangan bisnis.","by":["E62","E43"]},{"id":"E66","date":"2024-04-16","text":"Menerima dan menata furnitur baru untuk sudut kerja, merasa lebih nyaman dan produktif dengan suasana baru.","by":["E52"]},{"id":"E67","date":"2024-04-17","text":"Merencanakan workshop internal untuk tim agensi mengenai aplikasi AI dalam strategi konten dan analisis data.","by":["E63","E65"]},{"id":"E68","date":"2024-04-18","text":"Menghabiskan waktu membaca buku tentang sejarah desain interior, mendapat pemahaman baru tentang estetika lokal.","by":["E61"]},{"id":"E69","date":"2024-04-19","text":"Melakukan sesi pemotretan untuk brand lokal, mengaplikasikan konsep visual yang sudah matang.","by":["E64"]},{"id":"E70","date":"2024-04-20","text":"Mengadakan sesi evaluasi bulanan tim agensi, mencatat pencapaian dan tantangan, serta merumuskan langkah berikutnya.","by":["E62","E67"]},{"id":"E71","date":"2024-04-21","text":"Mengunjungi pameran seni kontemporer, terinspirasi oleh penggunaan warna dan tekstur yang unik.","by":["E68","E58"]},{"id":"E72","date":"2024-04-22","text":"Melakukan post-produksi foto-foto untuk brand lokal, fokus pada grading warna dan detail untuk hasil maksimal.","by":["E69"]},{"id":"E73","date":"2024-04-23","text":"Menerima permintaan proposal dari calon klien baru yang tertarik dengan portofolio agensi dan kesuksesan kampanye terakhir.","by":["E70","E65"]},{"id":"E74","date":"2024-04-24","text":"Merenungkan arah karir dan tujuan jangka panjang setelah serangkaian pencapaian dalam pekerjaan dan proyek pribadi.","by":["E70","E73"]},{"id":"E75","date":"2024-04-25","text":"Menyusun proposal komprehensif untuk calon klien baru, menonjolkan keunikan agensi dan solusi kreatif.","by":["E73"]},{"id":"E76","date":"2024-04-25","text":"Mengajak Dewi makan malam, membahas insight dari pameran seni dan ide-ide baru untuk konten agensi.","by":["E71","E65"]},{"id":"E77","date":"2024-04-26","text":"Mengirimkan hasil akhir proyek fotografi brand lokal, mendapat pujian atas profesionalisme dan kualitas karya.","by":["E72"]},{"id":"E78","date":"2024-04-27","text":"Presentasi proposal kepada calon klien baru, merasa percaya diri dengan materi dan visi yang disampaikan.","by":["E75"]},{"id":"E79","date":"2024-04-27","text":"Memesan beberapa tanaman indoor minimalis untuk menambah sentuhan hijau dan kesegaran di sudut kerja baru.","by":["E66","E71"]},{"id":"E80","date":"2024-04-27","text":"Menerima kabar gembira bahwa proposal diterima, agensi berhasil mendapatkan klien besar baru.","by":["E78"]}],"ent":{"nodes":[{"id":"Bandung","n":13,"type":"place","first":1},{"id":"Dewi","n":200,"type":"person","first":1},{"id":"Rizky","n":40,"type":"person","first":1},{"id":"Lembang","n":6,"type":"place","first":1},{"id":"agensi kecil","n":12,"type":"organization","first":2},{"id":"Kopi Senja Pagi","n":30,"type":"other","first":3},{"id":"Sudut Tenang","n":14,"type":"place","first":4},{"id":"brand fashion","n":4,"type":"other","first":4},{"id":"Dewi Lestari","n":61,"type":"person","first":5},{"id":"Rizky Firmansyah","n":20,"type":"person","first":5},{"id":"Cerita di Balik Cangkir","n":4,"type":"other","first":7},{"id":"agensi","n":45,"type":"organization","first":13},{"id":"Bapak","n":6,"type":"person","first":14},{"id":"Bapak Suryo Santoso","n":21,"type":"person","first":14},{"id":"apartemen","n":16,"type":"place","first":15},{"id":"apartemen impian","n":11,"type":"other","first":15},{"id":"TikTok","n":40,"type":"other","first":18},{"id":"seminar","n":6,"type":"event","first":27},{"id":"UMKM","n":29,"type":"other","first":27},{"id":"pengrajin","n":10,"type":"other","first":48},{"id":"Bu Rina","n":26,"type":"person","first":51},{"id":"pameran desain interior","n":7,"type":"event","first":61},{"id":"Yogyakarta","n":6,"type":"place","first":68},{"id":"Jogja","n":41,"type":"place","first":68},{"id":"Bantul","n":6,"type":"place","first":68},{"id":"Prawirotaman","n":5,"type":"place","first":68},{"id":"Gunungkidul","n":4,"type":"place","first":68},{"id":"pasar tradisional","n":6,"type":"place","first":71},{"id":"Serat Alam","n":43,"type":"other","first":80}],"edges":[{"s":"Dewi","t":"Kopi Senja Pagi","w":12},{"s":"Bandung","t":"Kopi Senja Pagi","w":1},{"s":"Dewi","t":"Sudut Tenang","w":1},{"s":"Kopi Senja Pagi","t":"Sudut Tenang","w":1},{"s":"Dewi Lestari","t":"Lembang","w":1},{"s":"Kopi Senja Pagi","t":"Rizky Firmansyah","w":1},{"s":"Cerita di Balik Cangkir","t":"Dewi","w":2},{"s":"Cerita di Balik Cangkir","t":"Kopi Senja Pagi","w":1},{"s":"Dewi Lestari","t":"Rizky","w":1},{"s":"Bandung","t":"Rizky","w":1},{"s":"Dewi","t":"Rizky","w":4},{"s":"Kopi Senja Pagi","t":"agensi","w":1},{"s":"Bapak","t":"agensi","w":1},{"s":"Dewi","t":"Rizky Firmansyah","w":2},{"s":"Kopi Senja Pagi","t":"brand fashion","w":1},{"s":"Rizky","t":"agensi","w":2},{"s":"Dewi","t":"agensi","w":6},{"s":"Rizky","t":"Sudut Tenang","w":1},{"s":"Rizky","t":"apartemen","w":1},{"s":"Sudut Tenang","t":"agensi","w":1},{"s":"agensi kecil","t":"apartemen impian","w":1},{"s":"Dewi","t":"UMKM","w":7},{"s":"Kopi Senja Pagi","t":"UMKM","w":1},{"s":"Dewi Lestari","t":"brand fashion","w":1},{"s":"Dewi Lestari","t":"UMKM","w":1},{"s":"agensi","t":"apartemen impian","w":2},{"s":"Bapak Suryo Santoso","t":"Sudut Tenang","w":1},{"s":"Dewi","t":"seminar","w":1},{"s":"agensi","t":"seminar","w":1},{"s":"Dewi","t":"pengrajin","w":1},{"s":"Bu Rina","t":"Sudut Tenang","w":1},{"s":"Bu Rina","t":"UMKM","w":1},{"s":"Bu Rina","t":"Dewi Lestari","w":1},{"s":"Bu Rina","t":"Dewi","w":9},{"s":"agensi","t":"apartemen","w":2},{"s":"apartemen impian","t":"pameran desain interior","w":2},{"s":"Dewi","t":"TikTok","w":6},{"s":"Rizky Firmansyah","t":"pameran desain interior","w":1},{"s":"TikTok","t":"Yogyakarta","w":1},{"s":"Bantul","t":"Gunungkidul","w":4},{"s":"Bantul","t":"Prawirotaman","w":1},{"s":"Gunungkidul","t":"Prawirotaman","w":1},{"s":"Dewi","t":"Jogja","w":1},{"s":"Bapak Suryo Santoso","t":"Jogja","w":4},{"s":"Bapak Suryo Santoso","t":"TikTok","w":2},{"s":"Jogja","t":"TikTok","w":1},{"s":"Bantul","t":"Jogja","w":1},{"s":"Gunungkidul","t":"Jogja","w":1},{"s":"Bapak","t":"Jogja","w":3},{"s":"Bu Rina","t":"pasar tradisional","w":1},{"s":"Dewi","t":"pasar tradisional","w":1},{"s":"Jogja","t":"pameran desain interior","w":1},{"s":"Bapak Suryo Santoso","t":"Prawirotaman","w":2},{"s":"Bapak Suryo Santoso","t":"apartemen impian","w":1},{"s":"Bapak Suryo Santoso","t":"pasar tradisional","w":1},{"s":"Prawirotaman","t":"apartemen impian","w":1},{"s":"Prawirotaman","t":"pasar tradisional","w":2},{"s":"apartemen impian","t":"pasar tradisional","w":1},{"s":"agensi","t":"pasar tradisional","w":1},{"s":"Rizky","t":"pasar tradisional","w":1},{"s":"Jogja","t":"Prawirotaman","w":1},{"s":"Jogja","t":"pasar tradisional","w":1},{"s":"Bandung","t":"Jogja","w":3},{"s":"Jogja","t":"apartemen","w":1},{"s":"Dewi Lestari","t":"TikTok","w":1},{"s":"Dewi Lestari","t":"Jogja","w":2},{"s":"Bandung","t":"Bapak Suryo Santoso","w":1},{"s":"Bandung","t":"TikTok","w":1},{"s":"Dewi Lestari","t":"apartemen","w":1},{"s":"agensi kecil","t":"apartemen","w":1},{"s":"Jogja","t":"Serat Alam","w":2},{"s":"Serat Alam","t":"pengrajin","w":2},{"s":"Dewi","t":"Serat Alam","w":5},{"s":"Serat Alam","t":"TikTok","w":3},{"s":"TikTok","t":"UMKM","w":1},{"s":"Serat Alam","t":"UMKM","w":2},{"s":"UMKM","t":"apartemen","w":1},{"s":"UMKM","t":"agensi","w":1},{"s":"Jogja","t":"apartemen impian","w":1},{"s":"Bapak Suryo Santoso","t":"Dewi","w":1}]},"thread":[{"id":"F1","date":"2024-01-05","text":"Menerima email tawaran kolaborasi dari brand kopi lokal untuk konten promosi.","src":"event E4","invalid":null,"cat":"event"},{"id":"F2","date":"2024-01-08","text":"Hari ini adalah jadwal meeting pertama dengan Kopi Senja Pagi.","src":"session 6 · turn 0","invalid":null,"cat":"event"},{"id":"F3","date":"2024-01-09","text":"Dewi lebih suka ide campaign 'A Day with Kopi Senja Pagi'.","src":"session 7 · turn 3","invalid":null,"cat":"preference"},{"id":"F4","date":"2024-01-14","text":"Proyek Kopi Senja Pagi masih di tahap riset influencer.","src":"session 12 · turn 7","invalid":"2024-02-03","cat":"plan"},{"id":"F5","date":"2024-01-22","text":"Timeline-nya kayaknya bakal mepet sama campaign Kopi Senja Pagi.","src":"session 17 · turn 5","invalid":null,"cat":"opinion"},{"id":"F6","date":"2024-02-03","text":"Menghadiri acara launching produk dari brand kopi kolaborasi E7, melihat hasil karyanya dipublikasikan.","src":"event E33","invalid":null,"cat":"event"}],"evalq":[{"id":"q001","q":"Apa tantangan terbesar yang dihadapi Aisha dalam menyiapkan campaign skincare untuk klien barunya?","type":"inference","diff":"hard","a":"Tantangan terbesar Aisha adalah menentukan visual dan tone of voice yang pas agar tidak terlihat 'memaksa' jualan, terutama karena target marketnya spesifik.","s":"1","x":false},{"id":"q002","q":"Apa tantangan utama yang dihadapi Aisha dan Dewi dalam proyek kampanye untuk brand fashion lokal di awal Januari?","type":"factual_recall","diff":"easy","a":"Tantangan utamanya adalah mencari titik temu antara citra brand yang 'lokal' dengan keinginan klien untuk tampilan 'internasional'. Mereka kesulitan menentukan visual dan copy yang pas agar tidak terkesan 'maksa' dan khawatir tidak sesuai ekspektasi klien.","s":"2","x":false},{"id":"q003","q":"Siapa yang menyarankan Aisha untuk memilih konsep marketing 'lifestyle' untuk proyek Kopi Senja Pagi?","type":"factual_recall","diff":"easy","a":"Sahabatnya, Rizky, yang menyarankan konsep 'lifestyle' agar lebih 'jual mimpi' kepada audiens anak muda urban.","s":"3","x":false},{"id":"q004","q":"Apa nama kafe yang dikunjungi Aisha di Dago Atas dan apa keunikan kopi yang ia coba di sana?","type":"factual_recall","diff":"easy","a":"Nama kafenya adalah 'Sudut Tenang'. Keunikan kopinya adalah signature coffee yang menggunakan rempah seperti jahe dan kayu manis.","s":"4","x":false},{"id":"q005","q":"Metode manajemen prioritas apa yang Aisha pelajari dari buku dan bagaimana ia berencana menerapkannya pada pekerjaannya?","type":"factual_recall","diff":"medium","a":"Aisha mempelajari konsep matriks Eisenhower, yang memisahkan tugas menjadi kategori seperti 'Penting & Mendesak'. Ia berencana menerapkannya dengan mengkategorikan tugas-tugas dari proyek Kopi Senja Pagi, misalnya brainstorming konsep sebagai 'Penting & Gak Mendesak' dan follow-up influencer sebagai 'Penting & Mendesak'.","s":"5","x":false},{"id":"q006","q":"Apa tantangan baru yang muncul setelah meeting pertama Aisha dengan klien Kopi Senja Pagi?","type":"factual_recall","diff":"easy","a":"Tantangan barunya adalah timeline yang sangat cepat. Klien ingin kampanye tersebut sudah harus diluncurkan pada bulan berikutnya (Februari), sehingga Aisha dan Dewi harus bekerja dengan cepat.","s":"6","x":false},{"id":"q007","q":"Apa ide kampanye yang diusulkan oleh chatbot sebagai jalan tengah antara ide Aisha dan Dewi untuk Kopi Senja Pagi?","type":"factual_recall","diff":"medium","a":"Chatbot mengusulkan ide 'open submission' di media sosial, di mana followers diajak untuk mengirim cerita mereka. Cerita terbaik akan dijadikan konten. Ide ini menggabungkan konsep 'relatable' dari Dewi dan konsep 'humanis' dari Aisha.","s":"7","x":false},{"id":"q008","q":"Mengapa Aisha mengalami creative block saat mengerjakan proyek brand fashion, meskipun idenya sedang lancar untuk proyek Kopi Senja Pagi?","type":"inference","diff":"medium","a":"Aisha mengalami creative block untuk proyek fashion karena ia terjebak dalam dilema antara konsep yang terlalu 'aman' (seperti gaya lama brand) dan yang terlalu 'edgy' (untuk audiens baru). Ia kesulitan menemukan keseimbangan yang pas, sementara untuk proyek kopi, ia merasa lebih 'klik' secara personal sehingga idenya lebih mengalir.","s":"8","x":false},{"id":"q009","q":"Bagaimana saran spesifik dari Rizky Firmansyah di Session 9 membantu Aisha dan Dewi mengatasi creative block yang mereka alami di Session 8 terkait proyek fashion?","type":"multi_hop","diff":"medium","a":"Di Session 8, Aisha mengalami creative block karena terjebak antara konsep 'aman' dan 'edgy'. Di Session 9, Rizky menyarankan mereka untuk berhenti memikirkan visual dan fokus pada 3 kata yang merepresentasikan koleksi tersebut. Saran ini membantu mereka menemukan kata kunci 'Berani', 'Urban', dan 'Akar' yang menjadi fondasi konsep visual baru yang lebih solid.","s":"9, 8","x":true},{"id":"q010","q":"Bagaimana kunjungan Aisha ke Dago Atas untuk hobi fotografinya secara tidak langsung memberikan ide baru untuk kampanye Kopi Senja Pagi?","type":"inference","diff":"medium","a":"Saat berada di Dago Atas untuk refreshing dan fotografi landscape, suasana alam di sana menginspirasi Aisha untuk mengembangkan konsep kampanye Kopi Senja Pagi menjadi lebih 'grounded'. Ia terpikir untuk membuat konten yang menunjukkan kopi dinikmati di alam, tidak hanya di perkotaan atau kafe, sehingga memperluas target audiens.","s":"10","x":false},{"id":"q011","q":"Apa karya seni spesifik yang dilihat Aisha di pameran seni di Braga yang menjadi inspirasi visual utama untuk konsep 'Berani, Urban, Akar'?","type":"factual_recall","diff":"medium","a":"Aisha melihat sebuah lukisan abstrak yang menggunakan teknik mixed media. Lukisan tersebut memiliki latar tekstur beton kasar ('Urban'), sapuan cat warna tanah ('Akar'), dan cipratan cat neon shocking pink ('Berani'). Kombinasi ini menjadi visualisasi sempurna dari konsep mereka.","s":"11","x":false},{"id":"q012","q":"Bagaimana matriks Eisenhower yang dipelajari Aisha di Session 5 membantunya dalam mengelola proyek fashion dan Kopi Senja Pagi secara bersamaan?","type":"multi_hop","diff":"medium","a":"Di Session 5, Aisha mempelajari matriks Eisenhower untuk manajemen prioritas. Di Session 12, ia secara eksplisit menyebutkan bahwa matriks tersebut sangat berguna. Ia menggunakannya untuk memprioritaskan penyelesaian proyek fashion terlebih dahulu, sementara riset influencer untuk Kopi Senja Pagi bisa menunggu, sehingga fokusnya tidak terpecah.","s":"12, 5","x":true},{"id":"q013","q":"Apa alasan utama yang membuat Aisha dan Dewi mulai mempertimbangkan untuk merekrut staf baru untuk agensi mereka?","type":"inference","diff":"easy","a":"Setelah proposal untuk proyek fashion disetujui, beban kerja agensi mereka meningkat secara signifikan. Mereka sadar bahwa untuk bisa terus berkembang dan agar mereka bisa lebih fokus pada strategi besar, mereka membutuhkan bantuan untuk menangani tugas-tugas eksekusi harian.","s":"13","x":false},{"id":"q014","q":"Apa yang menyebabkan Aisha menunda rencana rekrutmen staf baru yang sebelumnya sudah ia diskusikan dengan Dewi?","type":"factual_recall","diff":"easy","a":"Aisha menunda rencana rekrutmen setelah menerima email tagihan bulanan agensi yang angkanya lebih besar dari biasanya. Hal ini membuatnya ragu dan overthinking mengenai kestabilan finansial agensi untuk menambah pengeluaran tetap seperti gaji karyawan baru.","s":"14","x":false},{"id":"q015","q":"Bagaimana workshop fotografi human interest yang diikuti Aisha mempengaruhi idenya untuk kampanye Kopi Senja Pagi?","type":"inference","diff":"medium","a":"Workshop tersebut menginspirasi Aisha untuk membuat kampanye Kopi Senja Pagi menjadi lebih otentik dan memiliki 'jiwa'. Ia terpikir untuk tidak hanya menampilkan produk, tetapi juga mengangkat cerita dari orang-orang di baliknya, seperti para barista atau petani kopi, dengan menggunakan pendekatan fotografi human interest untuk menangkap emosi yang jujur.","s":"15","x":false},{"id":"q016","q":"Apa nama proyek fotografi personal yang direncanakan Aisha dan dari mana ia berencana memulai proyek tersebut?","type":"factual_recall","diff":"easy","a":"Nama proyeknya adalah 'wajah-wajah di balik secangkir kopi'. Ia berencana untuk memulai proyek tersebut dari kafe 'Sudut Tenang' yang pernah ia kunjungi sebelumnya.","s":"16","x":false},{"id":"q017","q":"Mengapa proposal dari klien fashion baru (modest wear) membuat Aisha merasa khawatir meskipun ia senang mendapatkannya?","type":"inference","diff":"medium","a":"Aisha khawatir karena ia sadar kapasitas timnya saat ini terbatas. Mereka belum jadi merekrut orang baru dan baru saja pusing karena masalah keuangan. Ia takut agensinya akan keteteran jika mengambil proyek besar lagi, terutama jika timeline-nya berbenturan dengan proyek Kopi Senja Pagi yang sedang berjalan.","s":"17","x":false},{"id":"q018","q":"Apa permintaan spesifik dari klien E21 yang membuat scope pekerjaannya lebih besar dari yang Aisha dan Dewi perkirakan semula?","type":"factual_recall","diff":"easy","a":"Klien E21 meminta adanya produksi video series untuk TikTok & Reels. Permintaan ini lebih besar dari perkiraan awal Aisha dan Dewi yang mengira proyek tersebut hanya membutuhkan kampanye foto.","s":"18","x":false},{"id":"q019","q":"Jika Aisha dan Dewi memutuskan untuk menolak proyek E21 karena profit yang tipis, apa dampak negatif potensial bagi agensi mereka?","type":"counterfactual","diff":"medium","a":"Jika mereka menolak proyek E21, mereka akan kehilangan kesempatan untuk mendapatkan portofolio video series yang sangat berharga. Seperti yang disinggung oleh Rizky, proyek ini bisa menjadi 'loss leader project' yang dapat digunakan untuk menarik klien-klien yang lebih besar di masa depan. Menolaknya berarti kehilangan momentum untuk naik kelas.","s":"19","x":false},{"id":"q020","q":"Apa tanda-tanda fisik dan mental yang menunjukkan bahwa Aisha sedang mengalami burnout di Session 20?","type":"inference","diff":"easy","a":"Secara fisik, Aisha merasa lelah dan bahkan merasa mual saat melihat laptop. Secara mental, ia merasa pikirannya sudah berada di batasnya, tidak bisa mengambil keputusan final soal proyek E21, dan merasa bingung karena merasa butuh jeda tetapi pekerjaan tidak bisa ditinggalkan.","s":"20","x":false},{"id":"q021","q":"Bagaimana pertemuan dengan Rizky di kafe 'Sudut Tenang' membantu Aisha pulih dari burnout yang dialaminya?","type":"inference","diff":"medium","a":"Pertemuan tersebut membantu Aisha pulih karena ia bisa benar-benar melepaskan diri dari pikiran pekerjaan. Mereka tidak membahas pekerjaan sama sekali, melainkan membicarakan hal-hal random dan nostalgia masa kuliah. Interaksi sosial yang ringan dan menyenangkan dengan sahabat di tempat yang nyaman ini berfungsi sebagai 'reset' mental, memberinya energi baru untuk menghadapi pekerjaan keesokan harinya.","s":"21","x":false},{"id":"q022","q":"Mengapa proyek fotografi personal Aisha 'wajah-wajah di balik secangkir kopi' menjadi prioritas yang lebih rendah setelah proposal E21 diterima?","type":"inference","diff":"medium","a":"Proyek fotografi personal tersebut ditunda karena proyek E21 merupakan proyek klien yang besar dan mendesak dengan scope pekerjaan yang signifikan (video series). Aisha sadar bahwa proyek E21 akan menyita banyak waktu dan energi, sehingga ia harus memprioritaskan komitmen kepada klien demi portofolio dan kelangsungan agensi, menempatkan proyek passion-nya sebagai sesuatu yang bisa dikerjakan nanti.","s":"22","x":false},{"id":"q023","q":"Apa saran yang diberikan Dewi kepada Aisha sebagai pendekatan awal untuk proyek foto personal 'wajah-wajah di balik secangkir kopi'?","type":"factual_recall","diff":"easy","a":"Dewi menyarankan Aisha untuk menjadi pelanggan setia terlebih dahulu di kafe targetnya (Sudut Tenang) agar bisa membangun keakraban dengan para barista sebelum mulai memotret. Tujuannya adalah agar pendekatannya lebih natural dan tidak terkesan 'menodong'.","s":"23","x":false},{"id":"q024","q":"Bagaimana perasaan Aisha setelah proposal E21 diterima, dan mengapa perasaannya campur aduk?","type":"factual_recall","diff":"medium","a":"Aisha merasa sangat lega dan senang. Namun, perasaannya campur aduk karena setelah euforia, ia langsung teringat akan realita bahwa mereka benar-benar harus mengerjakan proyek dengan scope yang sangat besar, terutama bagian video series. Ada sedikit rasa 'waduh' atau kekhawatiran tentang bagaimana strategi eksekusinya.","s":"24","x":false},{"id":"q025","q":"Apa langkah pertama yang direncanakan Aisha dan Dewi setelah proyek E21 disetujui?","type":"factual_recall","diff":"easy","a":"Langkah pertama mereka adalah mengadakan kick-off meeting internal untuk memecah timeline dan membagi tugas. Prioritas utama mereka setelah itu adalah segera mencari videografer dan editor freelance yang sesuai dengan budget dan gaya E21.","s":"25","x":false},{"id":"q026","q":"Mengapa mendapatkan proyek E21 menjadi sebuah 'validasi' penting bagi agensi Aisha dan Dewi?","type":"inference","diff":"medium","a":"Proyek E21 menjadi validasi karena ini adalah proyek video series besar pertama mereka dari klien yang cukup signifikan. Keberhasilan mendapatkan proyek ini membuktikan bahwa agensi kecil mereka mampu bersaing dan dipercaya untuk menangani pekerjaan yang kompleks, yang meningkatkan kepercayaan diri mereka dan menjadi pencapaian penting dalam pertumbuhan agensi.","s":"26","x":false},{"id":"q027","q":"Apa kekhawatiran utama Aisha saat mempersiapkan materi untuk seminar UMKM pertamanya?","type":"factual_recall","diff":"easy","a":"Kekhawatiran utamanya adalah materi yang ia sampaikan kurang 'daging' atau tidak cukup aplikatif bagi para peserta UMKM. Ia juga merasa tertekan dan takut penjelasannya tidak mudah dimengerti atau ia akan nge-blank di tengah jalan.","s":"27","x":false},{"id":"q028","q":"Momen apa yang paling berkesan bagi Aisha dan Dewi saat acara launching produk kopi E7?","type":"factual_recall","diff":"easy","a":"Momen paling berkesan adalah ketika CEO dari brand kopi tersebut menghampiri mereka dan mengatakan bahwa kampanye yang mereka buat telah 'menaikkan standar' brand mereka. Pujian ini terasa seperti memenangkan sebuah piala bagi mereka.","s":"28","x":false},{"id":"q029","q":"Mengapa Aisha ragu dalam memilih studi kasus antara brand fashion dan brand kopi untuk materi seminarnya?","type":"inference","diff":"medium","a":"Aisha ragu karena kedua proyek tersebut memiliki tantangan yang unik dan ia ingin memastikan materi yang ia sampaikan paling relevan dan pesannya 'ngena' bagi audiens UMKM. Ia sadar bahwa relevansi studi kasus sangat bergantung pada latar belakang industri para peserta seminar, yang pada saat itu belum ia ketahui.","s":"29","x":false},{"id":"q030","q":"Jelaskan dilema yang dihadapi Aisha dan Dewi saat memilih videografer untuk proyek E21.","type":"factual_recall","diff":"medium","a":"Dilema mereka adalah memilih antara dua kandidat: satu yang portofolionya sangat bagus dan sinematik ('skill dewa') tetapi orangnya pasif saat diwawancara, dan satu lagi yang portofolionya bagus (standar profesional) tetapi orangnya sangat asik, komunikatif, dan proaktif dalam memberi ide. Mereka galau antara memprioritaskan hasil visual maksimal atau kelancaran proses kerja.","s":"30","x":false},{"id":"q031","q":"Apa alasan akhir Aisha dan Dewi memilih videografer yang komunikasinya lancar untuk proyek E21, dan bagaimana hal ini mempengaruhi rencana pengembangan agensi mereka?","type":"multi_hop","diff":"hard","a":"Mereka memilih videografer yang komunikatif dengan pertimbangan bahwa untuk proyek besar dan kejar tayang seperti E21, kelancaran proses kerja lebih krusial. Mereka beranggapan skill teknis masih bisa diarahkan, namun komunikasi yang buruk akan menghambat proyek. Pengalaman ini secara langsung memicu diskusi tentang pengembangan skill internal (in-house), di mana mereka berencana untuk mengikuti workshop agar tidak terlalu bergantung pada freelancer di masa depan.","s":"31, 30","x":true},{"id":"q032","q":"Bagaimana Aisha memastikan bahwa pilihannya untuk videografer proyek E21 adalah keputusan yang tepat?","type":"inference","diff":"easy","a":"Aisha merasa yakin dengan pilihannya setelah melakukan panggilan singkat dengan videografer terpilih. Dalam panggilan tersebut, videografer tersebut langsung menangkap vibe yang diinginkan, enak diajak diskusi, dan bahkan proaktif memberikan referensi visual yang out-of-the-box. Respons positif dan proaktif ini mengkonfirmasi bahwa memprioritaskan komunikasi adalah keputusan yang benar.","s":"32","x":false},{"id":"q033","q":"Apa ketakutan terbesar Aisha terkait seminar pertamanya, dan bagaimana ia berencana mengatasinya?","type":"factual_recall","diff":"medium","a":"Ketakutan terbesarnya adalah sesi Q&A, di mana ia khawatir mendapat pertanyaan sulit yang tidak bisa ia jawab dan akan mempermalukan agensinya. Untuk mengatasinya, ia berencana membuat daftar 'nightmare questions' atau pertanyaan tersulit yang mungkin muncul dan menyiapkan jawabannya, serta berlatih presentasi di depan Dewi untuk mendapatkan feedback langsung.","s":"33","x":false},{"id":"q034","q":"Bagaimana pengalaman Aisha di seminar pertamanya berbeda dari ekspektasi dan ketakutannya?","type":"inference","diff":"easy","a":"Ekspektasi Aisha adalah ia akan sangat gugup, kaku, dan mungkin nge-blank, terutama saat sesi tanya jawab. Kenyataannya, setelah mulai presentasi, ia merasa lebih mengalir. Sesi tanya jawab yang paling ia takutkan justru menjadi bagian yang paling asik dan seru karena antusiasme peserta, berbanding terbalik dengan kekhawatirannya.","s":"34","x":false},{"id":"q035","q":"Apa pertanyaan dari peserta seminar yang paling berkesan bagi Aisha dan mengapa?","type":"factual_recall","diff":"medium","a":"Pertanyaan yang paling berkesan datang dari seorang ibu UMKM yang bertanya, 'Gimana caranya tetep kreatif kalo budget marketing kita mepet banget, Mbak?'. Pertanyaan ini sangat berkesan karena membuatnya teringat pada masa-masa awal ia dan Dewi merintis agensi dengan modal nekat, sehingga ia bisa menjawabnya dari hati dan pengalaman pribadi.","s":"35","x":false},{"id":"q036","q":"Bagaimana kesuksesan seminar yang diikuti Aisha di bulan Februari mempengaruhi rencana masa depan agensinya?","type":"multi_hop","diff":"medium","a":"Kesuksesan seminar di bulan Februari, terutama melihat antusiasme peserta UMKM saat sesi Q&A (Session 36), memicu ide untuk membuat workshop kecil-kecilan. Ide ini kemudian menjadi lebih serius dipertimbangkan (Session 39) dan menjadi salah satu rencana utama agensi untuk bulan Maret setelah rapat evaluasi (Session 49), menunjukkan bahwa pengalaman seminar tersebut membuka potensi layanan baru bagi agensinya.","s":"36, 39, 49","x":true},{"id":"q037","q":"Apa pertanyaan dari seorang ibu pemilik katering kecil yang membuat Aisha semakin yakin dengan ide membuat workshop UMKM?","type":"factual_recall","diff":"easy","a":"Ibu tersebut bertanya, 'Mbak, kalau modal kita buat iklan itu cuma seharga dua porsi nasi kotak, mending diapain ya?'. Pertanyaan yang sangat spesifik dan realistis ini menunjukkan adanya kebutuhan nyata akan bimbingan praktis bagi UMKM, yang meyakinkan Aisha bahwa workshop akan sangat bermanfaat.","s":"37","x":false},{"id":"q038","q":"Apa yang menjadi fokus utama Aisha dan Dewi setelah seminar selesai dan sebelum syuting E21 dimulai?","type":"factual_recall","diff":"easy","a":"Fokus utama mereka adalah persiapan syuting E21. Mereka mengadakan meeting final dengan videografer untuk menentukan shot list dan timeline detail, serta mengurus koordinasi jadwal dengan para talent.","s":"38","x":false},{"id":"q039","q":"Mengapa Aisha merasa deg-degan sekaligus excited menjelang syuting proyek E21?","type":"inference","diff":"easy","a":"Aisha merasa demikian karena ini adalah proyek video series pertama bagi agensinya. Perasaan deg-degan muncul dari tekanan dan tanggung jawab untuk menghasilkan karya yang bagus pada proyek perdana berskala besar ini, sementara rasa excited muncul karena ia tidak sabar untuk mengeksekusi ide-ide kreatifnya dan melihat hasilnya.","s":"39","x":false},{"id":"q040","q":"Scene atau adegan apa yang paling ditunggu-tunggu oleh Aisha untuk dieksekusi dalam syuting E21 dan mengapa?","type":"factual_recall","diff":"medium","a":"Scene yang paling ia tunggu adalah 'hero shot' di mana talent berjalan di tengah keramaian kota dengan ekspresi yang powerful. Adegan ini sangat penting baginya karena visualnya terinspirasi langsung dari pameran seni yang pernah ia kunjungi dan ia merasa adegan ini akan menjadi highlight utama dari keseluruhan video.","s":"40","x":false},{"id":"q041","q":"Bagaimana keberhasilan proyek E21 dan seminar UMKM secara berurutan mempengaruhi motivasi Aisha untuk tujuan pribadinya membeli apartemen?","type":"temporal_reasoning","diff":"hard","a":"Awalnya, motivasi membeli apartemen adalah tujuan jangka panjang (Session 1, 5). Setelah sukses memberikan seminar (Session 34), ia mulai lebih serius mencari info KPR bersama Rizky. Puncaknya adalah setelah syuting E21 berjalan lancar (Session 41), ia merasa 'oh, ternyata bisa ya', yang mengubah impian apartemen dari sesuatu yang abstrak menjadi tujuan yang konkret dan bisa dicapai. Keberhasilan profesional ini secara langsung menjadi bahan bakar dan validasi bahwa ia mampu mencapai tujuan finansial pribadinya.","s":"41, 34, 1","x":true},{"id":"q042","q":"Dari mana datangnya tawaran proyek freelance pertama yang diterima Aisha setelah seminarnya?","type":"factual_recall","diff":"easy","a":"Tawaran tersebut datang dari salah satu peserta seminar UMKM yang ia isi. Peserta tersebut terkesan dengan presentasi Aisha dan menawarinya proyek untuk memfoto produk UMKM-nya, yaitu sebuah brand kerudung.","s":"42","x":false},{"id":"q043","q":"Apa dilema utama Aisha terkait tawaran proyek foto freelance dan bagaimana ia berencana menyelesaikannya?","type":"factual_recall","diff":"medium","a":"Dilema utamanya adalah timeline yang mepet dan berbenturan dengan jadwal post-production proyek E21 yang padat. Ia takut jika memaksakan diri akan burnout atau hasilnya tidak maksimal. Ia berencana menyelesaikannya dengan mencoba menegosiasikan timeline dengan klien freelance tersebut, meminta pengunduran jadwal selama satu atau dua minggu.","s":"43","x":false},{"id":"q044","q":"Bagaimana hasil negosiasi Aisha dengan klien freelance UMKM mengenai jadwal pemotretan?","type":"factual_recall","diff":"easy","a":"Negosiasinya berhasil dengan sangat baik. Kliennya sangat pengertian dan setuju untuk mengundur jadwal pemotretan selama dua minggu dari rencana awal, sehingga Aisha bisa fokus menyelesaikan post-production E21 terlebih dahulu.","s":"44","x":false},{"id":"q045","q":"Bagaimana inspirasi dari pameran seni (Session 11) dan saran dari Rizky (Session 9) akhirnya terwujud dalam draft pertama video E21 (Session 45)?","type":"multi_hop","diff":"hard","a":"Saran Rizky di Session 9 melahirkan konsep 'Berani, Urban, Akar'. Inspirasi dari lukisan di pameran seni di Session 11 memberikan visualisasi konkret untuk konsep tersebut, terutama untuk 'hero shot'. Di Session 45, Aisha melihat draft pertama video E21 dan merasa sangat puas karena eksekusi 'hero shot' tersebut berhasil menangkap feel 'Berani, Urban, Akar' persis seperti yang ia bayangkan, menunjukkan bahwa kedua inspirasi dari sesi sebelumnya berhasil terwujud.","s":"45, 9, 11","x":true},{"id":"q046","q":"Apa konsep awal yang dipikirkan Aisha untuk proyek foto freelance-nya dan bagaimana ini mencerminkan gaya fotografinya?","type":"inference","diff":"medium","a":"Konsep awalnya adalah membuat foto produk yang 'clean' dan minimalis, namun dengan sentuhan 'human interest', seperti menggunakan properti tangan atau bayangan orang agar produknya lebih 'hidup'. Ini sangat mencerminkan gaya fotografinya yang cenderung bercerita dan otentik, tidak hanya fokus pada estetika produk semata, mirip dengan pendekatan pada proyek personalnya.","s":"46","x":false},{"id":"q047","q":"Bagaimana Aisha berencana membuat foto untuk klien UMKM kerajinan tangan agar tidak sekadar menjadi foto katalog biasa?","type":"factual_recall","diff":"easy","a":"Aisha berencana membuat foto yang 'bercerita' dengan tidak hanya menampilkan produknya, tetapi juga menyertakan sentuhan 'tangan' si pembuat. Ia ingin menangkap proses pembuatannya atau suasana di workshop untuk memberikan 'nyawa' dan kisah di balik setiap produk.","s":"47","x":false},{"id":"q048","q":"Bagaimana kolaborasi antara Aisha dan Dewi dalam proyek foto freelance untuk produk kerajinan tangan?","type":"inference","diff":"easy","a":"Dalam proyek ini, mereka berkolaborasi dengan pembagian peran yang jelas. Aisha lebih fokus pada eksekusi kreatif dan visual (fotografi), sementara Dewi membantu dalam aspek konseptual dan strategis. Mereka berdiskusi bersama untuk mematangkan ide, menunjukkan bahwa meskipun ini proyek fotografi, Dewi tetap terlibat dalam aspek strateginya.","s":"48","x":false},{"id":"q049","q":"Apa dua rencana besar agensi untuk bulan Maret setelah keberhasilan proyek E21?","type":"factual_recall","diff":"easy","a":"Dua rencana besar mereka adalah (1) mulai serius merealisasikan ide workshop untuk UMKM, dan (2) menjadi lebih proaktif dalam mencari klien baru yang sejenis dengan E21 untuk memperkuat portofolio video mereka.","s":"49","x":false},{"id":"q050","q":"Bagaimana saran dari Bapak Suryo Santoso mempengaruhi pendekatan Aisha dalam proyek fotografi personalnya?","type":"inference","diff":"medium","a":"Saran dari Bapak Suryo Santoso menekankan pentingnya membangun koneksi dengan subjek foto. Ini memperkuat pendekatan Aisha untuk tidak langsung 'menodong' kamera, melainkan meluangkan waktu untuk ngobrol santai dan membangun chemistry terlebih dahulu, seperti yang ia rencanakan dengan para pengrajin dan barista. Saran ini mengvalidasi metode pendekatan personal dan organik yang menjadi ciri khasnya.","s":"50","x":false},{"id":"q051","q":"Siapa nama klien proyek foto freelance produk kerajinan tangan, dan mengapa Aisha merasa visinya sejalan dengan klien tersebut?","type":"factual_recall","diff":"easy","a":"Nama kliennya adalah Bu Rina. Aisha merasa visinya sejalan karena Bu Rina juga tidak ingin fotonya sekadar menjadi katalog produk biasa, melainkan ingin ada 'jiwa' di dalamnya. Bu Rina sangat antusias dengan ide Aisha untuk memotret detail tangan pengrajin dan proses pembuatannya.","s":"51","x":false},{"id":"q052","q":"Bagaimana proyek foto dengan Bu Rina bisa menjadi studi kasus untuk ide workshop UMKM yang sedang direncanakan Aisha dan Dewi?","type":"inference","diff":"medium","a":"Proyek ini bisa menjadi studi kasus yang sempurna karena mencakup proses lengkap dari bagaimana sebuah brand UMKM dapat membangun citra yang otentik melalui storytelling visual. Aisha dapat menunjukkan proses dari brief awal, pengembangan konsep human interest, eksekusi foto, hingga hasil akhir yang tidak hanya menjual produk tetapi juga cerita di baliknya. Ini adalah contoh nyata dan aplikatif bagi peserta workshop.","s":"52","x":false},{"id":"q053","q":"Bagaimana Aisha dan Dewi berencana menyegarkan konten untuk klien lama mereka yang formulanya sudah ada?","type":"factual_recall","diff":"medium","a":"Mereka berencana menyegarkannya dengan pendekatan berbasis data. Pertama, mereka menganalisis performa konten 3 bulan terakhir untuk mencari pola. Berdasarkan data bahwa audiens lebih suka konten 'behind the scene', mereka akan memperbanyak konten jenis itu. Selain itu, terinspirasi dari seminar, mereka akan menambahkan sentuhan humanis dengan menyisipkan cerita dari staf klien.","s":"53","x":false},{"id":"q054","q":"Jika Aisha dan Dewi memutuskan untuk langsung mengundang praktisi dari luar untuk semua sesi training tim, apa keuntungan dan kerugiannya?","type":"counterfactual","diff":"hard","a":"Keuntungannya adalah tim akan mendapatkan insight industri terkini dari para ahli di bidangnya, dan beban persiapan materi bagi Aisha dan Dewi akan berkurang. Namun, kerugiannya adalah mereka akan kehilangan kesempatan untuk melatih skill leadership dan mengajar. Selain itu, materi dari praktisi luar mungkin kurang relevan dengan studi kasus dan alur kerja spesifik di agensi mereka, serta biayanya akan lebih besar dibandingkan jika mereka menangani sebagian sesi sendiri.","s":"54","x":false},{"id":"q055","q":"Apa struktur kurikulum yang disarankan oleh chatbot untuk workshop copywriting internal yang akan diadakan Aisha dan Dewi?","type":"factual_recall","diff":"easy","a":"Chatbot menyarankan struktur tiga sesi: sesi pertama membahas fundamental (teori seperti tone of voice dan riset audiens), sesi kedua adalah bedah studi kasus (penerapan teori pada proyek nyata seperti E21), dan sesi ketiga adalah praktik langsung di mana tim mencoba membuat copy untuk klien fiktif.","s":"55","x":false},{"id":"q056","q":"Apa tone warna yang ingin dicapai Aisha untuk foto-foto proyek Bu Rina dan mengapa?","type":"inference","diff":"easy","a":"Aisha ingin mencapai tone warna yang warm (hangat) dan natural. Pilihan ini bertujuan untuk menciptakan kesan yang otentik dan 'membumi', yang sesuai dengan produk kerajinan tangan yang memiliki 'jiwa' dan cerita. Tone hangat juga akan memperkuat emosi dan kehangatan dari para pengrajinnya.","s":"56","x":false},{"id":"q057","q":"Apa tantangan teknis utama yang dihadapi Aisha saat sesi foto pertama di workshop Bu Rina dan bagaimana ia mengatasinya?","type":"factual_recall","diff":"easy","a":"Tantangan teknis utamanya adalah pencahayaan di dalam workshop yang agak remang-remang. Ia mengatasinya dengan mencoba memanfaatkan cahaya natural dari jendela atau pintu, yang ternyata bisa membuat tekstur produk menjadi lebih dramatis.","s":"57","x":false},{"id":"q058","q":"Siapa nama salah satu pengrajin yang ceritanya sangat berkesan bagi Aisha, dan cerita apa yang disampaikannya?","type":"factual_recall","diff":"medium","a":"Nama pengrajin tersebut adalah Ibu Wati. Ia bercerita bahwa motif batik yang ia buat adalah warisan dari neneknya, dan setiap goresan canting yang ia buat terasa seperti sebuah doa. Cerita ini sangat berkesan bagi Aisha karena ia merasa berhasil menangkap 'jiwa' yang ia cari.","s":"58","x":false},{"id":"q059","q":"Apa konsep penataan interior apartemen studio yang paling menarik perhatian Aisha di pameran desain?","type":"factual_recall","diff":"easy","a":"Konsep yang paling menarik perhatiannya adalah penggunaan partisi kaca untuk memisahkan area tidur dan living room agar ruangan tetap terkesan luas, serta penggunaan furnitur multifungsi seperti meja kopi yang bisa menjadi meja makan kecil atau sofa yang bisa menjadi sofabed.","s":"59","x":false},{"id":"q060","q":"Bagaimana pameran desain interior (Session 59) dan proyek foto freelance (Session 58) secara bersamaan memperkuat motivasi Aisha untuk tujuan pribadinya?","type":"multi_hop","diff":"medium","a":"Proyek foto freelance yang sukses (Session 58, 60) memberinya kepuasan batin dan validasi atas passion-nya. Sementara itu, pameran desain interior (Session 59) memberinya visualisasi yang jelas dan konkret tentang apartemen impiannya. Kombinasi dari kepuasan kerja dan visualisasi tujuan ini secara signifikan memperkuat motivasinya untuk lebih serius menabung demi apartemen tersebut.","s":"60, 58, 59","x":true},{"id":"q061","q":"Apa tantangan utama dalam merancang kampanye video pendek untuk klien lama Aisha, dan apa ide awal untuk mengatasinya?","type":"factual_recall","diff":"medium","a":"Tantangan utamanya adalah bagaimana membuat brand yang sudah 'mapan' bisa terlihat asik dan relevan di platform seperti TikTok tanpa terkesan 'maksa' atau 'cringe'. Ide awal untuk mengatasinya adalah dengan membuat challenge atau menggunakan sound yang sedang viral tetapi di-twist agar sesuai dengan pesan brand.","s":"61","x":false},{"id":"q062","q":"Bagaimana hasil foto proyek freelance pertama Aisha untuk Bu Rina akan dimanfaatkan untuk pengembangan agensi di masa depan?","type":"inference","diff":"medium","a":"Hasil foto tersebut akan dimanfaatkan dalam dua cara utama. Pertama, akan dibuat menjadi photo series untuk portofolio agensi, menunjukkan kemampuan mereka dalam product photography dengan pendekatan storytelling. Kedua, proyek ini akan dijadikan studi kasus nyata dan materi ajar untuk workshop UMKM yang sedang mereka rencanakan, menunjukkan secara konkret bagaimana membangun branding visual yang otentik.","s":"62","x":false},{"id":"q063","q":"Apa konsep akhir yang disepakati tim Aisha untuk kampanye video pendek klien mereka agar tetap otentik?","type":"factual_recall","diff":"easy","a":"Konsep akhirnya adalah membuat seri konten 'a day in our workshop' yang menunjukkan proses di balik layar brand tersebut. Pendekatannya dibuat sinematik dengan storytelling yang kuat, mirip dengan pendekatan human interest, untuk menjaga 'jiwa' brand dan tidak hanya ikut-ikutan tren.","s":"63","x":false},{"id":"q064","q":"Bagaimana obrolan Aisha dengan Rizky Firmansyah memperkuat kembali fokusnya pada tujuan finansial pribadinya?","type":"inference","diff":"easy","a":"Obrolan dengan Rizky, yang suportif dan mengerti perjuangannya dari awal, berfungsi sebagai pengingat dan pendorong semangat. Rizky secara proaktif menanyakan kembali tentang rencana apartemen, yang membuat Aisha kembali termotivasi untuk lebih disiplin dalam menabung dan mengelola keuangan agensi.","s":"64","x":false},{"id":"q065","q":"Bagaimana Aisha menghubungkan penataan ruang yang efisien dengan manajemen kerja di agensinya?","type":"multi_hop","diff":"hard","a":"Setelah terinspirasi oleh furnitur multifungsi dan penataan ruang yang efisien di pameran desain (Session 59 & 65), Aisha berpikir untuk menerapkan prinsip 'efisiensi' yang sama ke alur kerja agensi. Ini menunjukkan kemampuannya untuk mentransfer konsep dari satu domain (desain interior) ke domain lain (manajemen kerja) untuk meningkatkan produktivitas timnya bersama Dewi.","s":"65, 59","x":true},{"id":"q066","q":"Jika klien menolak konsep kampanye TikTok berbasis 'sudut pandang karyawan junior', apa alternatif konsep yang kemungkinan akan Aisha dan Dewi usulkan?","type":"counterfactual","diff":"hard","a":"Jika konsep tersebut ditolak karena dianggap terlalu 'nyeleneh', kemungkinan Aisha dan Dewi akan kembali ke ide awal mereka yang lebih aman, seperti membuat challenge atau menggunakan sound viral yang di-twist (seperti dibahas di Session 61). Alternatif lain, mereka mungkin akan mengusulkan konsep 'behind the scenes' yang lebih fokus pada proses pembuatan produk secara sinematik, tanpa melibatkan karyawan sebagai talent utama, untuk menjaga citra brand yang lebih 'polished'.","s":"66, 61","x":true},{"id":"q067","q":"Apa ide 'audisi' yang direncanakan Aisha dan Dewi untuk mencari talent internal bagi kampanye TikTok klien mereka?","type":"factual_recall","diff":"easy","a":"Mereka berencana membuat semacam audisi kecil-kecilan yang menyenangkan di kantor klien untuk mencari karyawan internal yang tidak kaku di depan kamera dan memiliki kepribadian yang ceria, sesuai dengan vibe brand yang diinginkan.","s":"67","x":false},{"id":"q068","q":"Bagaimana perjalanan Aisha ke Yogyakarta direncanakan untuk mendukung proyek fotografi personalnya yang tertunda?","type":"inference","diff":"medium","a":"Perjalanan ke Yogyakarta direncanakan sebagai 'pemanasan' atau riset awal untuk proyek personalnya 'wajah-wajah di balik secangkir kopi'. Dengan mengunjungi tempat-tempat otentik seperti Bantul dan kedai kopi legendaris, ia berharap bisa mengumpulkan mood, inspirasi, dan mungkin menemukan subjek foto potensial, sehingga ketika proyeknya dilanjutkan secara resmi, ia sudah memiliki bahan dan energi kreatif yang baru.","s":"68","x":false},{"id":"q069","q":"Siapa yang akhirnya ditemukan sebagai talent untuk kampanye TikTok klien, dan mengapa penemuan ini melegakan bagi Aisha?","type":"factual_recall","diff":"easy","a":"Talent yang ditemukan adalah seorang anak dari tim marketing klien tersebut yang ternyata natural di depan kamera. Penemuan ini sangat melegakan bagi Aisha karena ia bisa berangkat liburan ke Yogyakarta dengan tenang, tanpa ada pikiran pekerjaan yang mengganjal terkait pencarian talent.","s":"69","x":false},{"id":"q070","q":"Apa saja persiapan yang dilakukan Aisha dan Dewi untuk hari pertama eksekusi kampanye TikTok?","type":"factual_recall","diff":"easy","a":"Persiapan mereka untuk hari pertama (kick-off) meliputi briefing talent, finalisasi skrip, dan menyiapkan properti untuk syuting keesokan harinya.","s":"70","x":false},{"id":"q071","q":"Mengapa perjalanan ke Yogyakarta menjadi penting bagi Aisha dari sudut pandang profesional dan personal?","type":"temporal_reasoning","diff":"medium","a":"Secara personal, perjalanan ini penting sebagai 'creative reset' setelah periode kerja yang padat (proyek E21, kampanye TikTok), memungkinkannya untuk mengerjakan hobi fotografinya (Session 71). Secara profesional, perjalanan ini secara tidak langsung menjadi sumber inspirasi visual (arsitektur Kotagede di Session 74) dan materi potensial untuk konten agensi, menunjukkan bagaimana waktu istirahat dapat mengisi kembali 'baterai' kreativitas yang penting untuk pekerjaannya.","s":"71, 74","x":true},{"id":"q072","q":"Apa yang Aisha beli secara impulsif sebelum berangkat ke Yogyakarta dan apa pemicunya?","type":"factual_recall","diff":"easy","a":"Aisha membeli beberapa perintilan untuk menata ulang sudut kerjanya, seperti rak dinding melayang dan storage box. Pemicunya adalah inspirasi yang ia dapatkan dari pameran desain interior yang ia kunjungi sebelumnya.","s":"72","x":false},{"id":"q073","q":"Apa tema dari seri foto kecil yang direncanakan Aisha dari hasil fotonya di Pasar Beringharjo?","type":"factual_recall","diff":"easy","a":"Aisha berencana membuat seri foto kecil dengan tema 'Senyum Pagi di Pasar'.","s":"73","x":false},{"id":"q074","q":"Bagaimana pengalaman Aisha di Yogyakarta, mulai dari hunting foto di pasar hingga melihat arsitektur, mempengaruhi visinya sebagai seorang kreator?","type":"temporal_reasoning","diff":"hard","a":"Perjalanan ke Yogyakarta mempertajam visinya sebagai kreator yang fokus pada otentisitas dan cerita. Awalnya di Pasar Beringharjo (Session 73), ia fokus menangkap emosi manusia ('Senyum Pagi di Pasar'). Kemudian, di Kotagede (Session 74), ia terkesima oleh detail arsitektur yang 'bercerita'. Pengalaman ini mengukuhkan identitas kreatifnya, bahwa baik dalam fotografi human interest maupun dalam melihat arsitektur, ia selalu mencari 'jiwa' dan narasi di baliknya, yang kemudian ia terapkan dalam strategi agensinya.","s":"74, 73","x":true},{"id":"q075","q":"Selain arsitektur, interaksi seperti apa yang menjadi fokus Aisha saat memotret di Candi Prambanan?","type":"factual_recall","diff":"easy","a":"Fokusnya adalah interaksi antara turis dengan arsitektur candi itu sendiri. Ia lebih tertarik memotret sisi human interest-nya daripada hanya arsitektur candi yang megah.","s":"75","x":false},{"id":"q076","q":"Bagaimana sudut kerja baru Aisha yang telah ditata ulang mempengaruhi motivasinya?","type":"inference","diff":"medium","a":"Sudut kerja yang lebih rapi, terang, dan personal memberikan dampak psikologis yang positif bagi Aisha. Secara langsung, ini meningkatkan mood dan semangat kerjanya. Secara tidak langsung, sudut kerja baru ini berfungsi sebagai 'pengingat visual' dan manifestasi kecil dari apartemen impiannya, sehingga memperkuat motivasinya untuk terus bekerja keras dan disiplin menabung.","s":"76","x":false},{"id":"q077","q":"Apa temuan utama dari analisis data awal kampanye TikTok, dan bagaimana tim Aisha berencana mengoptimalkannya?","type":"factual_recall","diff":"medium","a":"Temuan utamanya adalah video yang 'hook'-nya langsung menampilkan sisi humanis atau kelucuan talent mendapatkan views yang lebih tinggi, sementara video yang diawali dengan menunjukkan produk cenderung di-skip. Untuk mengoptimalkannya, mereka berencana merevisi skrip ke depan agar lebih menonjolkan talent dan sisi personalnya.","s":"77","x":false},{"id":"q078","q":"Foto spesifik apa dari perjalanan ke Yogyakarta yang paling berkesan bagi Aisha dan mengapa?","type":"factual_recall","diff":"easy","a":"Foto yang paling berkesan adalah foto candid seorang ibu penjual jamu di Pasar Beringharjo yang sedang tersenyum saat melayani pembeli. Foto ini sangat berkesan karena ia merasa berhasil menangkap 'nyawa' dari Jogja dalam satu frame dengan ekspresi yang tulus dan pencahayaan yang pas.","s":"78","x":false},{"id":"q079","q":"Bagaimana keberhasilan kampanye TikTok yang dioptimasi (Session 77) menjadi validasi untuk materi training internal 'Storytelling for Brands' (Session 79)?","type":"multi_hop","diff":"medium","a":"Di Session 77, data menunjukkan bahwa konten TikTok yang lebih humanis dan personal (menonjolkan talent) memiliki performa lebih baik. Keberhasilan ini menjadi validasi konkret bahwa storytelling otentik adalah kunci. Di Session 79, Aisha secara sadar menghubungkan temuan ini sebagai penguat materi untuk training internal 'Storytelling for Brands', membuktikan kepada timnya bahwa pendekatan yang akan ia ajarkan benar-benar efektif dan terbukti berhasil di proyek nyata.","s":"79, 77","x":true},{"id":"q080","q":"Apa nama brand home decor yang menawari Aisha proyek foto freelance kedua dan bagaimana mereka menemukannya?","type":"factual_recall","diff":"easy","a":"Nama brand-nya adalah 'Serat Alam'. Mereka menemukan Aisha setelah melihat hasil fotonya untuk proyek sebelumnya dengan Bu Rina.","s":"80","x":false},{"id":"q081","q":"Apa yang membuat Aisha memutuskan untuk menulis dan mempublikasikan blog post tentang perjalanannya ke Yogyakarta?","type":"inference","diff":"easy","a":"Aisha memutuskan untuk menulis blog post karena ia merasa sayang jika foto-foto dan pengalamannya hanya disimpan di hardisk. Ia melihat potensi untuk mengubah pengalamannya menjadi konten yang bisa bermanfaat dan memberikan inspirasi bagi orang lain, yang sejalan dengan profesinya sebagai content creator.","s":"81","x":false},{"id":"q082","q":"Apa ide optimasi baru yang dipikirkan Aisha dan Dewi untuk kampanye TikTok setelah video Q&A dianggap kurang 'nendang'?","type":"factual_recall","diff":"easy","a":"Mereka berpikir untuk membuat mini-series 'a day in the life' versi singkat dengan talent tersebut. Tujuannya adalah untuk menunjukkan sisi yang lebih personal dan 'manusiawi' dari brand, dengan menampilkan momen-momen kecil yang natural dalam keseharian si talent.","s":"82","x":false},{"id":"q083","q":"Jika Aisha tidak pernah mengunjungi pameran seni di Braga (Session 11), bagaimana kemungkinan konsep untuk proyek video E21 akan berbeda?","type":"counterfactual","diff":"hard","a":"Jika Aisha tidak mengunjungi pameran seni, ia tidak akan mendapatkan inspirasi visual yang kuat untuk 'hero shot' dari lukisan abstrak tersebut. Akibatnya, konsep visual untuk E21 mungkin akan kurang berani dan artistik. Mereka bisa jadi tetap terjebak dalam dilema antara 'aman' dan 'edgy' (Session 8) lebih lama, dan hasil akhirnya mungkin akan lebih konvensional atau tidak memiliki 'highlight' visual yang sekuat yang akhirnya mereka produksi.","s":"83, 8, 11, 41","x":true},{"id":"q084","q":"Mengapa negosiasi kontrak dengan Serat Alam terasa lebih mudah dan kolaboratif bagi Aisha?","type":"inference","diff":"easy","a":"Negosiasi terasa lebih mudah karena sejak awal visi kreatif antara Aisha dan Serat Alam sudah sejalan. Karena fondasi utamanya (visi) sudah sama, diskusi mengenai detail teknis dan angka menjadi lebih seperti mencari solusi bersama untuk mencapai tujuan yang sama, bukan adu argumen atau tawar-menawar yang alot.","s":"84","x":false},{"id":"q085","q":"Bagaimana buku tentang sejarah desain interior Indonesia mempengaruhi konsep foto Aisha untuk proyek Serat Alam?","type":"inference","diff":"medium","a":"Buku tersebut memberikan kedalaman filosofis pada konsep foto Aisha. Ia tidak lagi hanya melihat produk Serat Alam sebagai objek estetis, tetapi sebagai bagian dari warisan budaya dan kearifan lokal dalam penggunaan material. Ini menginspirasinya untuk mengangkat cerita di balik material dan prosesnya, membuat konsep fotonya menjadi lebih dari sekadar visual, tetapi juga sebuah narasi budaya.","s":"85","x":false},{"id":"q086","q":"Apa dua prioritas utama yang ingin Aisha ajarkan dalam workshop AI internal untuk timnya?","type":"counterfactual","diff":"medium","a":"Jika Aisha harus memilih dua prioritas utama dari diskusinya, ia kemungkinan akan fokus pada: 1) Pemanfaatan AI untuk analisis data audiens yang lebih mendalam, agar tim bisa menciptakan konten yang lebih personal dan efektif. 2) Penggunaan tools AI untuk efisiensi proses kreatif, seperti membantu brainstorming ide atau menulis draf awal copy, untuk mempercepat alur kerja.","s":"86, 93","x":true},{"id":"q087","q":"Bagaimana keberhasilan optimasi kampanye TikTok menjadi validasi bagi pendekatan storytelling yang diusung agensi Aisha?","type":"inference","diff":"medium","a":"Keberhasilan tersebut menjadi validasi karena membuktikan secara data bahwa audiens lebih merespons positif terhadap konten yang humanis dan personal (menampilkan talent) daripada konten yang hard-selling (menampilkan produk). Ini mengkonfirmasi hipotesis Aisha dan Dewi bahwa storytelling otentik adalah kunci untuk membangun engagement, dan memberikan mereka kepercayaan diri untuk terus menerapkan pendekatan ini di proyek-proyek selanjutnya.","s":"87","x":false},{"id":"q088","q":"Apa saja perkembangan positif yang dialami Aisha dari bulan Februari hingga April yang membuatnya semakin termotivasi untuk menabung demi apartemen?","type":"temporal_reasoning","diff":"hard","a":"Dari Februari hingga April, Aisha mengalami serangkaian keberhasilan: proyek E21 selesai dengan sukses (Feb), ia berhasil menjadi pembicara seminar (Feb), mendapatkan dua proyek foto freelance (Feb & Apr), dan memenangkan proposal klien besar baru (Apr). Rentetan keberhasilan profesional ini tidak hanya meningkatkan kepercayaan dirinya, tetapi juga secara nyata menstabilkan cash flow agensi, mengubah tujuan membeli apartemen dari sekadar mimpi menjadi target finansial yang semakin realistis dan dapat dicapai.","s":"88, 49, 80, 99","x":true},{"id":"q089","q":"Apa insight baru yang didapat Aisha dari webinar tentang AI di digital marketing?","type":"factual_recall","diff":"easy","a":"Insight baru yang paling menarik baginya adalah tentang personalisasi konten menggunakan AI. Ia belajar bahwa AI dapat membantu menganalisis data audiens secara lebih mendalam, sehingga memungkinkan pembuatan konten atau iklan yang super spesifik untuk setiap segmen audiens.","s":"89","x":false},{"id":"q090","q":"Gaya desain apa yang menjadi inspirasi utama Aisha untuk moodboard proyek 'Serat Alam', dan mengapa ia memilihnya?","type":"factual_recall","diff":"medium","a":"Gaya desain yang menjadi inspirasi utamanya adalah Japandi (Japanese-Scandinavian). Ia memilihnya karena gaya ini simpel, fungsional, namun tetap terasa hangat, yang ia rasa sangat cocok dengan filosofi produk 'Serat Alam' yang mengandalkan material alami dan kesederhanaan.","s":"90","x":false},{"id":"q091","q":"Apa ide 'paket' layanan baru yang didiskusikan Aisha dan Dewi untuk UMKM?","type":"factual_recall","diff":"easy","a":"Mereka mendiskusikan ide untuk membuat paket layanan bernama 'TikTok Starter Pack'. Paket ini dirancang untuk UMKM yang baru mau masuk ke TikTok dan sudah mencakup layanan lengkap mulai dari brainstorming konsep, produksi beberapa video awal, hingga pelatihan cara membaca insight dasar.","s":"91","x":false},{"id":"q092","q":"Perubahan apa pada sudut kerja Aisha yang paling membuatnya senang dan mengapa?","type":"inference","diff":"easy","a":"Perubahan yang paling membuatnya senang adalah sekarang semua kabel bisa disembunyikan. Hal ini penting baginya karena memberikan tampilan yang sangat rapi dan 'clean', yang sejalan dengan seleranya pada desain minimalis dan membantunya merasa lebih teratur dan fokus saat bekerja.","s":"92","x":false},{"id":"q093","q":"Bagaimana Aisha dan Dewi berencana membagi peran dalam workshop AI internal untuk tim mereka?","type":"factual_recall","diff":"medium","a":"Mereka berencana membagi peran agar seimbang antara konsep dan eksekusi. Aisha akan lebih fokus pada bagian strategis dan analisis data, sementara Dewi akan fokus pada penerapan praktisnya untuk copywriting dan ideasi konten.","s":"93","x":false},{"id":"q094","q":"Bagaimana Aisha menggunakan analogi dari buku desain interior untuk menjelaskan konsep AI kepada timnya?","type":"inference","diff":"hard","a":"Aisha berencana menggunakan analogi di mana AI adalah 'fondasi' data dari sebuah bangunan, sementara berbagai tools AI adalah 'furnitur' yang bisa dipilih sesuai kebutuhan. Analogi ini bertujuan untuk menyederhanakan konsep AI yang kompleks, membuatnya lebih mudah dipahami dan tidak terlalu teknis atau menakutkan bagi tim, dengan menghubungkannya ke konsep desain yang lebih familiar.","s":"94","x":false},{"id":"q095","q":"Bagaimana proyek foto Serat Alam akan digunakan sebagai materi untuk workshop UMKM yang direncanakan Aisha dan Dewi?","type":"factual_recall","diff":"medium","a":"Aisha berencana menggunakan foto-foto dari proyek Serat Alam sebagai contoh konkret tentang bagaimana cara 'bercerita' melalui visual produk. Ini akan melengkapi materi workshop yang tidak hanya fokus pada teori copywriting, tetapi juga menunjukkan penerapan storytelling visual yang kuat untuk branding UMKM.","s":"95","x":false},{"id":"q096","q":"Inspirasi apa yang didapat Aisha dari pameran seni kontemporer dan bagaimana ia menerapkannya pada post-produksi foto Serat Alam?","type":"factual_recall","diff":"medium","a":"Aisha terinspirasi oleh sebuah instalasi seni yang menggunakan benang warna-warni dan sorotan lampu untuk menciptakan bayangan yang artistik. Ia menerapkan inspirasi ini pada post-produksi foto Serat Alam dengan menjadi lebih berani memainkan kontras antara area terang dan bayangan, membuat produknya terlihat lebih 'hidup' dan dramatis.","s":"96","x":false},{"id":"q097","q":"Apa dilema strategis yang dihadapi Aisha dan Dewi mengenai arah masa depan agensi mereka setelah menerima proposal baru?","type":"inference","diff":"hard","a":"Dilema mereka adalah antara melanjutkan model bisnis yang sudah berjalan (siklus mengejar, mendapatkan, dan mengeksekusi klien baru untuk menjaga cash flow) atau beralih ke arah yang lebih sesuai dengan passion dan visi jangka panjang mereka (mengembangkan layanan baru seperti workshop UMKM yang lebih bermakna tapi memiliki ketidakpastian finansial). Ini adalah persimpangan jalan antara pertumbuhan kuantitatif (banyak klien) dan kualitatif (jenis layanan dan makna).","s":"97","x":false},{"id":"q098","q":"Jelaskan evolusi visi agensi Aisha dan Dewi, dari awal yang berfokus pada eksekusi proyek hingga visi yang lebih selektif dan berbasis storytelling.","type":"temporal_reasoning","diff":"hard","a":"Awalnya, agensi berfokus pada penyelesaian proyek yang datang, seperti kampanye skincare dan fashion (Session 1-2). Seiring waktu, terutama setelah keberhasilan proyek seperti E21 dan seminar UMKM (Session 34), mereka mulai menyadari kekuatan storytelling. Puncaknya adalah setelah proyek foto freelance dan refleksi di Session 97 & 98, visi mereka menjadi lebih tajam: mereka ingin lebih selektif, proaktif mendekati brand yang 'berjiwa', dan fokus pada proyek yang 'bercerita', bukan hanya mengejar angka atau klien semata.","s":"98, 2, 34, 97","x":true},{"id":"q099","q":"Apa self-reward yang dibeli Aisha untuk merayakan diterimanya proposal klien baru dan untuk melengkapi sudut kerja barunya?","type":"factual_recall","diff":"easy","a":"Sebagai self-reward dan untuk melengkapi sudut kerjanya, Aisha membeli beberapa tanaman hias indoor agar suasana ruang kerjanya menjadi lebih segar.","s":"99","x":false},{"id":"q100","q":"Apa saja jenis tanaman hias yang dibeli Aisha untuk sudut kerjanya?","type":"factual_recall","diff":"easy","a":"Aisha membeli tanaman Monstera kecil dan Lidah Mertua.","s":"100","x":false}],"snip":[{"user":{"name":"Aisha Putri Santoso","age":28,"occupation":"Content Creator & Social Media Strategist (memiliki agensi kecil)","location":"Bandung, Indonesia","traits":["Kreatif","Adaptif","Optimis (cenderung melihat sisi baik)"],"hobbies":["Fotografi (terutama landscape dan human interest)","Eksplorasi kafe dan mencoba kopi baru"]},"secondary_personas":[{"name":"Rizky Firmansyah","relationship":"Sahabat lama (dari kuliah), bekerja di bank swasta"},{"name":"Dewi Lestari","relationship":"Rekan kerja (Partner di agensi Aisha)"},{"name":"Bapak Suryo Santoso","relationship":"Ayah"}]},[{"id":"E1","date":"2024-01-02","description":"Memulai proyek kampanye media sosial besar untuk klien baru, menuntut kreativitas tinggi.","caused_by":[]},{"id":"E9","date":"2024-01-10","description":"Mengalami creative block saat menyusun konsep visual untuk kampanye klien E1.","caused_by":["E1"]},{"id":"E12","date":"2024-01-13","description":"Mendapat inspirasi baru untuk konsep kampanye E1 setelah melihat pameran seni lokal dadakan.","caused_by":["E11"]},{"id":"E13","date":"2024-01-14","description":"Berhasil menyelesaikan draft konsep kampanye klien E1 dengan ide segar dan detail yang rapi.","caused_by":["E9","E12"]}],{"session_id":9,"date":"2024-01-11","relevant_events":[{"id":"E10","caused_by":["E9"]}],"turns":[{"speaker":"bot","text":"Hai Aisha, gimana kabarnya? Eh, aku jadi kepikiran obrolan kita kemarin soal *creative block* buat proyek fashion itu. Gimana, udah ada pencerahan …"},{"speaker":"user","text":"Hai jugaa! Kabar baik, tapi kepala masih agak ngebul wkwk. Bener bgt, seharian ini mikirin itu terus. Tapi tadi sore aku sempet telponan sama Rizky …"},{"speaker":"bot","text":"Wah, seneng dengernya! Kadang ngobrol sama sahabat emang jadi jalan keluar terbaik ya. Emang insight apa nih yang kamu dapet dari Rizky? Penasaran …"}],"summary":"Percakapan ini membahas tentang mengatasi *creative block* untuk proyek fashion. Aisha mendapat ide baru dari Rizky yang menyarankan untuk fokus pada tiga kata kunci esensial koleksi (\"Berani\", \"Urban\", \"Akar\") sebelum …"},{"session_id":9,"turn_id":1,"speaker":"user","factual":[{"fact":"Aisha Putri Santoso menelepon Rizky sore ini.","confidence":"high","category":"event"}],"entities_mentioned":[{"name":"Aisha Putri Santoso","type":"person"},{"name":"Rizky","type":"person"}]}],"stats":{"sessions":100,"turns":1143,"facts":3150,"events":80,"links":83,"queries":100,"from":"2024-01-01","to":"2024-04-28","types":{"inference":30,"factual_recall":52,"multi_hop":8,"counterfactual":5,"temporal_reasoning":5},"diffs":{"hard":13,"easy":46,"medium":41},"entNodes":29,"entEdges":80}};
+
+/* ================= helpers ================= */
+const $ = (s, r = document) => r.querySelector(s);
+const $$ = (s, r = document) => Array.from(r.querySelectorAll(s));
+const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+const REDUCED = typeof matchMedia !== 'undefined' && matchMedia('(prefers-reduced-motion: reduce)').matches;
+const C = { accent: '#a3431a', teal: '#1d6a73', green: '#2e6b44', ochre: '#8f5c08', blue: '#3b6389', cocoa: '#6e4a32', slate: '#5b6f7c', red: '#b0262a', mute: '#9b8670', line: '#b3a083', text: '#2a1c10', ring: '#fbf4e6' };
+
+function h(tag, attrs, ...kids) {
+  const el = document.createElement(tag);
+  for (const [k, v] of Object.entries(attrs || {})) {
+    if (v == null || v === false) continue;
+    if (k === 'class') el.className = v;
+    else if (k === 'text') el.textContent = v;
+    else if (k.startsWith('on') && typeof v === 'function') el.addEventListener(k.slice(2), v);
+    else el.setAttribute(k, v === true ? '' : v);
+  }
+  for (const kid of kids.flat(Infinity)) {
+    if (kid == null || kid === false) continue;
+    el.append(kid.nodeType ? kid : document.createTextNode(String(kid)));
+  }
+  return el;
+}
+const SVGNS = 'http://www.w3.org/2000/svg';
+function s(tag, attrs) {
+  const el = document.createElementNS(SVGNS, tag);
+  for (const [k, v] of Object.entries(attrs || {})) el.setAttribute(k, v);
+  return el;
+}
+function esc(t) { return String(t).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); }
+function mulberry32(a) { return function () { a |= 0; a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
+
+/* ================= fuzzy scoring (port of rapidfuzz fuzz.ratio family) ================= */
+function lcsLen(a, b) {
+  const n = a.length, m = b.length;
+  if (!n || !m) return 0;
+  let prev = new Array(m + 1).fill(0), cur = new Array(m + 1).fill(0);
+  for (let i = 1; i <= n; i++) {
+    for (let j = 1; j <= m; j++) cur[j] = a[i - 1] === b[j - 1] ? prev[j - 1] + 1 : Math.max(prev[j], cur[j - 1]);
+    [prev, cur] = [cur, prev];
+  }
+  return prev[m];
+}
+function ratio(a, b) {
+  if (!a.length && !b.length) return 100;
+  return 100 * 2 * lcsLen(a, b) / (a.length + b.length);
+}
+function tokenSortRatio(a, b) {
+  const f = x => x.split(/\s+/).filter(Boolean).sort().join(' ');
+  return ratio(f(a), f(b));
+}
+function partialOriented(sh, lo) {
+  let best = 0;
+  for (let i = 0; i + sh.length <= lo.length; i++) { best = Math.max(best, ratio(sh, lo.slice(i, i + sh.length))); if (best === 100) return 100; }
+  for (let k = 1; k < sh.length; k++) {
+    best = Math.max(best, ratio(sh, lo.slice(0, k)), ratio(sh, lo.slice(lo.length - k)));
+  }
+  return best;
+}
+function partialRatio(a, b) {
+  if (!a.length || !b.length) return (!a.length && !b.length) ? 100 : 0;
+  if (a.length === b.length) return Math.max(partialOriented(a, b), partialOriented(b, a));
+  return a.length < b.length ? partialOriented(a, b) : partialOriented(b, a);
+}
+/* mirrors FactGraph._resolve_entity in src/surreal/fact_graph.py */
+function scorePair(existing, incoming) {
+  const a = existing.toLowerCase(), b = incoming.toLowerCase();
+  const exact = a === b;
+  const sort = tokenSortRatio(b, a), part = partialRatio(b, a);
+  const sub = !!a && !!b && (b.includes(a) || a.includes(b));
+  let score = Math.max(sort, part);
+  if (sub) score = Math.max(score, 75);
+  const decision = exact ? 'exact' : score >= 85 ? 'merge' : score >= 60 ? 'llm' : 'new';
+  return { sort, part, sub, score, exact, decision };
+}
+
+/* ================= entity dedup pass over a co-mention graph ================= */
+function dedupEntities(nodes, edges) {
+  const canon = [], map = new Map(), log = [];
+  const f = x => Math.round(x * 10) / 10;
+  for (const nd of nodes) {
+    const name = nd.id;
+    const same = canon.find(c => c.name.toLowerCase() === name.toLowerCase());
+    if (same) { same.members.push(nd.id); same.n += nd.n; map.set(nd.id, same.id); continue; }
+    let best = null, bs = -1, bres = null;
+    for (const c of canon) { const r = scorePair(c.name, name); if (r.score > bs) { bs = r.score; best = c; bres = r; } }
+    if (best && bres.decision === 'merge') {
+      const longer = name.length > best.name.length;
+      log.push({ kind: 'merge', a: best.name, b: name, sort: f(bres.sort), part: f(bres.part), score: f(bres.score), canon: longer ? name : best.name });
+      best.members.push(nd.id); best.n += nd.n; map.set(nd.id, best.id);
+      if (longer) best.name = name;
+    } else {
+      if (best && bres.decision === 'llm') log.push({ kind: 'llm', a: best.name, b: name, sort: f(bres.sort), part: f(bres.part), score: f(bres.score) });
+      canon.push({ id: nd.id, name, n: nd.n, type: nd.type, first: nd.first, members: [nd.id] });
+      map.set(nd.id, nd.id);
+    }
+  }
+  const acc = new Map();
+  for (const e of edges) {
+    const a = map.get(e.s), b = map.get(e.t);
+    if (a === b) continue;
+    const k = a < b ? a + '\u0000' + b : b + '\u0000' + a;
+    acc.set(k, (acc.get(k) || 0) + e.w);
+  }
+  const outEdges = [...acc].map(([k, w]) => { const [a, b] = k.split('\u0000'); return { s: a, t: b, w }; });
+  return { nodes: canon, edges: outEdges, log, map };
+}
+
+/* ================= Louvain (weighted, undirected) ================= */
+function louvainOnce(ids, edges, seed) {
+  const rng = mulberry32(seed);
+  const idx = new Map(ids.map((id, i) => [id, i]));
+  const n0 = ids.length;
+  let adj = Array.from({ length: n0 }, () => new Map());
+  let self = new Array(n0).fill(0);
+  let m = 0;
+  for (const e of edges) {
+    const a = idx.get(e.s), b = idx.get(e.t);
+    if (a == null || b == null || a === b) continue;
+    adj[a].set(b, (adj[a].get(b) || 0) + e.w); adj[b].set(a, (adj[b].get(a) || 0) + e.w); m += e.w;
+  }
+  const m2 = 2 * m;
+  let members = Array.from({ length: n0 }, (_, i) => [i]);
+  if (!m) return { comm: ids.map((_, i) => i), Q: 0 };
+  for (;;) {
+    const n = adj.length;
+    const deg = adj.map((mp, i) => { let d = 2 * self[i]; for (const w of mp.values()) d += w; return d; });
+    const comm = Array.from({ length: n }, (_, i) => i);
+    const tot = deg.slice();
+    let moved = false, improved = true, guard = 0;
+    while (improved && guard++ < 50) {
+      improved = false;
+      const order = Array.from({ length: n }, (_, i) => i);
+      for (let i = n - 1; i > 0; i--) { const j = Math.floor(rng() * (i + 1)); [order[i], order[j]] = [order[j], order[i]]; }
+      for (const i of order) {
+        const ci = comm[i], ki = deg[i];
+        const nb = new Map();
+        for (const [j, w] of adj[i]) nb.set(comm[j], (nb.get(comm[j]) || 0) + w);
+        tot[ci] -= ki;
+        let best = ci, bg = (nb.get(ci) || 0) - tot[ci] * ki / m2;
+        for (const [c, w] of nb) { const g = w - tot[c] * ki / m2; if (g > bg + 1e-12) { bg = g; best = c; } }
+        tot[best] += ki; comm[i] = best;
+        if (best !== ci) { improved = true; moved = true; }
+      }
+    }
+    if (!moved) break;
+    const relabel = new Map(); comm.forEach(c => { if (!relabel.has(c)) relabel.set(c, relabel.size); });
+    const k = relabel.size;
+    const nadj = Array.from({ length: k }, () => new Map()), nself = new Array(k).fill(0), nmem = Array.from({ length: k }, () => []);
+    for (let i = 0; i < n; i++) {
+      const ci = relabel.get(comm[i]);
+      nmem[ci].push(...members[i]);
+      nself[ci] += self[i];
+      for (const [j, w] of adj[i]) {
+        const cj = relabel.get(comm[j]);
+        if (ci === cj) { if (i < j) nself[ci] += w; }
+        else nadj[ci].set(cj, (nadj[ci].get(cj) || 0) + w);
+      }
+    }
+    adj = nadj; self = nself; members = nmem;
+    if (k === 1) break;
+  }
+  const comm = new Array(n0);
+  members.forEach((mem, c) => mem.forEach(i => { comm[i] = c; }));
+  return { comm, Q: modularity(ids, edges, comm) };
+}
+function modularity(ids, edges, comm) {
+  const idx = new Map(ids.map((id, i) => [id, i]));
+  let m = 0; const deg = new Array(ids.length).fill(0), inn = {};
+  for (const e of edges) {
+    const a = idx.get(e.s), b = idx.get(e.t); if (a == null || b == null || a === b) continue;
+    m += e.w; deg[a] += e.w; deg[b] += e.w;
+    if (comm[a] === comm[b]) inn[comm[a]] = (inn[comm[a]] || 0) + e.w;
+  }
+  const dc = {}; deg.forEach((d, i) => { dc[comm[i]] = (dc[comm[i]] || 0) + d; });
+  let Q = 0; for (const c of Object.keys(dc)) Q += (inn[c] || 0) / m - Math.pow(dc[c] / (2 * m), 2);
+  return Q;
+}
+function louvain(ids, edges, tries = 24) {
+  let best = null;
+  for (let sd = 1; sd <= tries; sd++) { const r = louvainOnce(ids, edges, sd * 7919); if (!best || r.Q > best.Q + 1e-9) best = r; }
+  // renumber communities by size (largest first)
+  const sizes = {}; best.comm.forEach(c => { sizes[c] = (sizes[c] || 0) + 1; });
+  const order = Object.keys(sizes).sort((a, b) => sizes[b] - sizes[a] || a - b);
+  const re = new Map(order.map((c, i) => [Number(c), i]));
+  return { comm: best.comm.map(c => re.get(c)), Q: best.Q, count: order.length };
+}
+
+/* ================= force-directed SVG graph ================= */
+class ForceGraph {
+  constructor(svg, o = {}) {
+    this.svg = svg;
+    this.o = Object.assign({
+      directed: false, charge: 340, linkDist: 58, linkLen: null, linkStrength: .32, gravity: .055, decay: .4, pad: 4,
+      minK: .35, maxK: 2.6, nodeStyle: () => ({}), edgeStyle: () => ({}), onSelect() {}, onHover() {}, labelOf: n => n.label,
+    }, o);
+    this.uid = 'fg' + Math.random().toString(36).slice(2, 7);
+    this.nodes = []; this.links = []; this.byId = new Map();
+    this.alpha = 0; this.raf = 0; this.ticks = 0; this.onscreen = true;
+    this.view = { x: 0, y: 0, k: 1 }; this.autoFit = true;
+    this.w = svg.clientWidth || 600; this.h = svg.clientHeight || 400;
+    this.rng = mulberry32(42);
+    this._build(); this._bind();
+  }
+  _build() {
+    const svg = this.svg; svg.textContent = '';
+    if (this.o.directed) {
+      const defs = s('defs');
+      for (const [k, c] of Object.entries({ base: C.mute, cause: C.ochre, effect: C.green })) {
+        const mk = s('marker', { id: `${this.uid}-${k}`, viewBox: '0 0 10 10', refX: 9, refY: 5, markerWidth: 6, markerHeight: 6, orient: 'auto' });
+        mk.append(s('path', { d: 'M0 1 L10 5 L0 9 z', fill: c })); defs.append(mk);
+      }
+      svg.append(defs);
+    }
+    this.gVp = s('g'); this.gE = s('g'); this.gN = s('g');
+    this.gVp.append(this.gE, this.gN); svg.append(this.gVp);
+  }
+  _pt(e) { const r = this.svg.getBoundingClientRect(); return { x: (e.clientX - r.left - this.view.x) / this.view.k, y: (e.clientY - r.top - this.view.y) / this.view.k, sx: e.clientX - r.left, sy: e.clientY - r.top }; }
+  _bind() {
+    const svg = this.svg;
+    svg.addEventListener('pointerdown', e => {
+      const el = e.target.closest('.node');
+      if (el && el._n) {
+        const n = el._n; this.drag = { n, sx: e.clientX, sy: e.clientY, moved: false };
+        n.fx = n.x; n.fy = n.y; try { el.setPointerCapture(e.pointerId); } catch (_) {}
+        this.autoFit = false; this.o.onHover(null); this.kick(.3); e.preventDefault();
+      } else if (e.pointerType === 'mouse' && e.button === 0) {
+        this.pan = { sx: e.clientX, sy: e.clientY, vx: this.view.x, vy: this.view.y, moved: false };
+        try { svg.setPointerCapture(e.pointerId); } catch (_) {}
+        svg.classList.add('panning');
+      }
+    });
+    svg.addEventListener('pointermove', e => {
+      if (this.drag) {
+        const d = this.drag;
+        if (!d.moved && Math.hypot(e.clientX - d.sx, e.clientY - d.sy) > 4) d.moved = true;
+        if (d.moved) { const p = this._pt(e); d.n.fx = p.x; d.n.fy = p.y; this.kick(.25); }
+      } else if (this.pan) {
+        const p = this.pan; p.moved = p.moved || Math.hypot(e.clientX - p.sx, e.clientY - p.sy) > 4;
+        this.view.x = p.vx + e.clientX - p.sx; this.view.y = p.vy + e.clientY - p.sy; this.autoFit = false; this._applyView();
+      } else if (e.pointerType === 'mouse') {
+        const el = e.target.closest && e.target.closest('.node');
+        this.o.onHover(el && el._n && !el._n.hidden ? el._n : null, e);
+      }
+    });
+    const up = e => {
+      if (this.drag) { const d = this.drag; this.drag = null; d.n.fx = d.n.fy = null; if (!d.moved) this.o.onSelect(d.n.id); this.kick(.1); }
+      else if (this.pan) { const p = this.pan; this.pan = null; svg.classList.remove('panning'); if (!p.moved) this.o.onSelect(null); }
+    };
+    svg.addEventListener('pointerup', up); svg.addEventListener('pointercancel', up);
+    svg.addEventListener('pointerleave', () => this.o.onHover(null));
+    svg.addEventListener('wheel', e => {
+      if (!(e.ctrlKey || e.metaKey)) return;
+      e.preventDefault(); const p = this._pt(e);
+      this.zoomBy(Math.exp(-e.deltaY * .0022), p.sx, p.sy);
+    }, { passive: false });
+    if (typeof ResizeObserver !== 'undefined') {
+      new ResizeObserver(() => {
+        const w = svg.clientWidth, h = svg.clientHeight; if (!w || !h) return;
+        this.w = w; this.h = h;
+        if (this.autoFit && this.nodes.length) { this.fit(false); }
+      }).observe(svg);
+    }
+    if (typeof IntersectionObserver !== 'undefined') {
+      new IntersectionObserver(en => { this.onscreen = en[0].isIntersecting; if (this.onscreen && this.alpha > .003) this._loop(); }).observe(svg);
+    }
+  }
+  setData(nodes, links) {
+    const old = this.byId; this.byId = new Map();
+    const R = Math.min(this.w, this.h) * .28;
+    this.nodes = nodes.map(n => {
+      const o = old.get(n.id);
+      if (o) { n.x = o.x; n.y = o.y; n.vx = 0; n.vy = 0; n.hidden = o.hidden; }
+      else {
+        const near = n.near && old.get(n.near);
+        if (near) { n.x = near.x + (this.rng() - .5) * 30; n.y = near.y + (this.rng() - .5) * 30; }
+        else { const a = this.rng() * 6.283, r = R * (.3 + .7 * Math.sqrt(this.rng())); n.x = this.w / 2 + Math.cos(a) * r; n.y = this.h / 2 + Math.sin(a) * r; }
+        n.vx = n.vy = 0; n.hidden = !!n.hidden;
+      }
+      n.fx = n.fy = null; this.byId.set(n.id, n); return n;
+    });
+    // merged nodes: start where their absorbed aliases were (smooth merge)
+    this.links = links.map(l => ({ ...l, s: this.byId.get(l.source), t: this.byId.get(l.target) })).filter(l => l.s && l.t);
+    this.gE.textContent = ''; this.gN.textContent = '';
+    for (const l of this.links) {
+      l.el = s('path', { class: 'edge', fill: 'none' }); this.gE.append(l.el);
+    }
+    for (const n of this.nodes) {
+      const g = s('g', { class: 'node' }); g._n = n;
+      n.circle = s('circle', { r: n.r }); n.text = s('text', { 'text-anchor': 'middle', dy: n.r + 11 }); n.text.textContent = this.o.labelOf(n);
+      g.append(n.circle, n.text); n.el = g; this.gN.append(g);
+    }
+    this._vis();
+    this.refreshStyle();
+    const pre = REDUCED ? 320 : 110; this.alpha = 1;
+    for (let i = 0; i < pre; i++) this._tick();
+    this.fit(false); this._draw(); this._labels();
+    this.kick(REDUCED ? 0 : .55);
+  }
+  _vis() {
+    this.vis = this.nodes.filter(n => !n.hidden);
+    for (const n of this.nodes) n.el.style.display = n.hidden ? 'none' : '';
+    for (const l of this.links) l.el.style.display = (l.s.hidden || l.t.hidden) ? 'none' : '';
+  }
+  setHidden(fn) {
+    let revealed = false;
+    for (const n of this.nodes) {
+      const hid = !!fn(n);
+      if (n.hidden && !hid) {
+        const near = n.near && this.byId.get(n.near);
+        if (near && !near.hidden) { n.x = near.x + (this.rng() - .5) * 26; n.y = near.y + (this.rng() - .5) * 26; }
+        n.vx = n.vy = 0; revealed = true;
+      }
+      n.hidden = hid;
+    }
+    this._vis(); this.kick(revealed ? .45 : .2);
+  }
+  refreshStyle() {
+    for (const n of this.nodes) {
+      const st = this.o.nodeStyle(n) || {};
+      n.el.style.opacity = st.opacity ?? 1; n.circle.style.fill = st.fill || n.color || C.accent;
+      n.circle.style.stroke = st.stroke || C.ring; n.circle.style.strokeWidth = st.sw ?? 1.5;
+      n.circle.setAttribute('r', st.r ?? n.r);
+      n._force = !!st.force; n._noLabel = !!st.noLabel;
+      n.text.textContent = this.o.labelOf(n);
+    }
+    for (const l of this.links) {
+      const st = this.o.edgeStyle(l) || {};
+      l.el.style.stroke = st.stroke || C.line; l.el.style.opacity = st.opacity ?? .55; l.el.style.strokeWidth = st.width ?? 1.2;
+      if (this.o.directed) l.el.setAttribute('marker-end', `url(#${this.uid}-${st.marker || 'base'})`);
+    }
+    this._labels(); this._draw();
+  }
+  kick(a = .3) { this.alpha = Math.max(this.alpha, a); this._loop(); }
+  _loop() {
+    if (this.raf || !this.onscreen) return;
+    const step = () => {
+      this.raf = 0;
+      if (this.alpha < .003 || !this.onscreen) { this._labels(); if (this.autoFit && !this.drag) this._lerpFit(1); return; }
+      this._tick(); this._draw();
+      if (this.autoFit && this.ticks % 3 === 0) this._lerpFit(.16);
+      if (this.ticks % 8 === 0) this._labels();
+      this.raf = requestAnimationFrame(step);
+    };
+    this.raf = requestAnimationFrame(step);
+  }
+  _tick() {
+    this.ticks++;
+    const a = this.alpha, V = this.vis, o = this.o, cx = this.w / 2, cy = this.h / 2;
+    for (let i = 0; i < V.length; i++) {
+      const A = V[i];
+      for (let j = i + 1; j < V.length; j++) {
+        const B = V[j]; let dx = B.x - A.x, dy = B.y - A.y, d2 = dx * dx + dy * dy;
+        if (d2 > 90000) continue;
+        if (d2 < 1) { dx = this.rng() - .5; dy = this.rng() - .5; d2 = dx * dx + dy * dy + .01; }
+        const w = o.charge * a / d2; A.vx -= dx * w; A.vy -= dy * w; B.vx += dx * w; B.vy += dy * w;
+        const min = A.r + B.r + o.pad, d = Math.sqrt(d2);
+        if (d < min) { const p = (min - d) / d * .5 * .6; A.x -= dx * p; A.y -= dy * p; B.x += dx * p; B.y += dy * p; }
+      }
+    }
+    for (const l of this.links) {
+      if (l.s.hidden || l.t.hidden) continue;
+      let dx = l.t.x - l.s.x, dy = l.t.y - l.s.y; const d = Math.sqrt(dx * dx + dy * dy) || 1;
+      const L = o.linkLen ? o.linkLen(l) : o.linkDist;
+      const k = (d - L) / d * a * o.linkStrength * .5;
+      l.s.vx += dx * k; l.s.vy += dy * k; l.t.vx -= dx * k; l.t.vy -= dy * k;
+    }
+    for (const n of V) {
+      const gm = (n.gm || 1) * o.gravity * a; n.vx += (cx - n.x) * gm; n.vy += (cy - n.y) * gm;
+      if (n.fx != null) { n.x = n.fx; n.y = n.fy; n.vx = n.vy = 0; }
+      else { n.vx *= 1 - o.decay; n.vy *= 1 - o.decay; n.x += n.vx; n.y += n.vy; }
+    }
+    this.alpha *= .984;
+  }
+  _draw() {
+    for (const l of this.links) {
+      if (l.s.hidden || l.t.hidden) continue;
+      let dx = l.t.x - l.s.x, dy = l.t.y - l.s.y; const d = Math.hypot(dx, dy) || 1; dx /= d; dy /= d;
+      const rs = l.s.r + 1, rt = l.t.r + (this.o.directed ? 4 : 1);
+      l.el.setAttribute('d', `M${(l.s.x + dx * rs).toFixed(1)} ${(l.s.y + dy * rs).toFixed(1)}L${(l.t.x - dx * rt).toFixed(1)} ${(l.t.y - dy * rt).toFixed(1)}`);
+    }
+    for (const n of this.vis) n.el.setAttribute('transform', `translate(${n.x.toFixed(1)} ${n.y.toFixed(1)})`);
+  }
+  _labels() {
+    const k = this.view.k, V = this.vis.filter(n => !n._noLabel);
+    V.sort((a, b) => ((b._force ? 1e6 : 0) + (b.imp ?? b.r)) - ((a._force ? 1e6 : 0) + (a.imp ?? a.r)));
+    const placed = [];
+    for (const n of V) {
+      const t = this.o.labelOf(n), w = (t.length * 5.9 + 6) / k, hh = 13 / k;
+      const rc = { x: n.x - w / 2, y: n.y + n.r + 1 / k, w, h: hh };
+      let ok = true;
+      if (!n._force) for (const p of placed) { if (rc.x < p.x + p.w && rc.x + rc.w > p.x && rc.y < p.y + p.h && rc.y + rc.h > p.y) { ok = false; break; } }
+      n.text.style.opacity = ok ? 1 : 0;
+      if (ok) placed.push(rc);
+    }
+    for (const n of this.vis) if (n._noLabel) n.text.style.opacity = 0;
+  }
+  _applyView() { this.gVp.setAttribute('transform', `translate(${this.view.x.toFixed(1)} ${this.view.y.toFixed(1)}) scale(${this.view.k.toFixed(4)})`); }
+  _fitTarget() {
+    const V = this.vis; if (!V.length) return { x: 0, y: 0, k: 1 };
+    let x0 = 1e9, y0 = 1e9, x1 = -1e9, y1 = -1e9;
+    for (const n of V) { x0 = Math.min(x0, n.x - n.r); x1 = Math.max(x1, n.x + n.r); y0 = Math.min(y0, n.y - n.r); y1 = Math.max(y1, n.y + n.r + 12); }
+    const pad = 36, bw = Math.max(x1 - x0, 40), bh = Math.max(y1 - y0, 40);
+    const k = clamp(Math.min((this.w - pad * 2) / bw, (this.h - pad * 2 - 16) / bh, 1.5), this.o.minK, this.o.maxK);
+    return { k, x: this.w / 2 - (x0 + x1) / 2 * k, y: (this.h - 16) / 2 - (y0 + y1) / 2 * k };
+  }
+  _lerpFit(f) { const t = this._fitTarget(), v = this.view; v.k += (t.k - v.k) * f; v.x += (t.x - v.x) * f; v.y += (t.y - v.y) * f; this._applyView(); }
+  fit(animate = true) {
+    this.autoFit = true; const t = this._fitTarget();
+    if (!animate || REDUCED) { this.view = t; this._applyView(); this._labels(); return; }
+    this.animateView(t, 320);
+  }
+  animateView(t, ms) {
+    const v0 = { ...this.view }, t0 = performance.now();
+    const step = now => {
+      const p = clamp((now - t0) / ms, 0, 1), e = 1 - Math.pow(1 - p, 3);
+      this.view = { x: v0.x + (t.x - v0.x) * e, y: v0.y + (t.y - v0.y) * e, k: v0.k + (t.k - v0.k) * e };
+      this._applyView(); if (p < 1) requestAnimationFrame(step); else this._labels();
+    };
+    requestAnimationFrame(step);
+  }
+  zoomBy(f, cx = this.w / 2, cy = this.h / 2) {
+    const v = this.view, k2 = clamp(v.k * f, this.o.minK, this.o.maxK), r = k2 / v.k;
+    v.x = cx - (cx - v.x) * r; v.y = cy - (cy - v.y) * r; v.k = k2; this.autoFit = false; this._applyView(); this._labels();
+  }
+}
+
+/* tooltip helper */
+function showTip(box, tip, html, e) {
+  tip.replaceChildren(...(Array.isArray(html) ? html : [html]));
+  const r = box.getBoundingClientRect();
+  let x = e.clientX - r.left + 14, y = e.clientY - r.top + 14;
+  tip.classList.add('show');
+  const tw = tip.offsetWidth, th = tip.offsetHeight;
+  if (x + tw > r.width - 8) x = e.clientX - r.left - tw - 14;
+  if (y + th > r.height - 8) y = e.clientY - r.top - th - 14;
+  tip.style.left = clamp(x, 8, Math.max(8, r.width - tw - 8)) + 'px'; tip.style.top = clamp(y, 8, Math.max(8, r.height - th - 8)) + 'px';
+}
+function hideTip(tip) { tip.classList.remove('show'); }
+
+if (typeof module !== 'undefined') module.exports = { scorePair, tokenSortRatio, partialRatio, ratio, dedupEntities, louvain, louvainOnce, modularity };
+
+/* ================= 01 · causal event graph ================= */
+function initEventGraph() {
+  const EV = DATA.events, byId = new Map(EV.map(e => [e.id, e]));
+  const kids = new Map(EV.map(e => [e.id, []])); EV.forEach(e => e.by.forEach(p => kids.get(p) && kids.get(p).push(e.id)));
+  const D0 = Date.UTC(2024, 0, 2), dayOf = d => Math.round((Date.parse(d) - D0) / 864e5), dateAt = i => new Date(D0 + i * 864e5).toISOString().slice(0, 10);
+  const maxDay = Math.max(...EV.map(e => dayOf(e.date)));
+  const MONTH = { '01': C.teal, '02': C.green, '03': C.ochre, '04': C.accent };
+  const deg = id => byId.get(id).by.length + kids.get(id).length;
+
+  const closure = (id, next) => { const seen = new Set(), st = [...next(id)]; while (st.length) { const x = st.pop(); if (seen.has(x)) continue; seen.add(x); st.push(...next(x)); } return seen; };
+  const anc = id => closure(id, x => byId.get(x).by), desc = id => closure(id, x => kids.get(x));
+  let sel = EV.map(e => e.id).sort((a, b) => (anc(b).size + desc(b).size) - (anc(a).size + desc(a).size))[0];
+  const st = { sel, q: '', day: maxDay, playing: false, A: anc(sel), D: desc(sel) };
+
+  const matches = () => { const q = st.q.trim().toLowerCase(); if (!q) return null; return new Set(EV.filter(e => e.text.toLowerCase().includes(q) || e.id.toLowerCase() === q).map(e => e.id)); };
+  let M = null;
+
+  const box = $('#g1-box'), tip = $('#g1-tip'), svg = $('#g1');
+  const g = new ForceGraph(svg, {
+    directed: true, charge: 380, linkDist: 46, linkStrength: .4, gravity: .07,
+    nodeStyle: n => {
+      const inChain = st.sel && (n.id === st.sel || st.A.has(n.id) || st.D.has(n.id));
+      let opacity = 1, stroke = C.ring, sw = 1.5, force = false;
+      if (st.sel) { if (!inChain) opacity = .22; if (n.id === st.sel) { stroke = C.text; sw = 3; force = true; } else if (st.A.has(n.id)) { stroke = C.ochre; sw = 2.6; force = true; } else if (st.D.has(n.id)) { stroke = C.green; sw = 2.6; force = true; } }
+      if (M) { if (M.has(n.id)) { opacity = 1; force = true; sw = Math.max(sw, 2.4); if (stroke === C.ring) stroke = C.text; } else opacity = Math.min(opacity, .14); }
+      return { opacity, stroke, sw, force };
+    },
+    edgeStyle: l => {
+      const a = l.s.id, b = l.t.id; let stroke = C.line, opacity = .5, width = 1.1, marker = 'base';
+      if (st.sel) {
+        const cause = (b === st.sel || st.A.has(b)) && st.A.has(a), effect = (a === st.sel || st.D.has(a)) && st.D.has(b);
+        if (cause) { stroke = C.ochre; opacity = .95; width = 2; marker = 'cause'; } else if (effect) { stroke = C.green; opacity = .95; width = 2; marker = 'effect'; } else opacity = .12;
+      }
+      if (M && !(M.has(a) || M.has(b))) opacity = Math.min(opacity, .08);
+      return { stroke, opacity, width, marker };
+    },
+    onSelect: id => { st.sel = id; recalc(); },
+    onHover: (n, e) => {
+      if (!n) return hideTip(tip);
+      const ev = byId.get(n.id);
+      showTip(box, tip, [h('span', { class: 'label', text: `${ev.id} · ${ev.date}` }), h('div', { text: ev.text })], e);
+    },
+  });
+  const nodes = EV.map(e => ({ id: e.id, label: e.id, r: clamp(5 + deg(e.id) * 1.7, 5.5, 13), color: MONTH[e.date.slice(5, 7)] || C.accent, near: e.by[0], imp: deg(e.id), gm: deg(e.id) ? 1 : 5, date: e.date }));
+  const links = []; EV.forEach(e => e.by.forEach(p => links.push({ source: p, target: e.id })));
+  g.setData(nodes, links);
+
+  function recalc() {
+    if (st.sel) { st.A = anc(st.sel); st.D = desc(st.sel); } else { st.A = new Set(); st.D = new Set(); }
+    M = matches(); g.refreshStyle(); renderCard(); renderStats();
+  }
+  function longest() {
+    const memo = new Map(), vis = id => dayOf(byId.get(id).date) <= st.day;
+    const d = id => { if (memo.has(id)) return memo.get(id); const ps = byId.get(id).by.filter(vis); const v = 1 + (ps.length ? Math.max(...ps.map(d)) : 0); memo.set(id, v); return v; };
+    return Math.max(0, ...EV.filter(e => vis(e.id)).map(e => d(e.id)));
+  }
+  function renderStats() {
+    const vis = EV.filter(e => dayOf(e.date) <= st.day), ids = new Set(vis.map(e => e.id));
+    const lk = vis.reduce((a, e) => a + e.by.filter(p => ids.has(p)).length, 0);
+    $('#g1-stats').replaceChildren(
+      ...[['Events', vis.length], ['Links', lk], ['Max chain', longest()]].map(([k, v]) => h('div', {}, h('b', { text: v }), h('span', { text: k }))));
+    $('#g1-count').textContent = M ? `${[...M].filter(id => ids.has(id)).length} match${M.size === 1 ? '' : 'es'} · ${vis.length} shown` : `${vis.length} / ${EV.length} events`;
+  }
+  function chip(id, cls) { const e = byId.get(id); return h('button', { class: 'chip ' + cls, type: 'button', title: `${e.date} — ${e.text}`, onclick: () => { st.sel = id; recalc(); } }, id); }
+  function renderCard() {
+    const c = $('#g1-card'); c.replaceChildren();
+    if (!st.sel) { c.append(h('span', { class: 'label', text: 'No event selected' }), h('p', { class: 'small', text: 'Click any node to trace what caused it and what it led to.' })); return; }
+    const e = byId.get(st.sel), pend = dayOf(e.date) > st.day;
+    c.append(
+      h('div', { class: 'row' }, h('span', { class: 'chip accent', text: e.id }), h('span', { class: 'chip', text: e.date }), pend ? h('span', { class: 'chip ochre', text: 'after cursor' }) : null),
+      h('p', { class: 'txt', text: e.text }),
+      h('div', { class: 'stack-s' }, h('span', { class: 'label', text: 'Caused by' }), e.by.length ? h('div', { class: 'link-list' }, e.by.map(id => chip(id, 'ochre'))) : h('span', { class: 'small muted', text: 'Root event — no recorded cause' })),
+      h('div', { class: 'stack-s' }, h('span', { class: 'label', text: 'Led to' }), kids.get(e.id).length ? h('div', { class: 'link-list' }, kids.get(e.id).map(id => chip(id, 'green'))) : h('span', { class: 'small muted', text: 'No downstream events' })),
+      h('p', { class: 'small muted', text: `Full chain: ${st.A.size} upstream · ${st.D.size} downstream` }));
+  }
+  function setDay(i) {
+    st.day = clamp(i, 0, maxDay); $('#g1-date').value = st.day; $('#g1-datelab').textContent = dateAt(st.day);
+    g.setHidden(n => dayOf(n.date) > st.day); g.refreshStyle(); renderCard(); renderStats();
+  }
+  const range = $('#g1-date'); range.max = maxDay; range.value = maxDay;
+  range.addEventListener('input', () => { stop(); setDay(+range.value); });
+  let timer = 0;
+  function stop() { clearInterval(timer); timer = 0; st.playing = false; $('#g1-play').textContent = '▶ Play timeline'; $('#g1-play').classList.remove('on'); }
+  $('#g1-play').addEventListener('click', () => {
+    if (st.playing) return stop();
+    if (st.day >= maxDay) setDay(0);
+    st.playing = true; $('#g1-play').textContent = '❚❚ Pause'; $('#g1-play').classList.add('on'); g.autoFit = true;
+    timer = setInterval(() => { if (st.day >= maxDay) return stop(); setDay(st.day + 1); }, REDUCED ? 30 : 95);
+  });
+  $('#g1-search').addEventListener('input', e => { st.q = e.target.value; recalc(); });
+  $('#g1-search').addEventListener('keydown', e => { if (e.key === 'Enter' && M && M.size) { st.sel = [...M][0]; recalc(); } });
+  $('#g1-zin').addEventListener('click', () => g.zoomBy(1.3)); $('#g1-zout').addEventListener('click', () => g.zoomBy(1 / 1.3)); $('#g1-fit').addEventListener('click', () => g.fit(true));
+  $('#g1-datelab').textContent = dateAt(maxDay);
+  recalc();
+  return g;
+}
+
+/* ================= 02 · bi-temporal timeline ================= */
+function initTimeline() {
+  const T = DATA.thread, D0 = Date.UTC(2024, 0, 1), N = 40;
+  const day = d => Math.round((Date.parse(d) - D0) / 864e5), dateAt = i => new Date(D0 + i * 864e5).toISOString().slice(0, 10);
+  const mon = ['Jan', 'Feb', 'Mar'], fmt = i => { const d = new Date(D0 + i * 864e5); return `${mon[d.getUTCMonth()]} ${d.getUTCDate()}`; };
+  const short = { F1: 'Collaboration offer', F2: 'First meeting', F3: 'Dewi picks a campaign idea', F4: 'Still researching influencers', F5: 'Timeline getting tight', F6: 'Product launch' };
+  const stateOf = (f, c) => c < day(f.date) ? 'future' : (f.invalid && c >= day(f.invalid)) ? 'stale' : 'active';
+  const root = $('#tl'); root.style.setProperty('--weeks', N / 7);
+  const ticks = h('div', { class: 'tl-ticks' }); [0, 7, 14, 21, 28, 35].forEach((i, k) => ticks.append(h('span', { class: k % 2 ? 't-odd' : '', style: `left:${i / N * 100}%`, text: fmt(i) })));
+  root.append(h('div', { class: 'tl-axis' }, h('div'), ticks));
+  const body = h('div', { class: 'tl-body' }); root.append(body);
+  const rows = T.map((f, k) => {
+    const a = day(f.date), b = f.invalid ? day(f.invalid) : N;
+    const bar = h('div', { class: 'tl-bar' + (f.invalid ? '' : ' open'), style: `left:${a / N * 100}%;width:${(b - a) / N * 100}%`, title: f.text });
+    const cap = f.invalid ? h('div', { class: 'tl-cap', style: `left:calc(${b / N * 100}% - 1px)` }) : null;
+    const cur = h('i', { class: 'tl-cursor' });
+    const track = h('div', { class: 'tl-track' }, bar, cap, cur);
+    body.append(h('div', { class: 'tl-row' }, h('div', { class: 'tl-name' }, h('span', { class: 'chip accent', text: f.id }), h('span', { text: short[f.id] })), track));
+    return { f, bar, cur, track };
+  });
+  const range = $('#tl-date'); range.min = 0; range.max = N; range.value = 19;
+  let c = 19;
+  const presets = $('#tl-presets');
+  [[6, 'Jan 7'], [19, 'Jan 20'], [32, 'Feb 2'], [34, 'Feb 4']].forEach(([i, t]) => presets.append(h('button', { type: 'button', 'data-d': i, text: t, onclick: () => set(i) })));
+
+  function set(i) {
+    c = clamp(Math.round(i), 0, N); range.value = c; $('#tl-datelab').textContent = dateAt(c);
+    $$('button', presets).forEach(b => b.classList.toggle('on', +b.dataset.d === c));
+    rows.forEach(r => {
+      const s = stateOf(r.f, c); r.bar.className = 'tl-bar' + (r.f.invalid ? '' : ' open') + (s === 'future' ? ' future' : s === 'stale' ? ' stale' : ' active');
+      r.cur.style.left = (c / N * 100) + '%';
+    });
+    const active = T.filter(f => stateOf(f, c) === 'active'), known = T.filter(f => stateOf(f, c) !== 'future'), stale = T.filter(f => stateOf(f, c) === 'stale');
+    $('#tl-compare').replaceChildren(
+      h('div', { class: 'good' }, h('span', { class: 'label', text: 'Tempograph · temporal filter' }), h('b', { text: active.length }), h('span', { class: 'small', text: `facts valid on ${dateAt(c)}` })),
+      h('div', { class: stale.length ? 'bad' : 'good' }, h('span', { class: 'label', text: 'Flat store · no validity window' }), h('b', { text: known.length }),
+        h('span', { class: 'small', text: stale.length ? `incl. ${stale.length} outdated: ${stale.map(f => f.id).join(', ')}` : 'nothing outdated yet — drag past Feb 3' })));
+    $('#tl-query').innerHTML =
+      `<span class="tok-c">-- $vb = ${dateAt(c)}T00:00:00Z</span>\n<span class="tok-k">SELECT</span> id, fact_text, valid_at, invalid_at\n<span class="tok-k">FROM</span> extracted_fact\n<span class="tok-k">WHERE</span> group_id = $gid\n  <span class="tok-k">AND</span> (valid_at <span class="tok-k">IS NONE OR</span> valid_at &lt;= $vb)\n  <span class="tok-k">AND</span> (invalid_at <span class="tok-k">IS NONE OR</span> invalid_at &gt; $vb);`;
+    $('#tl-badge').textContent = `${active.length} of ${T.length} valid`;
+    $('#tl-facts').replaceChildren(...T.map(f => {
+      const s = stateOf(f, c), chipCls = s === 'active' ? 'green' : s === 'stale' ? 'red' : '';
+      return h('div', { class: `fact ${s === 'active' ? 'is-active' : s === 'stale' ? 'is-stale dim' : 'dim'}` },
+        h('div', { class: 'row' }, h('span', { class: 'chip accent', text: f.id }), h('span', { class: 'chip', text: f.cat }), h('span', { class: 'chip ' + chipCls, text: s === 'active' ? 'valid' : s === 'stale' ? 'superseded' : 'not yet known' })),
+        h('div', { class: 't', text: f.text }),
+        h('div', { class: 'm' }, h('span', { text: `valid_at ${f.date}` }), h('span', { text: `invalid_at ${f.invalid || 'NONE'}` }), h('span', { text: f.src })));
+    }));
+  }
+  range.addEventListener('input', () => set(+range.value));
+  rows.forEach(r => {
+    const pos = e => { const b = r.track.getBoundingClientRect(); return clamp((e.clientX - b.left) / b.width, 0, 1) * N; };
+    r.track.style.cursor = 'ew-resize'; r.track.style.touchAction = 'pan-y';
+    r.track.addEventListener('pointerdown', e => { r.drag = true; try { r.track.setPointerCapture(e.pointerId); } catch (_) {} set(pos(e)); });
+    r.track.addEventListener('pointermove', e => { if (r.drag) set(pos(e)); });
+    r.track.addEventListener('pointerup', () => { r.drag = false; });
+  });
+  rows[0].cur.classList.add('dot');
+  set(c);
+}
+
+/* ================= 03 · maintenance lab ================= */
+function initEntityLab() {
+  const ENT = DATA.ent, box = $('#g2-box'), tip = $('#g2-tip'), svg = $('#g2');
+  const TYPE = { person: C.accent, place: C.green, organization: C.ochre, other: C.blue, event: C.teal };
+  const PAL = [C.accent, C.teal, C.ochre, C.green, C.blue, C.cocoa, C.slate];
+  const S = { stage: 'raw', comm: null, sel: null, nodes: ENT.nodes.map(n => ({ id: n.id, name: n.id, n: n.n, type: n.type, members: [n.id] })), edges: ENT.edges, nbr: new Map() };
+  const nbrOf = () => { S.nbr = new Map(S.nodes.map(n => [n.id, new Set()])); S.edges.forEach(e => { S.nbr.get(e.s).add(e.t); S.nbr.get(e.t).add(e.s); }); };
+  const col = n => S.comm ? PAL[S.comm.get(n.id) % PAL.length] : (TYPE[n.type] || C.blue);
+
+  const g = new ForceGraph(svg, {
+    charge: 520, linkLen: l => clamp(150 / Math.sqrt(l.w + 1), 42, 120), linkStrength: .3, gravity: .05,
+    labelOf: n => n.label,
+    nodeStyle: n => {
+      let opacity = 1, stroke = C.ring, sw = 1.5, force = false;
+      if (S.sel) { const on = n.id === S.sel || S.nbr.get(S.sel)?.has(n.id); opacity = on ? 1 : .2; if (n.id === S.sel) { stroke = C.text; sw = 3; force = true; } else if (on) force = true; }
+      return { opacity, stroke, sw, force, fill: col(n.data) };
+    },
+    edgeStyle: l => {
+      const same = S.comm && S.comm.get(l.s.id) === S.comm.get(l.t.id);
+      let opacity = S.comm ? (same ? .6 : .18) : .38, stroke = same ? PAL[S.comm.get(l.s.id) % PAL.length] : C.line;
+      if (S.sel) opacity = (l.s.id === S.sel || l.t.id === S.sel) ? .95 : .06;
+      return { stroke, opacity, width: clamp(.8 + Math.sqrt(l.w) * .6, 1, 4.5) };
+    },
+    onSelect: id => { S.sel = (id && id !== S.sel) ? id : null; g.refreshStyle(); },
+    onHover: (n, e) => {
+      if (!n) return hideTip(tip);
+      const d = n.data, kids = [h('span', { class: 'label', text: `${d.type} · ${d.n} mentions` }), h('div', { text: d.name })];
+      if (d.members.length > 1) kids.push(h('div', { class: 'small muted', text: 'merged: ' + d.members.join(' + ') }));
+      if (S.comm) kids.push(h('div', { class: 'small muted', text: `community ${S.comm.get(n.id) + 1}` }));
+      showTip(box, tip, kids, e);
+    },
+  });
+  function load() {
+    nbrOf();
+    const nodes = S.nodes.map(n => ({ id: n.id, label: n.name, r: clamp(4 + Math.sqrt(n.n) * 1.6, 5.5, 20), imp: n.n, color: col(n), data: n }));
+    g.setData(nodes, S.edges.map(e => ({ source: e.s, target: e.t, w: e.w })));
+    $('#eg-title').textContent = S.stage === 'raw' ? `${S.nodes.length} raw entities · ${S.edges.length} edges` : `${S.nodes.length} canonical entities · ${S.edges.length} edges`;
+    legend();
+  }
+  function legend() {
+    const L = $('#g2-legend'); L.replaceChildren();
+    if (!S.comm) { [['person', C.accent], ['place', C.green], ['organization', C.ochre], ['other', C.blue]].forEach(([k, c]) => L.append(h('span', {}, h('i', { style: `background:${c}` }), k))); return; }
+    const by = {}; S.nodes.forEach(n => { const c = S.comm.get(n.id); (by[c] = by[c] || []).push(n); });
+    Object.keys(by).forEach(c => L.append(h('span', {}, h('i', { style: `background:${PAL[c % PAL.length]}` }), `community ${+c + 1} · ${by[c].length}`)));
+  }
+  const log = $('#eg-log'), put = (...rows) => { log.replaceChildren(...rows); };
+  const bdg = $('#eg-badge');
+  function badge(t, cls) { bdg.textContent = t; bdg.className = 'chip ' + (cls || ''); }
+
+  function dedupPreview() { return dedupEntities(ENT.nodes.map(n => ({ id: n.id, n: n.n, type: n.type, first: n.first })), ENT.edges); }
+
+  $('#eg-dedup').addEventListener('click', () => {
+    if (S.stage === 'dedup') return;
+    const r = dedupPreview();
+    S.stage = 'dedup'; S.nodes = r.nodes.map(n => ({ id: n.id, name: n.name, n: n.n, type: n.type, members: n.members })); S.edges = r.edges; S.sel = null; S.comm = null;
+    load(); $('#eg-dedup').classList.add('done'); $('#eg-dedup').disabled = true; $('#eg-louvain').disabled = false; badge('deduplicated', 'green');
+    const merges = r.log.filter(l => l.kind === 'merge'), llm = r.log.filter(l => l.kind === 'llm').sort((a, b) => b.score - a.score);
+    const rows = [h('div', {}, h('b', { text: `${ENT.nodes.length - S.nodes.length} aliases merged` }), ` → ${S.nodes.length} canonical entities, edge weights summed.`)];
+    merges.forEach(m => rows.push(h('div', { class: 'merge' }, h('b', { text: `“${m.b}” ≡ “${m.a}”` }), ` · sort ${m.sort} · partial ${m.part} → ${m.score} ≥ 85 → keep “${m.canon}”`)));
+    if (llm.length) {
+      rows.push(h('div', { class: 'llm' }, h('b', { text: `${llm.length} pairs in the 60–84 band` }), ' would each trigger an LLM “same entity?” call (not simulated — kept separate here).'));
+      llm.slice(0, 4).forEach(m => rows.push(h('div', { class: 'llm' }, `“${m.b}” ? “${m.a}” · ${m.score}`, m.a === 'Yogyakarta' || m.b === 'Yogyakarta' ? ' — a real alias the LLM could resolve' : '')));
+      if (llm.length > 4) rows.push(h('div', { class: 'llm', text: `+ ${llm.length - 4} more pairs` }));
+    }
+    put(...rows);
+  });
+  $('#eg-louvain').addEventListener('click', () => {
+    const ids = S.nodes.map(n => n.id), r = louvain(ids, S.edges);
+    S.comm = new Map(ids.map((id, i) => [id, r.comm[i]])); S.sel = null; g.refreshStyle(); legend();
+    badge(S.stage === 'dedup' ? 'deduplicated + Louvain' : 'raw + Louvain', 'accent');
+    const by = {}; S.nodes.forEach(n => { const c = S.comm.get(n.id); (by[c] = by[c] || []).push(n); });
+    const rows = [h('div', {}, h('b', { text: `${r.count} communities` }), ` · modularity Q = ${r.Q.toFixed(3)}`)];
+    Object.keys(by).forEach(c => rows.push(h('div', { class: 'merge' }, h('b', { text: `Community ${+c + 1} (${by[c].length})` }), ' · ' + by[c].sort((a, b) => b.n - a.n).slice(0, 4).map(n => n.name).join(', ') + (by[c].length > 4 ? ' …' : ''))));
+    if (S.stage === 'raw') {
+      const split = dedupPreview(), cm = new Map(ids.map((id, i) => [id, r.comm[i]])), sp = [];
+      split.nodes.forEach(cn => { if (cn.members.length > 1 && new Set(cn.members.map(m => cm.get(m))).size > 1) sp.push(cn.members.join(' / ')); });
+      if (sp.length) rows.push(h('div', { class: 'llm' }, h('b', { text: 'Aliases split across communities: ' }), sp.join(' · '), ' — run step 1 first so one person stays one node.'));
+    } else rows.push(h('div', {}, 'Each community would get an LLM summary stored as a ', h('code', { class: 'i', text: 'community' }), ' node with ', h('code', { class: 'i', text: 'has_member' }), ' edges.'));
+    put(...rows);
+  });
+  $('#eg-reset').addEventListener('click', () => {
+    S.stage = 'raw'; S.comm = null; S.sel = null;
+    S.nodes = ENT.nodes.map(n => ({ id: n.id, name: n.id, n: n.n, type: n.type, members: [n.id] })); S.edges = ENT.edges;
+    $('#eg-dedup').disabled = false; $('#eg-dedup').classList.remove('done'); $('#eg-louvain').disabled = false;
+    badge('raw'); put(h('div', { text: 'Run step 1 to merge aliases.' })); load();
+  });
+  $('#g2-fit').addEventListener('click', () => g.fit(true));
+  badge('raw'); load();
+}
+
+function initDedupPlayground() {
+  const A = $('#dd-a'), B = $('#dd-b');
+  const presets = [['Dewi', 'Dewi Lestari'], ['Rizky Firmansyah', 'Rizki Firmansyah'], ['Aisha Putri Santoso', 'Aisha Santoso'], ['Dewi Lestari', 'Dewi Anggraini'], ['Jogja', 'Yogyakarta'], ['Budi', 'Kopi Kenangan']];
+  const P = $('#dd-presets');
+  presets.forEach(([a, b]) => P.append(h('button', { class: 'chip', type: 'button', text: `${a} ↔ ${b}`, onclick: () => { A.value = a; B.value = b; run(); } })));
+  const f = x => (Math.round(x * 10) / 10).toFixed(1).replace(/\.0$/, '');
+  function run() {
+    const a = A.value.trim(), b = B.value.trim();
+    if (!a || !b) { $('#dd-chip').textContent = 'enter two names'; $('#dd-chip').className = 'chip'; ['sort', 'part', 'sub', 'dec', 'can'].forEach(k => $('#dd-' + k).textContent = '—'); return; }
+    const r = scorePair(a, b), chipEl = $('#dd-chip');
+    $('#dd-sort').textContent = f(r.sort); $('#dd-part').textContent = f(r.part); $('#dd-sub').textContent = r.sub ? '75 (one is a substring)' : 'n/a';
+    const txt = r.exact ? 'exact match → reuse' : r.decision === 'merge' ? 'auto-merge' : r.decision === 'llm' ? 'ask the LLM' : 'new entity';
+    $('#dd-dec').textContent = `${f(r.score)} → ${txt}`;
+    $('#dd-can').textContent = (r.decision === 'merge' || r.exact) ? (b.length > a.length ? b : a) + (b.length > a.length ? ' (renamed to longer)' : '') : r.decision === 'llm' ? 'decided by the LLM' : `“${b}” becomes a new node`;
+    chipEl.textContent = r.exact ? 'exact' : r.decision === 'merge' ? 'merge' : r.decision === 'llm' ? 'LLM band' : 'new node'; chipEl.className = 'chip ' + (r.decision === 'merge' || r.exact ? 'green' : r.decision === 'llm' ? 'ochre' : '');
+    const sc = clamp(r.score, 0, 100), pos = sc < 60 ? sc / 60 * 60 : sc < 85 ? 60 + (sc - 60) / 25 * 25 : 85 + (sc - 85) / 15 * 15;
+    $('#dd-pin').style.left = pos + '%';
+  }
+  A.addEventListener('input', run); B.addEventListener('input', run); run();
+}
+
+function initGate() {
+  const cos = $('#cg-cos'), pin = $('#cg-pin'), val = $('#cg-val'), seg = $('#cg-verdict'), tl = $('#cg-tl');
+  let verdict = 'contradictory';
+  const OLD = 'F4 · valid_at 01-14', lane = (cls, top, left, width, text) => h('div', { class: 'lane', style: `top:${top}px;left:${left}%;width:${width}%;${cls}`, text });
+  function run() {
+    const v = +cos.value / 100, pass = v >= .35; val.textContent = v.toFixed(2); pin.style.left = (v * 100) + '%';
+    $$('button', seg).forEach(b => { b.disabled = !pass; b.classList.toggle('on', pass && b.dataset.v === verdict); });
+    const okC = 'border-color:#2e6b44;background:rgba(46,107,68,.12);color:#1d4a2e', badC = 'border-color:#b0262a;background:rgba(176,38,42,.10);color:#7d1a1d', newC = 'border-color:#a3431a;background:rgba(163,67,26,.11);color:#6b2a0e', offC = 'border-style:dashed;opacity:.55;background:transparent';
+    let gate, mut, chip, cls, lanes;
+    if (!pass) { gate = `${v.toFixed(2)} < 0.35 → skip the LLM`; mut = 'insert new fact · old fact untouched'; chip = 'below gate'; cls = ''; lanes = [lane(okC, 0, 0, 100, `${OLD} → open`), lane(newC, 30, 74, 26, 'new fact')]; }
+    else if (verdict === 'compatible') { gate = `${v.toFixed(2)} ≥ 0.35 → LLM: compatible`; mut = 'insert new fact · both stay valid'; chip = 'compatible'; cls = 'green'; lanes = [lane(okC, 0, 0, 100, `${OLD} → open`), lane(newC, 30, 74, 26, 'new fact')]; }
+    else if (verdict === 'duplicate') { gate = `${v.toFixed(2)} ≥ 0.35 → LLM: duplicate`; mut = 'skip insert · old fact kept'; chip = 'duplicate'; cls = 'ochre'; lanes = [lane(okC, 0, 0, 100, `${OLD} → open`), lane(offC, 30, 74, 26, 'skipped')]; }
+    else { gate = `${v.toFixed(2)} ≥ 0.35 → LLM: contradictory`; mut = 'old.invalid_at = 2024-02-03 · insert new fact'; chip = 'invalidate old'; cls = 'red'; lanes = [lane(badC, 0, 0, 74, `${OLD} → 02-03`), lane(newC, 30, 74, 26, 'new fact')]; }
+    $('#cg-gate').textContent = gate; $('#cg-mut').textContent = mut; $('#cg-chip').textContent = chip; $('#cg-chip').className = 'chip ' + cls;
+    tl.replaceChildren(...lanes);
+  }
+  cos.addEventListener('input', run);
+  seg.addEventListener('click', e => { const b = e.target.closest('button'); if (!b || b.disabled) return; verdict = b.dataset.v; run(); });
+  run();
+}
+
+/* ================= 04 · retrieval ================= */
+function initRetrieval() {
+  const LINKS = [['fn-q', 'fn-ag'], ['fn-q', 'fn-va'], ['fn-ag', 'fn-fact'], ['fn-ag', 'fn-ent'], ['fn-va', 'fn-pass']];
+  const MODES = {
+    agentic: { title: 'Agentic', desc: 'RetrievalAgent classifies the query, plans the search, fuses vector, entity-graph and keyword rankings with reciprocal rank fusion over temporally valid facts, then asks whether the context is sufficient — up to 3 iterations and 5–15 facts.',
+      on: ['fn-q', 'fn-ag', 'fn-fact', 'fn-ent'], tables: ['episode', 'extracted_fact', 'entity', 'community', 'edges'], out: [['a', 1, '≤ 15 [FACT] · valid at query time']] },
+    vanilla: { title: 'Vanilla', desc: 'The baseline: embed the query, pull 30 candidate passages from session_passage, rerank down to the top 10. No graph, no validity windows — just dense retrieval over whole sessions.',
+      on: ['fn-q', 'fn-va', 'fn-pass'], tables: ['session_passage'], out: [['v', 1, '10 session passages · reranked']] },
+    hybrid: { title: 'Hybrid', desc: 'Both legs run in parallel. The agent contributes the facts it decided were needed (5–15) and VanillaRetriever adds a fixed 5 raw passages as a detail supplement — 10–20 items in total.',
+      on: ['fn-q', 'fn-ag', 'fn-va', 'fn-fact', 'fn-ent', 'fn-pass'], tables: ['episode', 'extracted_fact', 'entity', 'community', 'session_passage', 'edges'], out: [['a', 2.6, '5–15 [FACT]'], ['v', 1.3, '5 [DETAIL]']] },
+  };
+  let mode = 'agentic';
+  const svg = $('#flow-links');
+  function draw() {
+    if (getComputedStyle(svg).display === 'none') return;
+    const fr = $('#flow').getBoundingClientRect(); if (!fr.width) return;
+    svg.setAttribute('viewBox', `0 0 ${fr.width} ${fr.height}`); svg.replaceChildren();
+    const defs = s('defs');
+    [['ag', C.accent], ['va', C.green], ['off', '#c4b08d']].forEach(([k, c]) => { const m = s('marker', { id: 'ar-' + k, viewBox: '0 0 10 10', refX: 9, refY: 5, markerWidth: 6, markerHeight: 6, orient: 'auto' }); m.append(s('path', { d: 'M0 1L10 5L0 9z', fill: c })); defs.append(m); });
+    svg.append(defs);
+    const on = new Set(MODES[mode].on);
+    const pt = (id, side) => { const r = $('#' + id).getBoundingClientRect(); return { x: (side === 'r' ? r.right : r.left) - fr.left, y: r.top + r.height / 2 - fr.top }; };
+    LINKS.forEach(([a, b]) => {
+      const p = pt(a, 'r'), q = pt(b, 'l'), act = on.has(a) && on.has(b), dx = (q.x - p.x) * .5;
+      const kind = act ? (b === 'fn-va' || b === 'fn-pass' ? 'va' : 'ag') : 'off';
+      svg.append(s('path', { class: 'lk ' + (act ? 'on ' : '') + kind, d: `M${p.x.toFixed(1)} ${p.y.toFixed(1)}C${(p.x + dx).toFixed(1)} ${p.y.toFixed(1)} ${(q.x - dx).toFixed(1)} ${q.y.toFixed(1)} ${(q.x - 3).toFixed(1)} ${q.y.toFixed(1)}`, 'marker-end': `url(#ar-${kind})` }));
+    });
+  }
+  function set(m) {
+    mode = m; const d = MODES[m], on = new Set(d.on);
+    $$('#rt-mode button').forEach(b => b.classList.toggle('on', b.dataset.m === m));
+    $('#rt-title').textContent = d.title; $('#rt-desc').textContent = d.desc;
+    ['fn-q', 'fn-ag', 'fn-va', 'fn-fact', 'fn-ent', 'fn-pass'].forEach(id => $('#' + id).classList.toggle('off', !on.has(id)));
+    $('#rt-out').replaceChildren(...d.out.map(([c, f, t]) => h('div', { class: c, style: `flex:${f}`, text: t })));
+    $$('#schema-body tr').forEach(tr => tr.classList.toggle('hl', d.tables.includes(tr.dataset.t)));
+    draw();
+  }
+  $('#rt-mode').addEventListener('click', e => { const b = e.target.closest('button'); if (b) set(b.dataset.m); });
+  if (typeof ResizeObserver !== 'undefined') new ResizeObserver(draw).observe($('#flow'));
+  set('agentic');
+
+  // agent loop
+  const STEPS = [
+    ['classify_query', 'factual · temporal · causal · aggregation · comparison'],
+    ['create_plan', 'entities to find, temporal filter, multi-hop for causal / comparison'],
+    ['execute_search', 'vector + entity graph + keyword, fused by RRF (k = 60)'],
+    ['evaluate_sufficiency', '< 5 facts → continue · ≥ 15 facts or 3 iterations → stop · else LLM judge'],
+    ['expand_search', 'use the missing-information hint, then search again'],
+  ];
+  const L = $('#loop'); STEPS.forEach(([n, p], i) => L.append(h('div', { class: 'loop-step', 'data-i': i }, h('span', { class: 'n', text: `0${i + 1}` }), h('b', { text: n }), h('p', { text: p }))));
+  const hl = i => $$('.loop-step', L).forEach((el, k) => el.classList.toggle('on', k === i));
+  let running = false;
+  $('#lp-play').addEventListener('click', async () => {
+    if (running) return; running = true; const btn = $('#lp-play'); btn.disabled = true;
+    const seq = [[0, 1], [1, 1], [2, 1], [3, 1, ' · not sufficient'], [4, 1], [2, 2], [3, 2, ' · sufficient → stop']], wait = ms => new Promise(r => setTimeout(r, REDUCED ? 60 : ms));
+    for (const [i, it, note] of seq) { hl(i); $('#lp-iter').textContent = `iteration ${it} / 3${note || ''}`; await wait(780); }
+    hl(-1); btn.disabled = false; btn.textContent = '↺ Run again'; running = false;
+  });
+  hl(-1);
+
+  const P = [['30', 'embedding_top_k', 'vector candidates'], ['10', 'rerank_top_k', 'final results'], ['3', 'max_iterations', 'agent loop cap'], ['5–15', 'min / max_agent_facts', 'facts collected'], ['60', 'rrf_rank_const', 'vector + entity + keyword'], ['0.5', 'similarity_threshold', 'skipped for RRF scores'], ['on', 'enable_temporal_filter', 'valid_at / invalid_at'], ['off', 'use_mmr', 'λ = 0.5 when enabled']];
+  $('#params').replaceChildren(...P.map(([v, k, d]) => h('div', { class: 'param' }, h('b', { text: v }), h('span', { class: 'mono', text: k }), h('span', { text: d }))));
+}
+
+/* ================= 05 · dataset + eval ================= */
+function jsonHtml(obj) {
+  const t = JSON.stringify(obj, null, 2), re = /("(?:\\.|[^"\\])*")(\s*:)?|(-?\b\d+(?:\.\d+)?\b)|\b(true|false|null)\b/g;
+  let out = '', last = 0, m;
+  while ((m = re.exec(t))) {
+    out += esc(t.slice(last, m.index));
+    if (m[1] !== undefined) out += m[2] ? `<span class="tok-k">${esc(m[1])}</span>${esc(m[2])}` : `<span class="tok-s">${esc(m[1])}</span>`;
+    else if (m[3] !== undefined) out += `<span class="tok-n">${m[3]}</span>`; else out += `<span class="tok-r">${m[4]}</span>`;
+    last = m.index + m[0].length;
+  }
+  return out + esc(t.slice(last));
+}
+function initDataset() {
+  const SN = DATA.snip;
+  const TABS = [
+    { t: 'Persona', s: 'Identity, traits, relationships', env: 'STAGE 1 · STRUCTURED TIER', out: 'auto_generated_persona.json', c: 'A coherent persona — traits, hobbies and secondary characters such as friends and family — seeds every later stage, so the dialogue stays in character for four months.' },
+    { t: 'Causal events', s: 'Dated events with caused_by', env: 'STAGE 2 · STRUCTURED TIER', out: 'user_events.json', c: 'Dated life events, each listing the earlier events that caused it. This is the graph from section 01 — here is the raw shape.' },
+    { t: 'Sessions', s: 'Multi-turn Bahasa Indonesia', env: 'STAGE 3 · DIALOG TIER', out: 'conversation_dataset.json', c: 'Per session date: look up relevant events, write a multi-turn dialogue, summarise it. Cumulative summaries feed the next session. Long dialogues can use context caching (--use-caching).' },
+    { t: 'Ground truth', s: 'Per-turn facts & entities', env: 'STAGE 4 · LIGHT TIER', out: 'ground_truths[]', c: 'For every turn: facts with confidence and category, mentioned entities, temporal references and whether retrieval is required — the answer key behind the 100 evaluation queries.' },
+  ];
+  const tabs = $('#ds-tabs'); let cur = 0;
+  TABS.forEach((x, i) => tabs.append(h('button', { class: 'tab', type: 'button', role: 'tab', onclick: () => show(i) }, h('b', {}, x.t, h('span', { class: 'chip', text: `0${i + 1}` })), h('span', { text: x.s }))));
+  function show(i) {
+    cur = i; $$('.tab', tabs).forEach((b, k) => { b.classList.toggle('on', k === i); b.setAttribute('aria-selected', k === i); });
+    $('#ds-env').textContent = TABS[i].env; $('#ds-out').textContent = TABS[i].out; $('#ds-copy').textContent = TABS[i].c; $('#ds-json').innerHTML = jsonHtml(SN[i]);
+  }
+  show(0);
+
+  // evaluation
+  const ST = DATA.stats, Q = DATA.evalq, nice = k => k.replace(/_/g, ' ');
+  const bars = (el, obj, order) => { const max = Math.max(...Object.values(obj)); el.replaceChildren(...order.map(k => h('div', { class: 'bar-row' }, h('span', { class: 'nm', text: nice(k) }), h('div', { class: 'tr' }, h('i', { style: `width:${obj[k] / max * 100}%` })), h('span', { class: 'ct', text: obj[k] })))); };
+  bars($('#bars-type'), ST.types, Object.keys(ST.types).sort((a, b) => ST.types[b] - ST.types[a]));
+  bars($('#bars-diff'), ST.diffs, ['easy', 'medium', 'hard']);
+  const tSel = $('#q-type'), dSel = $('#q-diff');
+  tSel.append(h('option', { value: '', text: 'All types' }), ...Object.keys(ST.types).sort((a, b) => ST.types[b] - ST.types[a]).map(k => h('option', { value: k, text: `${nice(k)} (${ST.types[k]})` })));
+  dSel.append(h('option', { value: '', text: 'All' }), ...['easy', 'medium', 'hard'].map(k => h('option', { value: k, text: `${k} (${ST.diffs[k]})` })));
+  const open = new Set(); const dcol = { easy: 'green', medium: 'ochre', hard: 'red' };
+  function list() {
+    const t = tSel.value, d = dSel.value, q = $('#q-search').value.trim().toLowerCase();
+    const rows = Q.filter(x => (!t || x.type === t) && (!d || x.diff === d) && (!q || x.q.toLowerCase().includes(q) || x.a.toLowerCase().includes(q)));
+    $('#q-count').textContent = `${rows.length} of ${Q.length} queries`;
+    $('#q-list').replaceChildren(...rows.map(x => {
+      const o = open.has(x.id);
+      return h('button', { class: 'qitem' + (o ? ' open' : ''), type: 'button', 'aria-expanded': o, onclick: () => { open.has(x.id) ? open.delete(x.id) : open.add(x.id); list(); } },
+        h('span', { class: 'qq', text: x.q }),
+        h('span', { class: 'chips' }, h('span', { class: 'chip accent', text: nice(x.type) }), h('span', { class: 'chip ' + dcol[x.diff], text: x.diff }), x.s ? h('span', { class: 'chip', text: `session${x.s.includes(',') ? 's' : ''} ${x.s}` }) : null, x.x ? h('span', { class: 'chip', text: 'cross-session' }) : null),
+        o ? h('span', { class: 'qa' }, h('span', { class: 'label', text: 'Expected answer' }), x.a) : null);
+    }));
+    if (!rows.length) $('#q-list').append(h('p', { class: 'small muted', text: 'No queries match these filters.' }));
+  }
+  [tSel, dSel].forEach(el => el.addEventListener('change', list)); $('#q-search').addEventListener('input', list); list();
+}
+
+/* ================= 06 · configurator ================= */
+function initConfigurator() {
+  const $v = id => $('#' + id);
+  function build() {
+    const mode = $v('cf-mode').value, llm = $v('cf-llm').value, emb = $v('cf-emb').value, cache = $v('cf-cache').checked, nj = $v('cf-nojudge').checked;
+    const env = [
+      '# LLM + embeddings', 'GEMINI_API_KEY=your-gemini-api-key-here',
+      ...(llm === 'novita' ? ['NOVITAAI_API_KEY=your-novita-api-key-here'] : []),
+      `LLM_PROVIDER=${llm}`, `LLM_MODEL=${llm === 'novita' ? 'google/gemma-3-27b-it' : ''}`, `EMBED_PROVIDER=${emb}`, `EMBED_MODEL=${emb === 'huggingface' ? 'google/embeddinggemma-300m' : ''}`,
+      '', '# RAG partitions', 'RAG_GROUP_ID=agentic_default', 'RAG_SESSION_COLLECTION=vanilla_default', `RAG_MODE=${mode}`,
+      '', '# SurrealDB', 'SURREAL_URL=ws://127.0.0.1:8000', 'SURREAL_USER=root', 'SURREAL_PASS=root', 'SURREAL_NS=tempograph', 'SURREAL_DB=main',
+    ].join('\n');
+    const cli = [
+      '# 1 · generate the dataset (needs GEMINI_API_KEY)',
+      'python src/dataset/generator.py \\', '  --out-dir ./data/dataset \\', `  --num-sessions 10 --num-events 20 --num-days 60${cache ? ' \\' : ''}`, ...(cache ? ['  --use-caching'] : []),
+      '', `# 2 · ingest into SurrealDB (SurrealDB already running)`,
+      'python scripts/run_with_local_surreal.py --no-start -- \\', '  python scripts/ingest_agentic.py --setup env \\', `  --limit 10 --batch 10${mode === 'agentic' ? ' --no-passages' : ''}`,
+      '', `# 3 · evaluate the ${mode} path`,
+      'python scripts/run_with_local_surreal.py --no-start -- \\', '  python scripts/evaluate_agentic.py --setup env \\', `  --limit 5${nj ? ' --no-llm-judge' : ''}`,
+    ].join('\n');
+    const hi = t => esc(t).replace(/^(#.*)$/gm, '<span class="tok-c">$1</span>').replace(/^([A-Z_]+)=/gm, '<span class="tok-k">$1</span>=');
+    $v('cf-env').innerHTML = hi(env); $v('cf-cli').innerHTML = esc(cli).replace(/^(#.*)$/gm, '<span class="tok-c">$1</span>');
+    $v('cf-env').dataset.raw = env; $v('cf-cli').dataset.raw = cli;
+  }
+  ['cf-mode', 'cf-llm', 'cf-emb', 'cf-cache', 'cf-nojudge'].forEach(id => $v(id).addEventListener('change', build)); build();
+  $$('[data-copy]').forEach(b => b.addEventListener('click', async () => {
+    const el = $v(b.dataset.copy), text = el.dataset.raw || el.textContent;
+    try { await navigator.clipboard.writeText(text); } catch (_) { const ta = h('textarea', { style: 'position:fixed;opacity:0' }); ta.value = text; document.body.append(ta); ta.select(); try { document.execCommand('copy'); } catch (__) {} ta.remove(); }
+    const old = b.textContent; b.textContent = 'Copied ✓'; setTimeout(() => { b.textContent = old; }, 1400);
+  }));
+}
+
+/* ================= page chrome ================= */
+function initChrome() {
+  document.documentElement.classList.remove('no-js');
+  const links = $$('.nav-links a'), secs = links.map(a => $(a.getAttribute('href'))).filter(Boolean);
+  if ('IntersectionObserver' in window) {
+    const spy = new IntersectionObserver(en => en.forEach(e => { if (e.isIntersecting) links.forEach(a => a.classList.toggle('on', a.getAttribute('href') === '#' + e.target.id)); }), { rootMargin: '-35% 0px -60% 0px' });
+    secs.forEach(sec => spy.observe(sec));
+    const rv = new IntersectionObserver(en => en.forEach(e => { if (e.isIntersecting) { e.target.classList.add('in'); rv.unobserve(e.target); } }), { rootMargin: '0px 0px -6% 0px' });
+    $$('.reveal').forEach(el => rv.observe(el));
+  } else $$('.reveal').forEach(el => el.classList.add('in'));
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  const run = (name, fn) => { try { fn(); } catch (err) { console.error('[tempograph] ' + name, err); } };
+  run('chrome', initChrome); run('eventGraph', initEventGraph); run('timeline', initTimeline); run('entityLab', initEntityLab);
+  run('dedup', initDedupPlayground); run('gate', initGate); run('retrieval', initRetrieval); run('dataset', initDataset); run('config', initConfigurator);
+});
+
+</script>
+</body>
+</html>
