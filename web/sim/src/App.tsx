@@ -232,6 +232,7 @@ export default function App() {
                   width: "140%", 
                   height: "140%", 
                   objectFit: "contain",
+                  filter: "sepia(1) saturate(2.4) hue-rotate(-14deg) brightness(0.92)",
                 }} 
               />
             </div>
@@ -418,7 +419,7 @@ export default function App() {
               </div>
 
               {/* Transkrip Chat */}
-              <div style={{ flex: 1, overflowY: "auto", padding: "24px 32px", scrollBehavior: "smooth" }}>
+              <div style={{ flex: 1, overflowY: "auto", padding: "24px 32px 40px", scrollBehavior: "smooth" }}>
                 <div style={{ textAlign: "center", marginBottom: 32 }}>
                   <span style={{ fontSize: 12, fontWeight: 500, color: "var(--text-muted)", background: "var(--border-light)", padding: "6px 14px", borderRadius: "var(--radius-full)" }}>
                     {session.datetime || session.date}
